@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Lens ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E0C097"
+        android:strokeWidth="5"
+        android:pathData="M54,54m-27,0a27,27 0,1 1,54 0a27,27 0,1 1,-54 0" />
+    <!-- Aperture blades -->
+    <path
+        android:fillColor="#E0C097"
+        android:pathData="M54,36 L66,43 L66,57 L54,64 L42,57 L42,43 Z" />
+    <path
+        android:fillColor="#15161A"
+        android:pathData="M54,44 L61,48 L61,56 L54,60 L47,56 L47,48 Z" />
+    <!-- Slider tick -->
+    <path
+        android:fillColor="#9FB4C7"
+        android:pathData="M30,86 L78,86 L78,89 L30,89 Z" />
+    <path
+        android:fillColor="#E0C097"
+        android:pathData="M60,82 L66,82 L66,93 L60,93 Z" />
+</vector>
