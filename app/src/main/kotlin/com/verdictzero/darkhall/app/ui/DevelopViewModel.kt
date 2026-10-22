@@ -74,7 +74,14 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             paramsFlow.filterNotNull().collectLatest { p ->
                 delay(8) // coalesce bursts of slider events
-                val result = withContext(Dispatchers.Default) { renderPreview(p) } ?: return@collectLatest
+                val result = try {
+                    withContext(Dispatchers.Default) { renderPreview(p) } ?: return@collectLatest
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    _state.update { it.copy(message = "Render failed: ${e.message ?: e.javaClass.simpleName}") }
+                    return@collectLatest
+                }
                 _state.update { it.copy(preview = result.bitmap, histogram = result.histogram, renderMs = result.ms) }
             }
         }

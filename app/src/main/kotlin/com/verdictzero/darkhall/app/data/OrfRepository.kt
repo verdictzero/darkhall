@@ -28,11 +28,28 @@ object OrfRepository {
     private const val THUMB_SIZE = 480
 
     fun readBytes(resolver: ContentResolver, uri: Uri): ByteArray {
+        val expected = runCatching { resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } }.getOrNull() ?: -1L
         val input = resolver.openInputStream(uri) ?: throw IllegalStateException("Cannot open $uri")
-        input.use { return it.readFully() }
+        input.use { return it.readFully(expected) }
     }
 
-    private fun InputStream.readFully(): ByteArray {
+    private fun InputStream.readFully(expected: Long): ByteArray {
+        if (expected in 1..(64L * 1024 * 1024)) {
+            // Known size: read straight into a right-sized array, no intermediate copy.
+            val buf = ByteArray(expected.toInt())
+            var off = 0
+            while (off < buf.size) {
+                val n = read(buf, off, buf.size - off)
+                if (n < 0) break
+                off += n
+            }
+            if (off == buf.size && read() < 0) return buf
+            // Size was wrong; fall back to streaming the rest.
+            val out = ByteArrayOutputStream(buf.size + (1 shl 20))
+            out.write(buf, 0, off)
+            copyTo(out)
+            return out.toByteArray()
+        }
         val out = ByteArrayOutputStream(16 * 1024 * 1024)
         val buf = ByteArray(1 shl 16)
         while (true) {
@@ -108,6 +125,9 @@ object OrfRepository {
         return Loaded(bytes, OrfParser.parse(bytes))
     }
 
+    /** Only one full raw decode at a time for thumbnails; a grid of them would exhaust the heap. */
+    private val heavyThumbnailLock = Any()
+
     /** Thumbnail from the camera's embedded JPEG preview (first ~1 MB of the file), cached on disk. */
     fun thumbnail(context: Context, file: RawFile): Bitmap? {
         val dir = File(context.cacheDir, "thumbs").apply { mkdirs() }
@@ -125,12 +145,13 @@ object OrfRepository {
             val bmp = if (meta.previewLength > 0) {
                 decodeJpeg(bytes, meta.previewOffset.toInt(), meta.previewLength, THUMB_SIZE)
             } else {
-                renderTiny(bytes, meta)
+                synchronized(heavyThumbnailLock) { renderTiny(bytes, meta) }
             } ?: return null
             val oriented = applyOrientation(bmp, meta.orientation)
             FileOutputStream(cached).use { oriented.compress(Bitmap.CompressFormat.JPEG, 85, it) }
             oriented
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            // Includes OutOfMemoryError: a missing thumbnail is better than a dead app.
             null
         }
     }

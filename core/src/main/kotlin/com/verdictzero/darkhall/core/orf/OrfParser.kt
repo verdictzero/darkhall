@@ -155,8 +155,10 @@ object OrfParser {
     )
 
     private fun parseMakerNote(r: Reader, mnOff: Int, mnLen: Int): MakerNoteData? {
-        if (mnOff + 16 > r.size) return null
-        val head = String(ByteArray(8) { r.u8(mnOff + it).toByte() }, Charsets.ISO_8859_1)
+        if (mnOff + 20 > r.size) return null
+        // Long enough for "OM SYSTEM\0\0\0" (12 bytes), the header OM Digital Solutions
+        // bodies such as the TG-7 write; Olympus-era files use "OLYMPUS\0" or "OLYMP\0".
+        val head = String(ByteArray(12) { r.u8(mnOff + it).toByte() }, Charsets.ISO_8859_1)
         val base: Int
         val ifdOff: Int
         val reader: Reader
