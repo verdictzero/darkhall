@@ -15,6 +15,11 @@ class Prefs(context: Context) {
         get() = sp.getStringSet("files", emptySet())!!.map { Uri.parse(it) }
         set(v) { sp.edit().putStringSet("files", v.map { it.toString() }.toSet()).apply() }
 
+    /** Sliders copied with "Copy settings", as JSON; null when nothing has been copied. */
+    var copiedSettings: String?
+        get() = sp.getString("copied", null)
+        set(v) { sp.edit().putString("copied", v).apply() }
+
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)
         set(v) { sp.edit().putInt("previewLongEdge", v).apply() }

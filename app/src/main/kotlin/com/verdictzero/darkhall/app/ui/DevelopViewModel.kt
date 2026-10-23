@@ -6,7 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
-import com.verdictzero.darkhall.app.data.ExportService
+import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.OrfRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.core.develop.Adjustment
@@ -14,12 +14,15 @@ import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
-import com.verdictzero.darkhall.core.develop.FullRender
+import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.LinearImage
+import com.verdictzero.darkhall.core.develop.Region
+import com.verdictzero.darkhall.core.develop.RegionRender
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.orf.OlympusDecoder
 import com.verdictzero.darkhall.core.orf.OrfMetadata
 import com.verdictzero.darkhall.core.orf.RawImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -27,6 +30,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
@@ -34,6 +38,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
+
+/** A full-resolution render of the zoomed-in area, positioned in displayed normalised coordinates. */
+class Loupe(
+    val bitmap: Bitmap,
+    val left: Float, val top: Float, val right: Float, val bottom: Float,
+    val params: DevelopParams,
+)
+
+/** What the preview pane is showing: normalised displayed rect plus how many screen pixels it spans. */
+data class LoupeRequest(val left: Float, val top: Float, val right: Float, val bottom: Float, val screenWidthPx: Float)
 
 data class DevelopState(
     val fileName: String = "",
@@ -45,11 +63,19 @@ data class DevelopState(
     val histogram: IntArray? = null,
     val params: DevelopParams = DevelopParams.NEUTRAL,
     val defaults: DevelopParams = DevelopParams.NEUTRAL,
-    val exportProgress: Float? = null,
     val message: String? = null,
     val renderMs: Long = 0,
+    val loupe: Loupe? = null,
+    val loupeBusy: Boolean = false,
+    val canPaste: Boolean = false,
+    val hasLensProfile: Boolean = false,
 )
 
+/**
+ * One editing session at a time. The activity owns a single instance; [open] swaps files and
+ * [close] drops the decoded raw (~25 MB), the preview planes and all scratch buffers, so
+ * browsing many photos never accumulates memory.
+ */
 @OptIn(FlowPreview::class)
 class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -64,11 +90,13 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private var ctx: RenderContext? = null
     private var frame: Frame? = null
     private var editsKey = ""
-    private var baseName = "image"
     private val developer = Developer()
+    private val loupeDeveloper = Developer()
     private val renderLock = Mutex()
+    private val loupeLock = Mutex()
     private val paramsFlow = MutableStateFlow<DevelopParams?>(null)
-    private var exportJob: Job? = null
+    private val loupeRequests = MutableStateFlow<LoupeRequest?>(null)
+    private var loadJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -76,7 +104,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 delay(8) // coalesce bursts of slider events
                 val result = try {
                     withContext(Dispatchers.Default) { renderPreview(p) } ?: return@collectLatest
-                } catch (e: kotlinx.coroutines.CancellationException) {
+                } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
                     _state.update { it.copy(message = "Render failed: ${e.message ?: e.javaClass.simpleName}") }
@@ -86,33 +114,72 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch {
-            paramsFlow.filterNotNull().debounce(500).collect { p ->
-                withContext(Dispatchers.IO) { runCatching { EditsStore.save(getApplication(), editsKey, p) } }
+            paramsFlow.filterNotNull().debounce(400).collect { p ->
+                val key = editsKey
+                if (key.isNotEmpty()) withContext(Dispatchers.IO) { runCatching { EditsStore.save(getApplication(), key, p) } }
             }
+        }
+        viewModelScope.launch {
+            combine(paramsFlow, loupeRequests) { p, r -> p to r }
+                .debounce(220)
+                .collectLatest { (p, r) -> updateLoupe(p, r) }
         }
     }
 
     fun open(uri: Uri) {
-        if (loadedUri == uri) return
+        if (loadedUri == uri && _state.value.error == null) return
+        close()
         loadedUri = uri
-        _state.value = DevelopState()
-        viewModelScope.launch {
+        _state.value = DevelopState(canPaste = prefs.copiedSettings != null)
+        loadJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { loadFile(uri) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: OutOfMemoryError) {
+                close()
+                _state.update { it.copy(loading = false, error = "Not enough memory to open this file. Close other apps and try again.") }
             } catch (e: Throwable) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
             }
         }
     }
 
+    /** Releases everything held for the current file. Safe to call repeatedly. */
+    fun close() {
+        loadJob?.cancel()
+        loadJob = null
+        // Persist the latest sliders immediately; the debounced save may not have fired yet.
+        val key = editsKey
+        val p = paramsFlow.value
+        if (key.isNotEmpty() && p != null && !_state.value.loading) runCatching { EditsStore.save(getApplication(), key, p) }
+        loadedUri = null
+        paramsFlow.value = null
+        loupeRequests.value = null
+        meta = null; raw = null; preview = null; ctx = null; frame = null
+        editsKey = ""
+        viewModelScope.launch(Dispatchers.Default) {
+            renderLock.withLock { developer.release() }
+            loupeLock.withLock { loupeDeveloper.release() }
+        }
+        _state.value = DevelopState()
+    }
+
+    override fun onCleared() {
+        close()
+        super.onCleared()
+    }
+
     private suspend fun loadFile(uri: Uri) {
         val app = getApplication<Application>()
         val file = OrfRepository.describe(app.contentResolver, uri)
-        baseName = file.baseName
-        editsKey = file.key
-        val loaded = OrfRepository.load(app.contentResolver, uri)
-        val m = loaded.meta
-        val r = OlympusDecoder.decode(loaded.bytes, m)
+        val m: OrfMetadata
+        val r: RawImage
+        run {
+            val loaded = OrfRepository.load(app.contentResolver, uri)
+            m = loaded.meta
+            r = OlympusDecoder.decode(loaded.bytes, m)
+        }
         val half = Demosaic.superpixel(r)
         val longEdge = prefs.previewLongEdge
         val pv = if (half.width > longEdge) {
@@ -120,10 +187,17 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         } else half
         val c = RenderContext.forFile(m, pv)
         val defaults = DevelopParams.defaultsFor(m)
-        val saved = EditsStore.load(app, editsKey, defaults)
-        meta = m; raw = r; preview = pv; ctx = c
-        frame = Frame(0, 0, pv.width.toFloat() / m.crop.width)
-        val compare = renderLock.withLock { toBitmap(developer.render(pv, c, defaults, frame!!), pv.width, pv.height, m.orientation) }
+        val saved = EditsStore.load(app, file.key, defaults)
+        val f = Frame(0, 0, pv.width.toFloat() / m.crop.width)
+        // "As shot": the camera's own rendering, without the underwater correction.
+        val asShot = defaults.with(Adjustment.WATER, 0f)
+        val compare = renderLock.withLock {
+            val px = developer.render(pv, c, asShot, f)
+            toBitmap(Geometry.apply(px, pv.width, pv.height, asShot, c.lens), pv.width, pv.height, m.orientation)
+        }
+        if (loadedUri != uri) return // closed or switched while loading
+        meta = m; raw = r; preview = pv; ctx = c; frame = f
+        editsKey = file.key
         _state.update {
             it.copy(
                 fileName = file.name,
@@ -132,6 +206,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 defaults = defaults,
                 params = saved ?: defaults,
                 compare = compare,
+                hasLensProfile = c.lens != null,
             )
         }
         paramsFlow.value = saved ?: defaults
@@ -139,24 +214,97 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     private class PreviewResult(val bitmap: Bitmap, val histogram: IntArray, val ms: Long)
 
-    private suspend fun renderPreview(p: DevelopParams): PreviewResult? {
+    private suspend fun renderPreview(p: DevelopParams): PreviewResult? = renderLock.withLock {
         val pv = preview ?: return null
         val c = ctx ?: return null
         val f = frame ?: return null
         val m = meta ?: return null
-        return renderLock.withLock {
-            val t0 = System.nanoTime()
-            val px = Developer.applyGeometry(developer.render(pv, c, p, f), pv.width, pv.height, p)
-            val hist = Developer.histogram(px)
-            val bmp = toBitmap(px, pv.width, pv.height, m.orientation)
-            PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000)
-        }
+        val t0 = System.nanoTime()
+        val px = Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+        val hist = Developer.histogram(px)
+        val bmp = toBitmap(px, pv.width, pv.height, m.orientation)
+        PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000)
     }
 
     private fun toBitmap(argb: IntArray, w: Int, h: Int, orientation: Int): Bitmap {
         val bmp = Bitmap.createBitmap(argb, w, h, Bitmap.Config.ARGB_8888)
         return OrfRepository.applyOrientation(bmp, orientation)
     }
+
+    // ---- full-resolution zoom ------------------------------------------------------------
+
+    fun requestLoupe(request: LoupeRequest?) {
+        loupeRequests.value = request
+        if (request == null) _state.update { it.copy(loupe = null, loupeBusy = false) }
+    }
+
+    private suspend fun updateLoupe(p: DevelopParams?, req: LoupeRequest?) {
+        val m = meta
+        val r = raw
+        val c = ctx
+        val pv = preview
+        if (p == null || req == null || m == null || r == null || c == null || pv == null) {
+            if (req == null) loupeLock.withLock { loupeDeveloper.release() }
+            return
+        }
+        val w = m.crop.width
+        val h = m.crop.height
+        // Displayed rect -> sensor-oriented pixel rect.
+        val corners = listOf(req.left to req.top, req.right to req.top, req.left to req.bottom, req.right to req.bottom)
+            .map { (u, v) -> Orientation.toSensor(m.orientation, u, v) }
+        val nx0 = corners.minOf { it.first }.coerceIn(0f, 1f)
+        val nx1 = corners.maxOf { it.first }.coerceIn(0f, 1f)
+        val ny0 = corners.minOf { it.second }.coerceIn(0f, 1f)
+        val ny1 = corners.maxOf { it.second }.coerceIn(0f, 1f)
+        val x0 = (nx0 * w).toInt()
+        val y0 = (ny0 * h).toInt()
+        val rw = ((nx1 * w).roundToInt() - x0).coerceAtLeast(1)
+        val rh = ((ny1 * h).roundToInt() - y0).coerceAtLeast(1)
+        // Full-res pixels across the displayed width of the region.
+        val displayedFullWidth = if (Orientation.swapsAxes(m.orientation)) rh else rw
+        var scale = min(1f, req.screenWidthPx / displayedFullWidth)
+        val previewScale = pv.width.toFloat() / w
+        if (scale < previewScale * 1.2f) {
+            // The proxy already has enough pixels for this zoom level.
+            _state.update { it.copy(loupe = null, loupeBusy = false) }
+            return
+        }
+        // Keep the region render within ~4 MP so it stays fast and small on a phone.
+        val budget = 4_000_000f
+        val px = rw * scale * rh * scale
+        if (px > budget) scale *= sqrt(budget / px)
+        _state.update { it.copy(loupeBusy = true) }
+        val bmp = try {
+            withContext(Dispatchers.Default) {
+                loupeLock.withLock {
+                    val out = RegionRender.render(r, c, p, Region(x0, y0, rw, rh), scale, loupeDeveloper)
+                    toBitmap(out.argb, out.width, out.height, m.orientation)
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            _state.update { it.copy(loupeBusy = false) }
+            return
+        }
+        val dc = listOf(
+            Orientation.toDisplayed(m.orientation, x0.toFloat() / w, y0.toFloat() / h),
+            Orientation.toDisplayed(m.orientation, (x0 + rw).toFloat() / w, (y0 + rh).toFloat() / h),
+        )
+        _state.update {
+            it.copy(
+                loupe = Loupe(
+                    bmp,
+                    min(dc[0].first, dc[1].first), min(dc[0].second, dc[1].second),
+                    max(dc[0].first, dc[1].first), max(dc[0].second, dc[1].second),
+                    p,
+                ),
+                loupeBusy = false,
+            )
+        }
+    }
+
+    // ---- sliders ---------------------------------------------------------------------------
 
     fun set(a: Adjustment, v: Float) {
         val next = _state.value.params.with(a, v)
@@ -170,37 +318,33 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val d = _state.value.defaults
         _state.update { it.copy(params = d) }
         paramsFlow.value = d
-        viewModelScope.launch(Dispatchers.IO) { runCatching { EditsStore.clear(getApplication(), editsKey) } }
+        val key = editsKey
+        viewModelScope.launch(Dispatchers.IO) { runCatching { EditsStore.clear(getApplication(), key) } }
+    }
+
+    fun copySettings() {
+        prefs.copiedSettings = EditsStore.toJson(_state.value.params)
+        _state.update { it.copy(canPaste = true, message = "Settings copied. Paste them onto other photos from the library.") }
+    }
+
+    fun pasteSettings() {
+        val json = prefs.copiedSettings ?: return
+        val copied = EditsStore.fromJson(json, _state.value.defaults) ?: return
+        val next = copied.with(Adjustment.STRAIGHTEN, _state.value.params[Adjustment.STRAIGHTEN])
+        _state.update { it.copy(params = next, message = "Settings pasted") }
+        paramsFlow.value = next
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
     fun export() {
-        if (exportJob?.isActive == true) return
-        val r = raw ?: return
-        val c = ctx ?: return
-        val m = meta ?: return
+        val uri = loadedUri ?: return
         val p = _state.value.params
-        exportJob = viewModelScope.launch {
-            _state.update { it.copy(exportProgress = 0f) }
-            try {
-                val result = withContext(Dispatchers.Default) {
-                    val rendered = FullRender.render(r, c, p, progress = { f ->
-                        _state.update { it.copy(exportProgress = f * 0.85f) }
-                    }) ?: throw IllegalStateException("cancelled")
-                    var bmp = Bitmap.createBitmap(rendered.argb, rendered.width, rendered.height, Bitmap.Config.ARGB_8888)
-                    bmp = OrfRepository.applyOrientation(bmp, m.orientation)
-                    _state.update { it.copy(exportProgress = 0.9f) }
-                    val saved = ExportService.saveJpeg(getApplication(), bmp, m, baseName)
-                    bmp.recycle()
-                    saved
-                }
-                _state.update { it.copy(message = "Saved ${result.displayPath}") }
-            } catch (e: Throwable) {
-                _state.update { it.copy(message = "Export failed: ${e.message ?: e.javaClass.simpleName}") }
-            } finally {
-                _state.update { it.copy(exportProgress = null) }
-            }
+        val key = editsKey
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { runCatching { EditsStore.save(getApplication(), key, p) } }
+            ExportQueue.enqueue(getApplication(), listOf(uri))
+            _state.update { it.copy(message = "Export started. It keeps running if you leave the app.") }
         }
     }
 }

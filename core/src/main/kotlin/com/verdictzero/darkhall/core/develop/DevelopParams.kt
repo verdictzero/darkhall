@@ -30,6 +30,8 @@ enum class Adjustment(
 
     TEMPERATURE("Temperature", AdjustmentGroup.COLOR, -100f, 100f, 0f),
     TINT("Tint", AdjustmentGroup.COLOR, -100f, 100f, 0f),
+    /** Underwater colour: removes the blue-green veil and restores the red water absorbs. */
+    WATER("Underwater", AdjustmentGroup.COLOR, 0f, 100f, 0f),
     VIBRANCE("Vibrance", AdjustmentGroup.COLOR, -100f, 100f, 0f),
     SATURATION("Saturation", AdjustmentGroup.COLOR, -100f, 100f, 0f),
 
@@ -39,6 +41,8 @@ enum class Adjustment(
     LUMA_NR("Luminance NR", AdjustmentGroup.DETAIL, 0f, 100f, 0f),
     CHROMA_NR("Color NR", AdjustmentGroup.DETAIL, 0f, 100f, 25f),
 
+    /** Strength of the built-in TG lens profile (distortion + colour fringing). */
+    LENS_PROFILE("Lens profile", AdjustmentGroup.LENS, 0f, 100f, 100f),
     VIGNETTE("Vignette", AdjustmentGroup.LENS, -100f, 100f, 0f),
     DISTORTION("Distortion", AdjustmentGroup.LENS, -100f, 100f, 0f),
     STRAIGHTEN("Straighten", AdjustmentGroup.LENS, -10f, 10f, 0f, 1, "°"),
@@ -46,7 +50,7 @@ enum class Adjustment(
 
     fun format(v: Float): String {
         val s = if (decimals == 0) v.roundToInt().toString() else "%.${decimals}f".format(v)
-        val signed = if (v > 0f && this != SHARPEN && this != LUMA_NR && this != CHROMA_NR) "+$s" else s
+        val signed = if (v > 0f && min < 0f) "+$s" else s
         return signed + unit
     }
 }
@@ -84,7 +88,8 @@ class DevelopParams private constructor(private val values: FloatArray) {
         /**
          * Starting point for a file. The TG-7's small sensor gets noisy quickly, so the
          * default noise reduction follows the ISO the shot was taken at:
-         * nothing at base ISO, moderate by ISO 800, strong at ISO 3200+.
+         * nothing at base ISO, moderate by ISO 800, strong at ISO 3200+. Underwater shots
+         * start with the underwater correction switched on.
          */
         fun defaultsFor(meta: OrfMetadata): DevelopParams {
             val iso = if (meta.iso > 0) meta.iso else 100
@@ -92,7 +97,11 @@ class DevelopParams private constructor(private val values: FloatArray) {
             val luma = (stops * 12.0).coerceIn(0.0, 70.0).toFloat()
             val chroma = (25.0 + stops * 12.0).coerceIn(0.0, 90.0).toFloat()
             val sharpen = (30.0 - stops * 3.0).coerceIn(10.0, 30.0).toFloat()
+            // Underwater shots: the TG-7 logs depth from its pressure sensor. Start the
+            // underwater correction there, stronger the deeper the shot (red fades fast).
+            val water = meta.estimatedDepth?.let { d -> if (d >= 0.5) (40.0 + 4.0 * d).coerceIn(40.0, 90.0).toFloat() else 0f } ?: 0f
             return NEUTRAL.with(Adjustment.LUMA_NR, luma).with(Adjustment.CHROMA_NR, chroma).with(Adjustment.SHARPEN, sharpen)
+                .with(Adjustment.WATER, water)
         }
     }
 }

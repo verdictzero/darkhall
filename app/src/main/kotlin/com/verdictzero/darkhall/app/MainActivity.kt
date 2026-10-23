@@ -31,7 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdictzero.darkhall.app.ui.DarkhallTheme
 import com.verdictzero.darkhall.app.ui.DevelopScreen
+import com.verdictzero.darkhall.app.ui.DevelopViewModel
+import com.verdictzero.darkhall.app.ui.ExportBanner
 import com.verdictzero.darkhall.app.ui.LibraryScreen
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
@@ -74,18 +79,27 @@ class MainActivity : ComponentActivity() {
 private fun DarkhallApp(externalOpen: MutableStateFlow<Uri?>) {
     var current by rememberSaveable { mutableStateOf<String?>(null) }
     val requested by externalOpen.collectAsStateWithLifecycle()
+    // One editing session for the whole app; it is released when leaving the develop screen.
+    val developVm: DevelopViewModel = viewModel()
     LaunchedEffect(requested) {
         requested?.let {
             current = it.toString()
             externalOpen.value = null
         }
     }
-    val uri = current
-    if (uri == null) {
-        LibraryScreen(onOpen = { current = it.toString() })
-    } else {
-        BackHandler { current = null }
-        DevelopScreen(uri = Uri.parse(uri), onBack = { current = null })
+    val leave = {
+        developVm.close()
+        current = null
+    }
+    Box(Modifier.fillMaxSize()) {
+        val uri = current
+        if (uri == null) {
+            LibraryScreen(onOpen = { current = it.toString() })
+        } else {
+            BackHandler { leave() }
+            DevelopScreen(uri = Uri.parse(uri), vm = developVm, onBack = leave)
+        }
+        ExportBanner()
     }
 }
 

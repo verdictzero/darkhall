@@ -3,45 +3,62 @@ package com.verdictzero.darkhall.core.develop
 import com.verdictzero.darkhall.core.orf.RawImage
 import com.verdictzero.darkhall.core.util.Parallel
 
+/** A rectangle in crop-relative sensor pixels. */
+data class Region(val x: Int, val y: Int, val width: Int, val height: Int) {
+    val right get() = x + width
+    val bottom get() = y + height
+}
+
 /**
  * Converts Bayer data to a [LinearImage].
  *
  * Two strategies: [superpixel] bins each 2x2 Bayer cell into one RGB pixel (half
  * resolution, zero colour artefacts, very fast; ideal for the live preview) and
  * [malvar] runs the Malvar-He-Cutler 5x5 gradient-corrected linear demosaic at
- * full resolution for export.
+ * full resolution for export and zoom. Both work on any crop-relative [Region];
+ * pixels outside the crop are mirrored with a period of two so the Bayer phase holds.
  */
 object Demosaic {
 
     private class Levels(raw: RawImage) {
         val black = FloatArray(4) { raw.meta.blackLevels[it].toFloat() }
         val scale = FloatArray(4) { 1f / (raw.meta.whiteLevel - raw.meta.blackLevels[it]).coerceAtLeast(1) }
-        // colour of a site given the crop-relative parity
         val cfa = raw.meta.cfa
         val left = raw.meta.crop.left
         val top = raw.meta.crop.top
+        val w = raw.meta.crop.width
+        val h = raw.meta.crop.height
+        /** Colour of a crop-relative site. */
         fun colorAt(row: Int, col: Int) = cfa[(((row + top) and 1) shl 1) or ((col + left) and 1)]
+        fun reflectX(c: Int) = if (c < 0) -c else if (c >= w) 2 * (w - 1) - c else c
+        fun reflectY(r: Int) = if (r < 0) -r else if (r >= h) 2 * (h - 1) - r else r
     }
 
-    /** Index into black/scale arrays: R=0, G=1, B=2, the second green shares G. */
-    private fun levelIndex(color: Int) = color
+    fun superpixel(raw: RawImage): LinearImage =
+        superpixel(raw, Region(0, 0, raw.meta.crop.width, raw.meta.crop.height))
 
-    fun superpixel(raw: RawImage): LinearImage {
+    /** Half-resolution binning of [region] (snapped outward to even coordinates). */
+    fun superpixel(raw: RawImage, region: Region): LinearImage {
         val crop = raw.meta.crop
         val lv = Levels(raw)
-        val w = crop.width / 2
-        val h = crop.height / 2
+        val x0 = region.x and 1.inv()
+        val y0 = region.y and 1.inv()
+        val w = (minOf(crop.width, region.right) - x0) / 2
+        val h = (minOf(crop.height, region.bottom) - y0) / 2
+        require(w > 0 && h > 0) { "empty region $region" }
         val out = LinearImage.allocate(w, h)
         val rw = raw.width
-        Parallel.rows(h) { y0, y1 ->
-            for (y in y0 until y1) {
-                val srow = crop.top + y * 2
+        Parallel.rows(h) { b0, b1 ->
+            for (y in b0 until b1) {
+                val cy = y0 + y * 2
+                val srow = crop.top + cy
                 var o = y * w
                 for (x in 0 until w) {
-                    val scol = crop.left + x * 2
+                    val cx = x0 + x * 2
+                    val scol = crop.left + cx
                     var r = 0f; var g = 0f; var b = 0f; var gn = 0
                     for (dy in 0..1) for (dx in 0..1) {
-                        val c = lv.colorAt(y * 2 + dy, x * 2 + dx)
+                        val c = lv.colorAt(cy + dy, cx + dx)
                         val v = (raw.data[(srow + dy) * rw + scol + dx].toInt() and 0xFFFF) - lv.black[c]
                         val n = v * lv.scale[c]
                         when (c) { 0 -> r = n; 2 -> b = n; else -> { g += n; gn++ } }
@@ -54,49 +71,41 @@ object Demosaic {
         return out
     }
 
-    /**
-     * Full-resolution demosaic of crop-relative rows [rowStart, rowEnd). Rendering in
-     * bands keeps the 12 MP export within a phone's heap.
-     */
-    fun malvar(raw: RawImage, rowStart: Int = 0, rowEnd: Int = raw.meta.crop.height): LinearImage {
-        val crop = raw.meta.crop
+    /** Full-resolution demosaic of crop-relative rows [rowStart, rowEnd), full width. */
+    fun malvar(raw: RawImage, rowStart: Int = 0, rowEnd: Int = raw.meta.crop.height): LinearImage =
+        malvar(raw, Region(0, rowStart, raw.meta.crop.width, rowEnd - rowStart))
+
+    /** Full-resolution Malvar-He-Cutler demosaic of [region]. */
+    fun malvar(raw: RawImage, region: Region): LinearImage {
         val lv = Levels(raw)
-        val w = crop.width
-        val h = crop.height
+        val crop = raw.meta.crop
+        require(region.width > 0 && region.height > 0 && region.x >= 0 && region.y >= 0 &&
+            region.right <= crop.width && region.bottom <= crop.height) { "bad region $region" }
+        val w = region.width
+        val h = region.height
         val rw = raw.width
-        val bandH = rowEnd - rowStart
-        require(rowStart in 0 until rowEnd && rowEnd <= h) { "bad band $rowStart..$rowEnd" }
-        val out = LinearImage.allocate(w, bandH)
+        val out = LinearImage.allocate(w, h)
         val data = raw.data
         val black = lv.black
         val scale = lv.scale
 
-
-        Parallel.rows(bandH) { b0, b1 ->
-            val y0 = rowStart + b0
-            val y1 = rowStart + b1
-            // Five normalised rows, re-fetched per output row (cheap relative to the kernels).
+        Parallel.rows(h) { b0, b1 ->
+            // Five normalised rows of the window, each padded by two pixels on both sides.
             val rows = Array(5) { FloatArray(w + 4) }
-            fun loadRow(dst: FloatArray, y: Int) {
-                val yy = y.coerceIn(0, h - 1)
+            fun loadRow(dst: FloatArray, cropRow: Int) {
+                val yy = lv.reflectY(cropRow)
                 val base = (crop.top + yy) * rw + crop.left
-                val parity = ((yy + lv.top) and 1) shl 1
-                val cEven = lv.cfa[parity or ((lv.left) and 1)]
-                val cOdd = lv.cfa[parity or ((lv.left + 1) and 1)]
-                for (x in 0 until w) {
-                    val c = if ((x and 1) == 0) cEven else cOdd
-                    val v = (data[base + x].toInt() and 0xFFFF) - black[c]
-                    dst[x + 2] = v * scale[c]
+                for (i in 0 until w + 4) {
+                    val col = lv.reflectX(region.x + i - 2)
+                    val c = lv.colorAt(yy, col)
+                    dst[i] = ((data[base + col].toInt() and 0xFFFF) - black[c]) * scale[c]
                 }
-                // clamp edges
-                dst[1] = dst[2]; dst[0] = dst[2]
-                dst[w + 2] = dst[w + 1]; dst[w + 3] = dst[w + 1]
             }
-            for (k in 0 until 5) loadRow(rows[k], y0 - 2 + k)
-            var ring = 0 // rows[(ring + k) % 5] is row y-2+k
-            for (y in y0 until y1) {
-                if (y != y0) {
-                    // slide window down by one: the oldest row buffer takes row y+2
+            for (k in 0 until 5) loadRow(rows[k], region.y + b0 - 2 + k)
+            var ring = 0 // rows[(ring + k) % 5] holds crop row y-2+k
+            for (by in b0 until b1) {
+                val y = region.y + by
+                if (by != b0) {
                     loadRow(rows[ring], y + 2)
                     ring = (ring + 1) % 5
                 }
@@ -105,15 +114,15 @@ object Demosaic {
                 val r0 = rows[(ring + 2) % 5]
                 val rp1 = rows[(ring + 3) % 5]
                 val rp2 = rows[(ring + 4) % 5]
-                val o = (y - rowStart) * w
+                val o = by * w
                 for (x in 0 until w) {
-                    val c = lv.colorAt(y, x)
+                    val cx = region.x + x
+                    val c = lv.colorAt(y, cx)
                     val xi = x + 2
                     val p = r0[xi]
-                    // Neighbour sums used by the MHC kernels.
-                    val plusH = r0[xi - 1] + r0[xi + 1]      // left+right
-                    val plusV = rm1[xi] + rp1[xi]            // up+down
-                    val cross = plusH + plusV                // 4-neighbourhood
+                    val plusH = r0[xi - 1] + r0[xi + 1]
+                    val plusV = rm1[xi] + rp1[xi]
+                    val cross = plusH + plusV
                     val diag = rm1[xi - 1] + rm1[xi + 1] + rp1[xi - 1] + rp1[xi + 1]
                     val far2H = r0[xi - 2] + r0[xi + 2]
                     val far2V = rm2[xi] + rp2[xi]
@@ -122,13 +131,10 @@ object Demosaic {
                     when (c) {
                         1 -> { // green site
                             gg = p
-                            // Which colour sits to the left/right? Same row, other parity.
-                            val horizIsRed = lv.colorAt(y, x + 1) == 0
-                            // Colour at horizontal neighbours (R or B):
-                            val h = (4f * plusH + 5f * p + 0.5f * far2V - far2H - diag) * 0.125f
-                            // Colour at vertical neighbours:
-                            val v = (4f * plusV + 5f * p + 0.5f * far2H - far2V - diag) * 0.125f
-                            if (horizIsRed) { rr = h; bb = v } else { bb = h; rr = v }
+                            val horizIsRed = lv.colorAt(y, cx + 1) == 0
+                            val hv = (4f * plusH + 5f * p + 0.5f * far2V - far2H - diag) * 0.125f
+                            val vv = (4f * plusV + 5f * p + 0.5f * far2H - far2V - diag) * 0.125f
+                            if (horizIsRed) { rr = hv; bb = vv } else { bb = hv; rr = vv }
                         }
                         0 -> { // red site
                             rr = p

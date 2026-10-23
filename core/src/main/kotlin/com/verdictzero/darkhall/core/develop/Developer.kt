@@ -13,11 +13,17 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.PI
 
-/** Per-file constants shared by preview and export renders. */
+/**
+ * Underwater statistics of a file, in white-balanced camera space: [floor] is the
+ * blue-green veil (a low percentile per channel) and [gain] the grey-world multipliers
+ * that neutralise what remains after removing it.
+ */
+class WaterStats(val floor: FloatArray, val gain: FloatArray)
+
+/** Per-file constants shared by preview, zoom and export renders. */
 class RenderContext(
     val cameraWb: FloatArray,
     val matrix: FloatArray,
@@ -25,6 +31,9 @@ class RenderContext(
     val fullHeight: Int,
     /** Atmospheric light estimate in camera-linear space (pre white balance). */
     val haze: FloatArray,
+    val water: WaterStats = WaterStats(FloatArray(3), floatArrayOf(1f, 1f, 1f)),
+    /** Built-in lens profile for TG-5/6/7 files, null for anything else. */
+    val lens: LensProfile? = null,
 ) {
     companion object {
         fun forFile(meta: OrfMetadata, preview: LinearImage): RenderContext = RenderContext(
@@ -33,6 +42,8 @@ class RenderContext(
             fullWidth = meta.crop.width,
             fullHeight = meta.crop.height,
             haze = Developer.estimateHaze(preview),
+            water = Developer.estimateWater(preview, meta.cameraWb),
+            lens = LensProfile.forFile(meta),
         )
     }
 }
@@ -45,20 +56,25 @@ class Frame(val x0: Int, val y0: Int, val scale: Float)
  * dragging a slider does not churn the garbage collector.
  *
  * Order of operations (linear light first, display space afterwards):
- *  1. white balance + temperature/tint, camera matrix, highlight desaturation, exposure, vignette
+ *  0. highlight reconstruction (clipped channels rebuilt from their neighbours' colour)
+ *  1. white balance, underwater correction, temperature/tint, camera matrix, exposure, vignette
  *  2. dehaze (dark channel prior)
  *  3. noise reduction (luminance: edge-aware; colour: chroma blur)
  *  4. shadows / highlights (luminance masked gains)
  *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation
  *  6. clarity + sharpening (unsharp masks on display luminance)
- * Geometry (distortion, straighten) is a separate pass on the 8-bit result, see [applyGeometry].
+ * Geometry (lens profile, distortion, straighten) is a separate pass on the 8-bit result, see [Geometry].
  */
 class Developer {
 
     private var cap = 0
     private var wr = FloatArray(0); private var wg = FloatArray(0); private var wb = FloatArray(0)
     private var t1 = FloatArray(0); private var t2 = FloatArray(0); private var t3 = FloatArray(0); private var t4 = FloatArray(0)
+    private var t5 = FloatArray(0)
     private val curve = FloatArray(4097)
+
+    /** Rebuild clipped highlights from surrounding colour. Off only for comparison tests. */
+    var highlightReconstruction = true
 
     private fun ensureScratch(n: Int, needWork: Boolean) {
         if (n > cap) {
@@ -75,6 +91,7 @@ class Developer {
         cap = 0
         wr = FloatArray(0); wg = FloatArray(0); wb = FloatArray(0)
         t1 = FloatArray(0); t2 = FloatArray(0); t3 = FloatArray(0); t4 = FloatArray(0)
+        t5 = FloatArray(0)
     }
 
     /**
@@ -89,12 +106,34 @@ class Developer {
         val r: FloatArray; val g: FloatArray; val b: FloatArray
         if (inPlace) { r = img.r; g = img.g; b = img.b } else { r = wr; g = wg; b = wb }
 
-        // ---- 1. colour: WB, matrix, highlights, exposure, vignette --------------------
+        // ---- 0. highlight reconstruction ------------------------------------------------
+        var srcR = img.r; var srcG = img.g; var srcB = img.b
+        if (highlightReconstruction && hasClipped(img)) {
+            if (t5.size < n) t5 = FloatArray(cap)
+            if (!inPlace) {
+                System.arraycopy(img.r, 0, r, 0, n); System.arraycopy(img.g, 0, g, 0, n); System.arraycopy(img.b, 0, b, 0, n)
+            }
+            reconstructHighlights(r, g, b, w, h, ctx, frame)
+            srcR = r; srcG = g; srcB = b
+        }
+
+        // ---- 1. colour: WB, underwater, temperature/tint, matrix, exposure, vignette ----
         val temp = p[Adjustment.TEMPERATURE] / 100f
         val tint = p[Adjustment.TINT] / 100f
-        val gainR = ctx.cameraWb[0] * pow2(temp * 0.8f)
-        val gainG = ctx.cameraWb[1] * pow2(-tint * 0.5f)
-        val gainB = ctx.cameraWb[2] * pow2(-temp * 0.8f)
+        val user = floatArrayOf(pow2(temp * 0.8f), pow2(-tint * 0.5f), pow2(-temp * 0.8f))
+        // Per channel: c = max(0, raw * A - B). B removes the water's veil, A holds the camera WB,
+        // the underwater grey-world gain and the user's temperature/tint.
+        val water = p[Adjustment.WATER] / 100f
+        val mulA = FloatArray(3)
+        val subB = FloatArray(3)
+        for (c in 0 until 3) {
+            // Geometric blend: half the slider is half the correction in stops.
+            val wg = exp(water * ln(ctx.water.gain[c]))
+            mulA[c] = ctx.cameraWb[c] * wg * user[c]
+            subB[c] = water * ctx.water.floor[c] * wg * user[c]
+        }
+        val gainR = mulA[0]; val gainG = mulA[1]; val gainB = mulA[2]
+        val subR = subB[0]; val subG = subB[1]; val subBl = subB[2]
         val ev = pow2(p[Adjustment.EXPOSURE])
         val m = ctx.matrix
         val vig = p[Adjustment.VIGNETTE] / 100f * 0.8f
@@ -109,18 +148,12 @@ class Developer {
                 val fy2 = fy * fy
                 var i = y * w
                 for (x in 0 until w) {
-                    val rr = img.r[i]; val gg = img.g[i]; val bb = img.b[i]
-                    val mx = max(rr, max(gg, bb))
-                    val cr = rr * gainR; val cg = gg * gainG; val cb = bb * gainB
-                    var sr = m[0] * cr + m[1] * cg + m[2] * cb
-                    var sg = m[3] * cr + m[4] * cg + m[5] * cb
-                    var sb = m[6] * cr + m[7] * cg + m[8] * cb
-                    if (mx > 0.8f) {
-                        // Sensor channel near clipping: pull toward neutral so blown areas go white, not magenta.
-                        val f = smooth((mx - 0.8f) * 5f)
-                        val l = LUM_R * sr + LUM_G * sg + LUM_B * sb
-                        sr += (l - sr) * f; sg += (l - sg) * f; sb += (l - sb) * f
-                    }
+                    val cr = max(0f, srcR[i] * gainR - subR)
+                    val cg = max(0f, srcG[i] * gainG - subG)
+                    val cb = max(0f, srcB[i] * gainB - subBl)
+                    val sr = m[0] * cr + m[1] * cg + m[2] * cb
+                    val sg = m[3] * cr + m[4] * cg + m[5] * cb
+                    val sb = m[6] * cr + m[7] * cg + m[8] * cb
                     var k = ev
                     if (vig != 0f) {
                         val fx = frame.x0 + x * invScale - cx
@@ -136,7 +169,9 @@ class Developer {
         val dehaze = p[Adjustment.DEHAZE] / 100f
         if (abs(dehaze) > 0.005f) {
             // Push the haze estimate through the same colour transform.
-            val hr0 = ctx.haze[0] * gainR; val hg0 = ctx.haze[1] * gainG; val hb0 = ctx.haze[2] * gainB
+            val hr0 = max(0f, ctx.haze[0] * gainR - subR)
+            val hg0 = max(0f, ctx.haze[1] * gainG - subG)
+            val hb0 = max(0f, ctx.haze[2] * gainB - subBl)
             val ar = max(0.05f, (m[0] * hr0 + m[1] * hg0 + m[2] * hb0) * ev)
             val ag = max(0.05f, (m[3] * hr0 + m[4] * hg0 + m[5] * hb0) * ev)
             val ab = max(0.05f, (m[6] * hr0 + m[7] * hg0 + m[8] * hb0) * ev)
@@ -228,8 +263,19 @@ class Developer {
                 var rr = r[i]; var gg = g[i]; var bb = b[i]
                 if (doSh) {
                     val l = LUM_R * rr + LUM_G * gg + LUM_B * bb
-                    val yd = ColorScience.encode(l)
-                    val k = exp(sh * (1f - yd) * (1f - yd) + hl * yd * yd)
+                    // Above display white (recovered highlights) keep counting up, so a negative
+                    // Highlights slider can pull that detail back into range.
+                    val yd = if (l <= 1f) ColorScience.encode(l) else 1f + 0.5f * ln(l) / LN2
+                    val ys = min(yd, 1f)
+                    val k = exp(sh * (1f - ys) * (1f - ys) + hl * yd * yd)
+                    rr *= k; gg *= k; bb *= k
+                }
+                // Soft shoulder: compress the top of the range instead of clipping it, scaling all
+                // three channels together so bright colours keep their hue.
+                val mx = max(rr, max(gg, bb))
+                if (mx > SHOULDER) {
+                    val f = SHOULDER + (1f - SHOULDER) * (1f - exp(-(mx - SHOULDER) / (1f - SHOULDER)))
+                    val k = f / mx
                     rr *= k; gg *= k; bb *= k
                 }
                 var dr = lut[(ColorScience.encode(rr) * 4096f).toInt()]
@@ -328,8 +374,129 @@ class Developer {
         }
     }
 
+    private fun hasClipped(img: LinearImage): Boolean {
+        val r = img.r; val g = img.g; val b = img.b
+        for (i in 0 until img.size) if (r[i] >= CLIP || g[i] >= CLIP || b[i] >= CLIP) return true
+        return false
+    }
+
+    /**
+     * Rebuilds clipped channels in raw camera space (before white balance).
+     *
+     * Bright pixels that are not clipped vote for the local colour (chromaticity), weighted
+     * towards the brightest; the votes are blurred so they reach into the clipped area. A pixel
+     * with some channels clipped keeps its good channels and gets the clipped ones from that
+     * colour; a pixel with every channel clipped becomes neutral white at least as bright as
+     * the sensor saw. Values may exceed 1.0; the tone stage's shoulder brings them back.
+     */
+    private fun reconstructHighlights(r: FloatArray, g: FloatArray, b: FloatArray, w: Int, h: Int, ctx: RenderContext, frame: Frame) {
+        // Neutral (white after white balance) chromaticity in raw space.
+        var nR = 1f / ctx.cameraWb[0]; var nG = 1f / ctx.cameraWb[1]; var nB = 1f / ctx.cameraWb[2]
+        val ns = nR + nG + nB
+        nR /= ns; nG /= ns; nB /= ns
+        Parallel.rows(h) { y0, y1 ->
+            for (i in y0 * w until y1 * w) {
+                val rr = r[i]; val gg = g[i]; val bb = b[i]
+                val mx = max(rr, max(gg, bb))
+                val sum = rr + gg + bb
+                if (mx < CLIP && mx > CLIP * 0.25f && sum > 1e-4f) {
+                    val q = mx / CLIP
+                    val wgt = q * q
+                    val inv = wgt / sum
+                    t1[i] = rr * inv; t2[i] = gg * inv; t3[i] = bb * inv; t4[i] = wgt
+                } else {
+                    t1[i] = 0f; t2[i] = 0f; t3[i] = 0f; t4[i] = 0f
+                }
+            }
+        }
+        val rad = max(2, (0.01f * ctx.fullWidth * frame.scale).roundToInt())
+        Filters.blur(t1, t1, t5, w, h, rad, passes = 3)
+        Filters.blur(t2, t2, t5, w, h, rad, passes = 3)
+        Filters.blur(t3, t3, t5, w, h, rad, passes = 3)
+        Filters.blur(t4, t4, t5, w, h, rad, passes = 3)
+        Parallel.rows(h) { y0, y1 ->
+            for (i in y0 * w until y1 * w) {
+                val rr = r[i]; val gg = g[i]; val bb = b[i]
+                val cR = rr >= CLIP; val cG = gg >= CLIP; val cB = bb >= CLIP
+                if (!cR && !cG && !cB) continue
+                val wgt = t4[i]
+                val conf = wgt / (wgt + 0.02f)
+                var er = nR; var eg = nG; var eb = nB
+                if (wgt > 1e-7f) { er = t1[i] / wgt; eg = t2[i] / wgt; eb = t3[i] / wgt }
+                val chR = conf * er + (1f - conf) * nR
+                val chG = conf * eg + (1f - conf) * nG
+                val chB = conf * eb + (1f - conf) * nB
+                val scale = if (cR && cG && cB) {
+                    // Nothing to anchor to: neutral, no channel darker than what was recorded.
+                    val nmin = min(nR, min(nG, nB))
+                    CLIP / nmin
+                } else {
+                    var su = 0f; var sc = 0f
+                    if (!cR) { su += rr; sc += chR }
+                    if (!cG) { su += gg; sc += chG }
+                    if (!cB) { su += bb; sc += chB }
+                    su / max(sc, 1e-4f)
+                }
+                if (cR && cG && cB) {
+                    r[i] = max(rr, min(MAX_RECOVERED, scale * nR))
+                    g[i] = max(gg, min(MAX_RECOVERED, scale * nG))
+                    b[i] = max(bb, min(MAX_RECOVERED, scale * nB))
+                } else {
+                    if (cR) r[i] = max(rr, min(MAX_RECOVERED, scale * chR))
+                    if (cG) g[i] = max(gg, min(MAX_RECOVERED, scale * chG))
+                    if (cB) b[i] = max(bb, min(MAX_RECOVERED, scale * chB))
+                }
+            }
+        }
+    }
+
     companion object {
         private val LN2 = ln(2.0).toFloat()
+
+        /** Normalised raw level treated as clipped (the 12-bit white point minus a safety margin). */
+        const val CLIP = 0.96f
+        private const val MAX_RECOVERED = 4f
+        /** Linear level where the highlight shoulder starts. */
+        private const val SHOULDER = 0.85f
+
+        /**
+         * Underwater statistics: per-channel 0.5th percentile (the veil) and grey-world gains
+         * on what remains, both after the camera's white balance. Computed once per file.
+         */
+        fun estimateWater(img: LinearImage, wb: FloatArray): WaterStats {
+            val bins = 2048
+            val maxV = 2f
+            val hist = Array(3) { IntArray(bins) }
+            val n = img.size
+            for (i in 0 until n) {
+                val vr = img.r[i] * wb[0]; val vg = img.g[i] * wb[1]; val vb = img.b[i] * wb[2]
+                hist[0][((vr / maxV).coerceIn(0f, 1f) * (bins - 1)).toInt()]++
+                hist[1][((vg / maxV).coerceIn(0f, 1f) * (bins - 1)).toInt()]++
+                hist[2][((vb / maxV).coerceIn(0f, 1f) * (bins - 1)).toInt()]++
+            }
+            val floor = FloatArray(3)
+            val want = max(1, n / 200)
+            for (c in 0 until 3) {
+                var acc = 0; var bin = 0
+                while (bin < bins - 1 && acc + hist[c][bin] < want) { acc += hist[c][bin]; bin++ }
+                floor[c] = bin.toFloat() / (bins - 1) * maxV
+            }
+            val sum = DoubleArray(3)
+            var cnt = 0
+            for (i in 0 until n) {
+                val rr = img.r[i]; val gg = img.g[i]; val bb = img.b[i]
+                if (max(rr, max(gg, bb)) >= 0.95f) continue
+                val vr = rr * wb[0] - floor[0]; val vg = gg * wb[1] - floor[1]; val vb = bb * wb[2] - floor[2]
+                if (vr + vg + vb < 0.01f) continue
+                sum[0] += max(0f, vr); sum[1] += max(0f, vg); sum[2] += max(0f, vb)
+                cnt++
+            }
+            if (cnt < 100 || sum.any { it <= 1e-6 }) return WaterStats(floor, floatArrayOf(1f, 1f, 1f))
+            // Red can be down more than 4 stops at 10 m; allow up to ~4.3 stops of recovery.
+            // Colour noise reduction (on by default) keeps the amplified red channel clean.
+            val gain = FloatArray(3) { c -> (sum[1] / sum[c]).toFloat().coerceIn(0.3f, 20f) }
+            return WaterStats(floor, gain)
+        }
 
         @Suppress("NOTHING_TO_INLINE")
         private inline fun pow2(x: Float): Float = exp(x * LN2)
@@ -337,8 +504,6 @@ class Developer {
         @Suppress("NOTHING_TO_INLINE")
         private inline fun clamp01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
 
-        @Suppress("NOTHING_TO_INLINE")
-        private inline fun smooth(x: Float): Float { val t = clamp01(x); return t * t * (3f - 2f * t) }
 
         /**
          * Dark-channel-prior atmospheric light: the mean colour of the brightest 0.1% of
@@ -366,71 +531,6 @@ class Developer {
                 (sg / cnt).toFloat().coerceIn(0.05f, 1f),
                 (sb / cnt).toFloat().coerceIn(0.05f, 1f),
             )
-        }
-
-        fun needsGeometry(p: DevelopParams) =
-            abs(p[Adjustment.DISTORTION]) > 0.5f || abs(p[Adjustment.STRAIGHTEN]) > 0.02f
-
-        /**
-         * Radial distortion correction plus straightening, bilinear resampled, auto-zoomed
-         * so no empty corners appear. Returns a new buffer (or [src] when nothing to do).
-         */
-        fun applyGeometry(src: IntArray, w: Int, h: Int, p: DevelopParams): IntArray {
-            if (!needsGeometry(p)) return src
-            val k = p[Adjustment.DISTORTION] / 100f * 0.3f
-            val theta = p[Adjustment.STRAIGHTEN] / 180f * PI.toFloat()
-            val cx = (w - 1) * 0.5f
-            val cy = (h - 1) * 0.5f
-            val radius = sqrt(cx * cx + cy * cy)
-            // zoom so the rotated frame still covers the output
-            val aspect = max(w, h).toFloat() / min(w, h)
-            val sRot = cos(abs(theta)) + aspect * sin(abs(theta))
-            // zoom so barrel correction (k > 0) does not pull the corners inside the frame
-            var sK = 1f
-            if (k > 0f) {
-                // Corner (r = 1) must map back onto the source corner: (1/s)(1 + k/s^2) = 1.
-                var s = 1f + k
-                repeat(16) { s -= (s * s * s - s * s - k) / (3f * s * s - 2f * s) }
-                sK = max(1f, s)
-            }
-            val zoom = 1f / (sRot * sK)
-            val cosT = cos(theta); val sinT = sin(theta)
-            val out = IntArray(w * h)
-            Parallel.rows(h) { y0, y1 ->
-                for (y in y0 until y1) {
-                    val dy = (y - cy) / radius
-                    var o = y * w
-                    for (x in 0 until w) {
-                        val dx = (x - cx) / radius
-                        var qx = (dx * cosT - dy * sinT) * zoom
-                        var qy = (dx * sinT + dy * cosT) * zoom
-                        val r2 = qx * qx + qy * qy
-                        val f = 1f + k * r2
-                        qx *= f; qy *= f
-                        val sx = cx + qx * radius
-                        val sy = cy + qy * radius
-                        out[o++] = bilinear(src, w, h, sx, sy)
-                    }
-                }
-            }
-            return out
-        }
-
-        private fun bilinear(src: IntArray, w: Int, h: Int, sx: Float, sy: Float): Int {
-            if (sx < 0f || sy < 0f || sx > w - 1f || sy > h - 1f) return 0xFF000000.toInt()
-            val x0 = sx.toInt(); val y0 = sy.toInt()
-            val x1 = min(x0 + 1, w - 1); val y1 = min(y0 + 1, h - 1)
-            val fx = sx - x0; val fy = sy - y0
-            val p00 = src[y0 * w + x0]; val p10 = src[y0 * w + x1]
-            val p01 = src[y1 * w + x0]; val p11 = src[y1 * w + x1]
-            val w00 = (1 - fx) * (1 - fy); val w10 = fx * (1 - fy); val w01 = (1 - fx) * fy; val w11 = fx * fy
-            var out = 0xFF shl 24
-            for (shift in intArrayOf(16, 8, 0)) {
-                val v = ((p00 ushr shift) and 0xFF) * w00 + ((p10 ushr shift) and 0xFF) * w10 +
-                    ((p01 ushr shift) and 0xFF) * w01 + ((p11 ushr shift) and 0xFF) * w11
-                out = out or ((v + 0.5f).toInt().coerceIn(0, 255) shl shift)
-            }
-            return out
         }
 
         /** RGB histogram (3 x 256 bins) of packed pixels. */

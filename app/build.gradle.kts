@@ -33,6 +33,17 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.maxHeapSize = "3g"
+            // End-to-end test input: -Pdarkhall.sample=/path/to/file.orf (skipped when absent).
+            it.systemProperty("darkhall.sample", (project.findProperty("darkhall.sample") ?: "") as String)
+            it.systemProperty("darkhall.outDir", (project.findProperty("darkhall.outDir") ?: "") as String)
+            it.testLogging { events("passed", "failed", "skipped"); showStandardStreams = true }
+        }
+    }
+
     packaging {
         resources.excludes += setOf("META-INF/AL2.0", "META-INF/LGPL2.1")
     }
@@ -59,4 +70,13 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
 }

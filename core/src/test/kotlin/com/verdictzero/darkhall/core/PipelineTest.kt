@@ -6,6 +6,7 @@ import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.FullRender
+import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.orf.OlympusDecoder
 import com.verdictzero.darkhall.core.orf.OrfParser
@@ -59,11 +60,11 @@ class PipelineTest {
             for (v in floatArrayOf(a.min, a.max)) {
                 val p = defaults.with(a, v)
                 val t0 = System.nanoTime()
-                val px = Developer.applyGeometry(dev.render(preview, ctx, p, frame), preview.width, preview.height, p)
+                val px = Geometry.apply(dev.render(preview, ctx, p, frame), preview.width, preview.height, p, ctx.lens)
                 val ms = (System.nanoTime() - t0) / 1_000_000
                 println("${a.name}=${v} -> ${ms} ms")
                 assertEquals(preview.size, px.size)
-                if (outDir.isNotEmpty() && (a == Adjustment.DEHAZE || a == Adjustment.CLARITY || a == Adjustment.LUMA_NR || a == Adjustment.DISTORTION || a == Adjustment.STRAIGHTEN || a == Adjustment.SHADOWS || a == Adjustment.HIGHLIGHTS)) {
+                if (outDir.isNotEmpty() && (a == Adjustment.DEHAZE || a == Adjustment.CLARITY || a == Adjustment.LUMA_NR || a == Adjustment.DISTORTION || a == Adjustment.STRAIGHTEN || a == Adjustment.SHADOWS || a == Adjustment.HIGHLIGHTS || a == Adjustment.WATER || a == Adjustment.LENS_PROFILE)) {
                     save("preview_${a.name.lowercase()}_${if (v < 0) "min" else "max"}.png", preview.width, preview.height, px)
                 }
             }

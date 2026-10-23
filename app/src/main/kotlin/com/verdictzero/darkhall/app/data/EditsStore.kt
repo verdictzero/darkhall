@@ -37,4 +37,31 @@ object EditsStore {
     fun clear(context: Context, key: String) {
         file(context, key).delete()
     }
+
+    fun exists(context: Context, key: String) = file(context, key).exists()
+
+    fun toJson(params: DevelopParams): String {
+        val p = JSONObject()
+        for ((k, v) in params.toMap()) p.put(k, v.toDouble())
+        return p.toString()
+    }
+
+    fun fromJson(json: String, base: DevelopParams): DevelopParams? = try {
+        val obj = JSONObject(json)
+        val map = HashMap<String, Float>()
+        for (a in Adjustment.entries) if (obj.has(a.name)) map[a.name] = obj.getDouble(a.name).toFloat()
+        DevelopParams.fromMap(map, base)
+    } catch (e: Exception) {
+        null
+    }
+
+    /**
+     * Applies copied sliders to another file. Straighten is per-shot, so the target keeps
+     * its own value; everything else is taken from the copy.
+     */
+    fun paste(context: Context, key: String, copied: DevelopParams) {
+        val existing = load(context, key, DevelopParams.NEUTRAL)
+        val straighten = existing?.get(Adjustment.STRAIGHTEN) ?: Adjustment.STRAIGHTEN.default
+        save(context, key, copied.with(Adjustment.STRAIGHTEN, straighten))
+    }
 }

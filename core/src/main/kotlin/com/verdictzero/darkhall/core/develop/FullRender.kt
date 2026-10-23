@@ -38,7 +38,7 @@ object FullRender {
         }
         dev.release()
         if (isCancelled()) return null
-        val finalPixels = Developer.applyGeometry(out, w, h, params)
+        val finalPixels = Geometry.apply(out, w, h, params, ctx.lens)
         return RenderedImage(w, h, finalPixels)
     }
 }

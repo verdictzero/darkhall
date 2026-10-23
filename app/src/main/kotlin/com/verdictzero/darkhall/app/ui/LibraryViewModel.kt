@@ -6,9 +6,12 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdictzero.darkhall.app.data.EditsStore
+import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.OrfRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.data.RawFile
+import com.verdictzero.darkhall.core.develop.DevelopParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +24,12 @@ data class LibraryState(
     val files: List<RawFile> = emptyList(),
     val loading: Boolean = false,
     val message: String? = null,
-)
+    val selected: Set<String> = emptySet(),
+    val edited: Set<String> = emptySet(),
+    val canPaste: Boolean = false,
+) {
+    val selecting get() = selected.isNotEmpty()
+}
 
 class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -55,6 +63,51 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
+    // ---- selection, paste, batch export -------------------------------------------------
+
+    fun toggle(file: RawFile) = _state.update {
+        it.copy(selected = if (file.key in it.selected) it.selected - file.key else it.selected + file.key)
+    }
+
+    fun selectAll() = _state.update { it.copy(selected = it.files.map { f -> f.key }.toSet()) }
+
+    fun clearSelection() = _state.update { it.copy(selected = emptySet()) }
+
+    fun pasteToSelection() {
+        val json = prefs.copiedSettings ?: return
+        val copied = EditsStore.fromJson(json, DevelopParams.NEUTRAL) ?: return
+        val targets = _state.value.files.filter { it.key in _state.value.selected }
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                for (f in targets) runCatching { EditsStore.paste(getApplication(), f.key, copied) }
+            }
+            _state.update {
+                it.copy(
+                    selected = emptySet(),
+                    edited = it.edited + targets.map { f -> f.key },
+                    message = "Pasted settings onto ${targets.size} ${if (targets.size == 1) "photo" else "photos"}",
+                )
+            }
+        }
+    }
+
+    fun exportSelection() {
+        val targets = _state.value.files.filter { it.key in _state.value.selected }
+        if (targets.isEmpty()) return
+        ExportQueue.enqueue(getApplication(), targets.map { it.uri })
+        _state.update { it.copy(selected = emptySet()) }
+    }
+
+    /** Re-reads which files have saved edits and whether settings are on the clipboard. */
+    fun refreshEditMarks() {
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val files = _state.value.files
+            val edited = withContext(Dispatchers.IO) { files.filter { EditsStore.exists(app, it.key) }.map { it.key }.toSet() }
+            _state.update { it.copy(edited = edited, canPaste = prefs.copiedSettings != null) }
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
@@ -87,9 +140,15 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 if (kept.size != extras.size) prefs.extraFiles = kept
                 Triple(folderName, files.toList(), message)
             }
+            val keys = result.second.map { f -> f.key }.toSet()
             _state.update {
-                it.copy(folderName = result.first, files = result.second, loading = false, message = result.third ?: it.message)
+                it.copy(
+                    folderName = result.first, files = result.second, loading = false,
+                    message = result.third ?: it.message,
+                    selected = it.selected.intersect(keys),
+                )
             }
+            refreshEditMarks()
         }
     }
 }

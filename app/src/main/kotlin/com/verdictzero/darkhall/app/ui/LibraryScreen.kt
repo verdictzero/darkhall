@@ -2,11 +2,14 @@ package com.verdictzero.darkhall.app.ui
 
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,13 +20,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -67,21 +77,39 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
     val pickFiles = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         vm.addFiles(uris)
     }
+    val exportSelection = rememberExportStarter { vm.exportSelection() }
 
+    LaunchedEffect(Unit) { vm.refreshEditMarks() } // returning from the develop screen
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); vm.clearMessage() }
     }
+    BackHandler(enabled = state.selecting) { vm.clearSelection() }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Darkhall") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                actions = {
-                    TextButton(onClick = { pickFolder.launch(null) }) { Text("Folder") }
-                    TextButton(onClick = { pickFiles.launch(arrayOf("*/*")) }) { Text("Files") }
-                },
-            )
+            if (state.selecting) {
+                TopAppBar(
+                    title = { Text("${state.selected.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { vm.clearSelection() }) { Icon(Icons.Filled.Close, contentDescription = "Cancel selection") }
+                    },
+                    actions = {
+                        TextButton(onClick = { vm.selectAll() }) { Text("All") }
+                        TextButton(onClick = { vm.pasteToSelection() }, enabled = state.canPaste) { Text("Paste") }
+                        TextButton(onClick = exportSelection) { Text("Export") }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Darkhall") },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                    actions = {
+                        TextButton(onClick = { pickFolder.launch(null) }) { Text("Folder") }
+                        TextButton(onClick = { pickFiles.launch(arrayOf("*/*")) }) { Text("Files") }
+                    },
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
@@ -94,23 +122,28 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                     onPickFiles = { pickFiles.launch(arrayOf("*/*")) },
                 )
             } else {
-                state.folderName?.let {
-                    Text(
-                        "$it  ·  ${state.files.size} raw files",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
+                val hint = if (state.selecting) "Tap to add or remove photos" else "Long-press to select photos for paste or batch export"
+                Text(
+                    (state.folderName?.let { "$it  ·  ${state.files.size} raw files  ·  " } ?: "") + hint,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 128.dp),
-                    contentPadding = PaddingValues(8.dp),
+                    contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 96.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(state.files, key = { it.key }) { file ->
-                        RawCell(file, onClick = { onOpen(file.uri) })
+                        RawCell(
+                            file,
+                            selected = file.key in state.selected,
+                            edited = file.key in state.edited,
+                            onClick = { if (state.selecting) vm.toggle(file) else onOpen(file.uri) },
+                            onLongClick = { vm.toggle(file) },
+                        )
                     }
                 }
             }
@@ -140,19 +173,22 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RawCell(file: RawFile, onClick: () -> Unit) {
+private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val context = LocalContext.current
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = file.key) {
         value = withContext(Dispatchers.IO) { OrfRepository.thumbnail(context, file) }
     }
-    Column(Modifier.clickable(onClick = onClick)) {
+    val accent = MaterialTheme.colorScheme.primary
+    Column(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(4f / 3f)
                 .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(if (selected) Modifier.border(3.dp, accent, RoundedCornerShape(6.dp)) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             val b = thumb
@@ -165,6 +201,27 @@ private fun RawCell(file: RawFile, onClick: () -> Unit) {
                 )
             } else {
                 CircularProgressIndicator(Modifier.padding(24.dp), strokeWidth = 2.dp)
+            }
+            if (selected) {
+                Box(
+                    Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(CircleShape).background(accent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                }
+            }
+            if (edited) {
+                Text(
+                    "EDITED",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                )
             }
         }
         Text(

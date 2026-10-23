@@ -1,12 +1,7 @@
 package com.verdictzero.darkhall.app.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -29,13 +24,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -57,46 +53,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AdjustmentGroup
 import com.verdictzero.darkhall.core.develop.DevelopParams
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DevelopScreen(uri: Uri, onBack: () -> Unit) {
-    val vm: DevelopViewModel = viewModel(key = uri.toString())
+fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     LaunchedEffect(uri) { vm.open(uri) }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    var menuOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it); vm.clearMessage() }
     }
-
-    val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) vm.export()
-    }
-    val startExport = {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-        ) {
-            storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        } else {
-            vm.export()
-        }
-    }
+    val startExport = rememberExportStarter { vm.export() }
+    val ready = !state.loading && state.error == null
 
     Scaffold(
         topBar = {
@@ -113,11 +102,20 @@ fun DevelopScreen(uri: Uri, onBack: () -> Unit) {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
-                    IconButton(onClick = { vm.resetAll() }, enabled = !state.loading) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Reset all sliders")
-                    }
-                    TextButton(onClick = startExport, enabled = !state.loading && state.exportProgress == null && state.error == null) {
-                        Text("Export")
+                    TextButton(onClick = startExport, enabled = ready) { Text("Export") }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }, enabled = ready) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text("Copy settings") }, onClick = { menuOpen = false; vm.copySettings() })
+                            DropdownMenuItem(
+                                text = { Text("Paste settings") },
+                                enabled = state.canPaste,
+                                onClick = { menuOpen = false; vm.pasteSettings() },
+                            )
+                            DropdownMenuItem(text = { Text("Reset all sliders") }, onClick = { menuOpen = false; vm.resetAll() })
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -127,9 +125,6 @@ fun DevelopScreen(uri: Uri, onBack: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            state.exportProgress?.let { p ->
-                LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
-            }
             when {
                 state.error != null -> ErrorPane(state.error!!, onBack)
                 state.loading -> LoadingPane()
@@ -137,12 +132,12 @@ fun DevelopScreen(uri: Uri, onBack: () -> Unit) {
                     val landscape = maxWidth > maxHeight
                     if (landscape) {
                         Row(Modifier.fillMaxSize()) {
-                            PreviewPane(state, Modifier.weight(1f).fillMaxHeight())
+                            PreviewPane(state, vm, Modifier.weight(1f).fillMaxHeight())
                             SliderPane(state, vm, Modifier.width(360.dp).fillMaxHeight())
                         }
                     } else {
                         Column(Modifier.fillMaxSize()) {
-                            PreviewPane(state, Modifier.fillMaxWidth().weight(0.48f))
+                            PreviewPane(state, vm, Modifier.fillMaxWidth().weight(0.48f))
                             SliderPane(state, vm, Modifier.fillMaxWidth().weight(0.52f))
                         }
                     }
@@ -173,40 +168,107 @@ private fun ErrorPane(message: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun PreviewPane(state: DevelopState, modifier: Modifier) {
+private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Modifier) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var comparing by remember { mutableStateOf(false) }
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val shown = if (comparing) state.compare else state.preview
 
-    Box(modifier.background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+    // After the view settles, ask for a full-resolution render of what is on screen.
+    val bmpW = state.preview?.width ?: 0
+    val bmpH = state.preview?.height ?: 0
+    LaunchedEffect(scale, offset, boxSize, bmpW, bmpH) {
+        if (scale <= 1.01f || boxSize.width == 0 || bmpW == 0) {
+            vm.requestLoupe(null)
+            return@LaunchedEffect
+        }
+        kotlinx.coroutines.delay(150)
+        val bw = boxSize.width.toFloat()
+        val bh = boxSize.height.toFloat()
+        val fit = min(bw / bmpW, bh / bmpH)
+        val imgW = bmpW * fit
+        val imgH = bmpH * fit
+        val left0 = (bw - imgW) / 2f
+        val top0 = (bh - imgH) / 2f
+        fun toImage(sx: Float, sy: Float): Offset {
+            val px = (sx - bw / 2f - offset.x) / scale + bw / 2f
+            val py = (sy - bh / 2f - offset.y) / scale + bh / 2f
+            return Offset(((px - left0) / imgW).coerceIn(0f, 1f), ((py - top0) / imgH).coerceIn(0f, 1f))
+        }
+        val a = toImage(0f, 0f)
+        val b = toImage(bw, bh)
+        if (b.x - a.x < 1e-3f || b.y - a.y < 1e-3f) {
+            vm.requestLoupe(null)
+            return@LaunchedEffect
+        }
+        vm.requestLoupe(LoupeRequest(a.x, a.y, b.x, b.y, (b.x - a.x) * imgW * scale))
+    }
+
+    Box(
+        modifier
+            .background(MaterialTheme.colorScheme.background)
+            .onSizeChanged { boxSize = it },
+        contentAlignment = Alignment.Center,
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
-                        val newScale = (scale * zoom).coerceIn(1f, 6f)
+                        val newScale = (scale * zoom).coerceIn(1f, 12f)
                         offset = if (newScale == 1f) Offset.Zero else offset + pan
                         scale = newScale
                     }
                 }
                 .pointerInput(Unit) {
-                    detectTapGestures(onDoubleTap = { scale = 1f; offset = Offset.Zero })
+                    detectTapGestures(onDoubleTap = { tap ->
+                        if (scale > 1.01f) {
+                            scale = 1f; offset = Offset.Zero
+                        } else {
+                            // Zoom to roughly 1:1 around the tapped point.
+                            val target = 4f
+                            val c = Offset(size.width / 2f, size.height / 2f)
+                            offset = (c - tap) * (target - 1f)
+                            scale = target
+                        }
+                    })
                 },
-            contentAlignment = Alignment.Center,
         ) {
-            shown?.let { bmp ->
-                Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = "Preview",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = scale; scaleY = scale
-                            translationX = offset.x; translationY = offset.y
-                        },
+            val loupe = state.loupe?.takeIf { !comparing && it.params == state.params }
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .semantics { contentDescription = "Preview" }
+                    .graphicsLayer {
+                        scaleX = scale; scaleY = scale
+                        translationX = offset.x; translationY = offset.y
+                    },
+            ) {
+                val bmp = shown ?: return@Canvas
+                val fit = min(size.width / bmp.width, size.height / bmp.height)
+                val w = bmp.width * fit
+                val h = bmp.height * fit
+                val left = (size.width - w) / 2f
+                val top = (size.height - h) / 2f
+                drawImage(
+                    bmp.asImageBitmap(),
+                    dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
+                    dstSize = IntSize(w.roundToInt(), h.roundToInt()),
+                    filterQuality = FilterQuality.Medium,
                 )
+                if (loupe != null) {
+                    val lx = left + loupe.left * w
+                    val ly = top + loupe.top * h
+                    val lw = (loupe.right - loupe.left) * w
+                    val lh = (loupe.bottom - loupe.top) * h
+                    drawImage(
+                        loupe.bitmap.asImageBitmap(),
+                        dstOffset = IntOffset(lx.roundToInt(), ly.roundToInt()),
+                        dstSize = IntSize(max(1, lw.roundToInt()), max(1, lh.roundToInt())),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                }
             }
         }
         state.histogram?.let { bins ->
@@ -243,21 +305,25 @@ private fun PreviewPane(state: DevelopState, modifier: Modifier) {
                 )
             }
             Spacer(Modifier.width(8.dp))
-            if (state.renderMs > 0) {
-                Text(
-                    "${state.renderMs} ms",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace,
-                )
+            val zoomLabel = when {
+                scale > 1.01f && state.loupeBusy -> "Rendering detail…"
+                scale > 1.01f && state.loupe != null && state.loupe.params == state.params -> "Full resolution"
+                state.renderMs > 0 -> "${state.renderMs} ms"
+                else -> ""
             }
+            Text(
+                zoomLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+            )
         }
     }
 }
 
 @Composable
 private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modifier) {
-    LazyColumn(modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 96.dp)) {
         for (group in AdjustmentGroup.entries) {
             item(key = "h-${group.name}") {
                 Text(
@@ -267,7 +333,9 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
                     modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
                 )
             }
-            items(Adjustment.entries.filter { it.group == group }, key = { it.name }) { adj ->
+            val adjustments = Adjustment.entries.filter { it.group == group }
+                .filter { it != Adjustment.LENS_PROFILE || state.hasLensProfile }
+            items(adjustments, key = { it.name }) { adj ->
                 SliderRow(adj, state.params, state.defaults, onChange = { vm.set(adj, it) }, onReset = { vm.resetOne(adj) })
             }
         }
