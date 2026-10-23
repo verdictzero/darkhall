@@ -16,8 +16,21 @@ android {
         versionName = "0.1.0"
     }
 
+    // Release key from the environment (the release workflow's secrets). Without one, release
+    // builds are signed with the debug key so the APK still installs.
+    val releaseKeystore = System.getenv("DARKHALL_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (releaseKeystore != null) create("release") {
+            storeFile = releaseKeystore
+            storePassword = System.getenv("DARKHALL_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("DARKHALL_KEY_ALIAS")
+            keyPassword = System.getenv("DARKHALL_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
