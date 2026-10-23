@@ -21,6 +21,14 @@ class OrfDecodeTest {
     private val samplePath = System.getProperty("darkhall.sample").orEmpty()
     private val refPath = System.getProperty("darkhall.sampleRef").orEmpty()
 
+    /** Values LibRaw reports for the two sample files the project is tested against. */
+    private class Expected(val wbR: Float, val wbB: Float, val black: Int, val orientation: Int, val focal: Double)
+
+    private val expected = mapOf(
+        "TG-6" to Expected(1.875f, 1.7109375f, 257, 1, 4.5),
+        "TG-7" to Expected(1.8671875f, 1.625f, 257, 8, 4.5),
+    )
+
     @Test
     fun parsesTgMetadata() {
         assumeTrue("no sample configured", samplePath.isNotEmpty() && File(samplePath).exists())
@@ -37,14 +45,23 @@ class OrfDecodeTest {
         assertEquals(8, meta.crop.left)
         assertEquals(8, meta.crop.top)
         assertEquals(4095, meta.whiteLevel)
-        assertEquals(1.875f, meta.cameraWb[0], 1e-4f)
-        assertEquals(1.7109375f, meta.cameraWb[2], 1e-4f)
-        assertEquals(257, meta.blackLevels[0])
         assertNotNull(meta.cameraMatrix)
         assertTrue(meta.previewLength > 1000)
         assertEquals(0xFF, bytes[meta.previewOffset.toInt()].toInt() and 0xFF)
         assertEquals(0xD8, bytes[meta.previewOffset.toInt() + 1].toInt() and 0xFF)
         assertEquals(100, meta.iso)
+        // Both samples were shot on land: the depth tag is present but marked unknown.
+        assertEquals(null, meta.waterDepth)
+        assertEquals(null, meta.estimatedDepth)
+        assertNotNull(meta.pressureHpa)
+        assertNotNull(meta.ambientTemperature)
+        expected[meta.model]?.let { e ->
+            assertEquals(e.wbR, meta.cameraWb[0], 1e-4f)
+            assertEquals(e.wbB, meta.cameraWb[2], 1e-4f)
+            assertEquals(e.black, meta.blackLevels[0])
+            assertEquals(e.orientation, meta.orientation)
+            assertEquals(e.focal, meta.focalLength, 1e-6)
+        }
     }
 
     @Test

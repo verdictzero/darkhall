@@ -28,6 +28,9 @@ object OrfParser {
 
     private val typeSize = intArrayOf(0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4)
 
+    /** Larger than any sensor Olympus has shipped; guards allocations against corrupt headers. */
+    private const val MAX_DIMENSION = 16384
+
     private class Ifd(val entries: Map<Int, Entry>, val next: Long)
 
     fun isOrf(data: ByteArray): Boolean {
@@ -36,7 +39,15 @@ object OrfParser {
         return sig == "IIRO" || sig == "IIRS" || sig == "MMOR" || sig == "II*\u0000" || sig == "MM\u0000*"
     }
 
-    fun parse(data: ByteArray): OrfMetadata {
+    fun parse(data: ByteArray): OrfMetadata = try {
+        parseUnchecked(data)
+    } catch (e: OrfParseException) {
+        throw e
+    } catch (e: RuntimeException) {
+        throw OrfParseException("Corrupt ORF header (${e.javaClass.simpleName})", e)
+    }
+
+    private fun parseUnchecked(data: ByteArray): OrfMetadata {
         if (data.size < 16) throw OrfParseException("File too small")
         val sig = String(data, 0, 4, Charsets.US_ASCII)
         val order = when {
@@ -56,10 +67,14 @@ object OrfParser {
         }
         val rawWidth = int(r, ifd0.entries[0x0100]) ?: throw OrfParseException("Missing ImageWidth")
         val rawHeight = int(r, ifd0.entries[0x0101]) ?: throw OrfParseException("Missing ImageLength")
+        if (rawWidth !in 16..MAX_DIMENSION || rawHeight !in 16..MAX_DIMENSION) {
+            throw OrfParseException("Implausible raw size ${rawWidth}x$rawHeight")
+        }
         val bps = int(r, ifd0.entries[0x0102]) ?: 16
         val compression = int(r, ifd0.entries[0x0103]) ?: 1
         val stripOffset = long(r, ifd0.entries[0x0111]) ?: throw OrfParseException("Missing StripOffsets")
         val stripBytes = long(r, ifd0.entries[0x0117]) ?: (data.size - stripOffset)
+        if (stripOffset <= 0 || stripOffset >= data.size) throw OrfParseException("Raw data offset outside the file")
         val orientation = int(r, ifd0.entries[0x0112]) ?: 1
         var dateTime = ascii(r, ifd0.entries[0x0132]).trim()
 
@@ -78,6 +93,9 @@ object OrfParser {
         var previewLength = 0
         var thumbOffset = 0L
         var thumbLength = 0
+        var ambientTemp: Double? = null
+        var pressure: Double? = null
+        var waterDepth: Double? = null
 
         val exifOff = long(r, ifd0.entries[0x8769])
         if (exifOff != null && exifOff in 1 until r.size) {
@@ -88,6 +106,10 @@ object OrfParser {
             focal = rational(r, exif.entries[0x920A]) ?: 0.0
             val dto = ascii(r, exif.entries[0x9003]).trim()
             if (dto.isNotEmpty()) dateTime = dto
+            // EXIF 2.31 environment tags; a denominator of 0 or -1 means "unknown".
+            ambientTemp = rational(r, exif.entries[0x9400])?.takeIf { it > -60 && it < 80 }
+            pressure = rational(r, exif.entries[0x9402])?.takeIf { it > 100 && it < 20000 }
+            waterDepth = rational(r, exif.entries[0x9403])?.takeIf { it > -5 && it < 500 }
             exif.entries[0xA302]?.let { e ->
                 // EXIF CFAPattern: 2 shorts (h, v repeat) followed by the pattern bytes.
                 if (e.count >= 8 && e.valueOffset + 8 <= r.size) {
@@ -129,6 +151,10 @@ object OrfParser {
             thumbOffset = 0; thumbLength = 0
         }
 
+        val gps = long(r, ifd0.entries[0x8825])?.let { off ->
+            if (off in 8 until r.size) runCatching { parseGps(r, readIfd(r, off.toInt(), 0)) }.getOrNull() else null
+        }
+
         return OrfMetadata(
             make = make, model = model,
             rawWidth = rawWidth, rawHeight = rawHeight,
@@ -145,7 +171,45 @@ object OrfParser {
             dateTime = dateTime,
             previewOffset = previewOffset, previewLength = previewLength,
             thumbnailOffset = thumbOffset, thumbnailLength = thumbLength,
+            ambientTemperature = ambientTemp,
+            pressureHpa = pressure,
+            waterDepth = waterDepth,
+            gps = gps,
         )
+    }
+
+    private fun parseGps(r: Reader, gps: Ifd): GpsInfo? {
+        val lat = rationals(r, gps.entries[0x0002], 3) ?: return null
+        val lon = rationals(r, gps.entries[0x0004], 3) ?: return null
+        val latRef = ascii(r, gps.entries[0x0001]).trim().uppercase()
+        val lonRef = ascii(r, gps.entries[0x0003]).trim().uppercase()
+        if (latRef.isEmpty() || lonRef.isEmpty()) return null
+        var latDeg = lat[0] + lat[1] / 60.0 + lat[2] / 3600.0
+        var lonDeg = lon[0] + lon[1] / 60.0 + lon[2] / 3600.0
+        if (latDeg.isNaN() || lonDeg.isNaN() || latDeg > 90.0 || lonDeg > 180.0) return null
+        if (latDeg == 0.0 && lonDeg == 0.0) return null // receiver had no fix
+        if (latRef.startsWith("S")) latDeg = -latDeg
+        if (lonRef.startsWith("W")) lonDeg = -lonDeg
+        var alt = rational(r, gps.entries[0x0006])
+        if (alt != null && (long(r, gps.entries[0x0005]) ?: 0L) == 1L) alt = -alt
+        val time = rationals(r, gps.entries[0x0007], 3)?.let { t ->
+            "%02d:%02d:%02d".format(t[0].toInt(), t[1].toInt(), t[2].toInt())
+        }
+        val date = ascii(r, gps.entries[0x001D]).trim().ifEmpty { null }
+        return GpsInfo(latDeg, lonDeg, alt, time, date)
+    }
+
+    /** Reads [n] unsigned rationals, or null if any is missing or has a zero denominator. */
+    private fun rationals(r: Reader, e: Entry?, n: Int): DoubleArray? {
+        if (e == null || e.type != 5 || e.count < n) return null
+        val out = DoubleArray(n)
+        for (i in 0 until n) {
+            val num = r.u32(e.valueOffset + 8 * i)
+            val den = r.u32(e.valueOffset + 8 * i + 4)
+            if (den == 0L) return null
+            out[i] = num.toDouble() / den
+        }
+        return out
     }
 
     private class MakerNoteData(
@@ -270,8 +334,10 @@ object OrfParser {
             val count = r.u32(e + 4)
             if (count > Int.MAX_VALUE) continue
             val sz = (if (type in 1..13) typeSize[type] else 1).toLong() * count
-            val valueOffset = if (sz <= 4) e + 8 else (base + r.u32(e + 8)).toInt()
-            if (valueOffset < 0 || valueOffset > r.size) continue
+            val valueOffsetL = if (sz <= 4) (e + 8).toLong() else base + r.u32(e + 8)
+            // Skip entries whose data would run off the end of the file (corrupt or truncated).
+            if (valueOffsetL < 0 || valueOffsetL + maxOf(sz, 4L) > r.size) continue
+            val valueOffset = valueOffsetL.toInt()
             map[tag] = Entry(type, count.toInt(), valueOffset)
         }
         val nextOff = off + 2 + n * 12
@@ -298,11 +364,11 @@ object OrfParser {
         return when (e.type) {
             5 -> {
                 val num = r.u32(e.valueOffset); val den = r.u32(e.valueOffset + 4)
-                if (den == 0L) null else num.toDouble() / den
+                if (den == 0L || den == 0xFFFFFFFFL) null else num.toDouble() / den
             }
             10 -> {
                 val num = r.s32(e.valueOffset); val den = r.s32(e.valueOffset + 4)
-                if (den == 0) null else num.toDouble() / den
+                if (den == 0 || den == -1) null else num.toDouble() / den
             }
             3, 4 -> long(r, e)?.toDouble()
             else -> null

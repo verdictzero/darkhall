@@ -11,7 +11,18 @@ package com.verdictzero.darkhall.core.orf
  */
 object OlympusDecoder {
 
-    fun decode(data: ByteArray, meta: OrfMetadata): RawImage {
+    fun decode(data: ByteArray, meta: OrfMetadata): RawImage = try {
+        decodeUnchecked(data, meta)
+    } catch (e: OrfParseException) {
+        throw e
+    } catch (e: RuntimeException) {
+        throw OrfParseException("Raw data is corrupt (${e.javaClass.simpleName})", e)
+    }
+
+    private fun decodeUnchecked(data: ByteArray, meta: OrfMetadata): RawImage {
+        if (meta.crop.left + meta.crop.width > meta.rawWidth || meta.crop.top + meta.crop.height > meta.rawHeight) {
+            throw OrfParseException("Crop outside sensor area")
+        }
         return when {
             meta.isOlympusCompressed -> decodeCompressed(data, meta)
             meta.isUnpacked16 -> decodeUnpacked16(data, meta)
@@ -55,6 +66,12 @@ object OlympusDecoder {
         val start = meta.stripOffset.toInt() + 7 // dcraw: fseek(ifp, 7, SEEK_CUR)
         if (start < 0 || start >= data.size) throw OrfParseException("Raw strip offset out of range")
         val end = minOf(data.size.toLong(), meta.stripOffset + meta.stripBytes).toInt()
+        // A file cut short (card pulled mid-copy) decodes as long as most of the strip is there;
+        // the missing tail reads as zero bits and is caught by the error count below.
+        if (end - start < meta.stripBytes / 2) throw OrfParseException("File is truncated")
+        // Every compressed sample costs at least 6 bits, so the strip bounds the pixel count.
+        // This stops a corrupt width/height from allocating hundreds of megabytes.
+        if (rw.toLong() * rh > (end - start).toLong() * 8 / 3) throw OrfParseException("Raw size does not match the data")
         val br = BitReader(data, start, end)
         val raw = ShortArray(rw * rh)
         val acarry = IntArray(6)
