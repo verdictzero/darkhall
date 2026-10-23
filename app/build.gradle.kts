@@ -42,6 +42,8 @@ android {
             // End-to-end test input: -Pdarkhall.sample=/path/to/file.orf (skipped when absent).
             it.systemProperty("darkhall.sample", (project.findProperty("darkhall.sample") ?: "") as String)
             it.systemProperty("darkhall.outDir", (project.findProperty("darkhall.outDir") ?: "") as String)
+            // Another camera's raw for OtherFormatsSmokeTest: -Pdarkhall.otherSample=/path/to/file.arw
+            it.systemProperty("darkhall.otherSample", (project.findProperty("darkhall.otherSample") ?: "") as String)
             it.testLogging { events("passed", "failed", "skipped"); showStandardStreams = true }
         }
     }

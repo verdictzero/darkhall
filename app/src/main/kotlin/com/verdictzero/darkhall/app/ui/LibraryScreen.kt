@@ -65,7 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.verdictzero.darkhall.app.data.OrfRepository
+import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.RawFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -192,8 +192,8 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
         Text("No raw files yet", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(12.dp))
         Text(
-            "Pick the folder your TG-7 writes to (DCIM/100OLYMP on the card, or wherever you copied the .ORF files), " +
-                "or open individual files.",
+            "Pick a folder of raw files (your TG-7's DCIM/100OLYMP, another camera's card, or your phone's DNGs), " +
+                "or open individual files. Reads ORF, DNG, ARW, NEF, CR2, RW2 and PEF.",
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -210,7 +210,7 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
 private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val context = LocalContext.current
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = file.key) {
-        value = withContext(Dispatchers.IO) { OrfRepository.thumbnail(context, file) }
+        value = withContext(Dispatchers.IO) { RawRepository.thumbnail(context, file) }
     }
     val accent = MaterialTheme.colorScheme.primary
     val strokes = LocalStrokes.current

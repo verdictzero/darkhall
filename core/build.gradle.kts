@@ -25,11 +25,14 @@ dependencies {
 }
 
 tasks.withType<Test> {
-    maxHeapSize = "2g"
+    maxHeapSize = "3g"
     // The decoder test uses a sample ORF supplied via -Pdarkhall.sample=/path/to/file.orf
     systemProperty("darkhall.sample", (project.findProperty("darkhall.sample") ?: "") as String)
     systemProperty("darkhall.sampleRef", (project.findProperty("darkhall.sampleRef") ?: "") as String)
     systemProperty("darkhall.outDir", (project.findProperty("darkhall.outDir") ?: "") as String)
+    // Multi-camera decode test: a directory of sample raws plus a LibRaw reference.tsv.
+    systemProperty("darkhall.rawsDir", (project.findProperty("darkhall.rawsDir") ?: "") as String)
+    systemProperty("darkhall.rawsFilter", (project.findProperty("darkhall.rawsFilter") ?: "") as String)
     systemProperty("darkhall.looksDir", rootProject.file("app/src/main/assets/looks").absolutePath)
     systemProperty("darkhall.hald", (project.findProperty("darkhall.hald") ?: "") as String)
     // GPU tests: -Pdarkhall.gles=mesa (default) or angle; skipped when no EGL is available.

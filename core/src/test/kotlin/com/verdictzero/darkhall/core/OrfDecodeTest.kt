@@ -1,7 +1,8 @@
 package com.verdictzero.darkhall.core
 
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.OrfLayout
+import com.verdictzero.darkhall.core.raw.OrfParser
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
@@ -38,7 +39,7 @@ class OrfDecodeTest {
         assertTrue(meta.model.startsWith("TG-"), "model=${meta.model}")
         assertEquals(4040, meta.rawWidth)
         assertEquals(3016, meta.rawHeight)
-        assertTrue(meta.isOlympusCompressed)
+        assertTrue((meta.layout as OrfLayout).compressed)
         assertEquals(listOf(1, 0, 2, 1), meta.cfa.toList()) // GRBG at the sensor origin
         assertEquals(4000, meta.crop.width)
         assertEquals(3000, meta.crop.height)
@@ -58,7 +59,7 @@ class OrfDecodeTest {
         expected[meta.model]?.let { e ->
             assertEquals(e.wbR, meta.cameraWb[0], 1e-4f)
             assertEquals(e.wbB, meta.cameraWb[2], 1e-4f)
-            assertEquals(e.black, meta.blackLevels[0])
+            assertEquals(e.black, meta.blackLevels[1]) // the red site of the GRBG cell
             assertEquals(e.orientation, meta.orientation)
             assertEquals(e.focal, meta.focalLength, 1e-6)
         }

@@ -28,24 +28,28 @@ class Geometry private constructor(
     private val radius = sqrt(cx * cx + cy * cy)
     /** Converts half-diagonal units to lensfun's half-short-side units. */
     private val shortRatio = radius / min(cx, cy)
+    /** Lens correction f_c(r) coefficients by power (0..6), each (R, G, B). */
+    private val poly: Array<FloatArray>? = lens?.polynomial(shortRatio)
     private var zoom = 1f
 
     /** Everything a shader needs to evaluate [map]. */
     class Uniforms(
-        val cx: Float, val cy: Float, val radius: Float, val shortRatio: Float, val zoom: Float,
+        val cx: Float, val cy: Float, val radius: Float, val zoom: Float,
         val cos: Float, val sin: Float, val k: Float,
-        val lensOn: Boolean, val a: Float, val b: Float, val c: Float, val amount: Float, val vr: Float, val vb: Float,
+        val lensOn: Boolean, val amount: Float,
+        /** Lens polynomial by power 0..6, each (R, G, B). */
+        val poly: Array<FloatArray>,
         val hasTca: Boolean,
     )
 
     fun uniforms() = Uniforms(
-        cx, cy, radius, shortRatio, zoom, cosT, sinT, k,
-        lens != null && amount > 0f, lens?.a ?: 0f, lens?.b ?: 0f, lens?.c ?: 0f, amount, lens?.vr ?: 1f, lens?.vb ?: 1f,
+        cx, cy, radius, zoom, cosT, sinT, k,
+        poly != null && amount > 0f, amount, poly ?: Array(7) { FloatArray(3) },
         hasTca,
     )
 
     /** True when red and blue need sampling at different positions from green. */
-    val hasTca: Boolean = lens != null && amount > 0f && (abs(lens.vr - 1f) > 1e-6f || abs(lens.vb - 1f) > 1e-6f)
+    val hasTca: Boolean = poly != null && amount > 0f && poly.any { abs(it[0] - it[1]) > 1e-7f || abs(it[2] - it[1]) > 1e-7f }
 
     /** Maps output pixel (x, y) to source positions: out = [rx, ry, gx, gy, bx, by]. */
     fun map(x: Float, y: Float, out: FloatArray) {
@@ -58,13 +62,14 @@ class Geometry private constructor(
             qx *= f; qy *= f
         }
         var fg = 1f; var fr = 1f; var fb = 1f
-        if (lens != null && amount > 0f) {
-            val ru = sqrt(qx * qx + qy * qy) * shortRatio
-            val d = 1f - lens.a - lens.b - lens.c
-            val fd = ((lens.a * ru + lens.b) * ru + lens.c) * ru + d
-            fg = 1f + amount * (fd - 1f)
-            fr = fg * (1f + amount * (lens.vr - 1f))
-            fb = fg * (1f + amount * (lens.vb - 1f))
+        if (poly != null && amount > 0f) {
+            val r = sqrt(qx * qx + qy * qy)
+            fun f(ch: Int): Float {
+                var v = poly[6][ch]
+                for (i in 5 downTo 0) v = v * r + poly[i][ch]
+                return 1f + amount * (v - 1f)
+            }
+            fr = f(0); fg = f(1); fb = f(2)
         }
         out[0] = cx + qx * fr * radius; out[1] = cy + qy * fr * radius
         out[2] = cx + qx * fg * radius; out[3] = cy + qy * fg * radius

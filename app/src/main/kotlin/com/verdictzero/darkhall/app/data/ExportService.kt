@@ -10,7 +10,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import androidx.exifinterface.media.ExifInterface
-import com.verdictzero.darkhall.core.orf.OrfMetadata
+import com.verdictzero.darkhall.core.raw.RawMetadata
 import java.io.File
 import java.io.FileOutputStream
 
@@ -22,7 +22,7 @@ object ExportService {
 
     class Result(val uri: Uri, val displayPath: String)
 
-    fun saveJpeg(context: Context, bitmap: Bitmap, meta: OrfMetadata, baseName: String): Result {
+    fun saveJpeg(context: Context, bitmap: Bitmap, meta: RawMetadata, baseName: String): Result {
         val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())
         val fileName = "${baseName}_$stamp.jpg"
         // Encode and tag a private temp file first, then copy the finished bytes out. Writing
@@ -71,7 +71,7 @@ object ExportService {
         return Result(Uri.fromFile(f), "Pictures/$ALBUM/$fileName")
     }
 
-    private fun writeExif(exif: ExifInterface, meta: OrfMetadata) {
+    private fun writeExif(exif: ExifInterface, meta: RawMetadata) {
         exif.setAttribute(ExifInterface.TAG_MAKE, meta.make)
         exif.setAttribute(ExifInterface.TAG_MODEL, meta.model)
         exif.setAttribute(ExifInterface.TAG_SOFTWARE, "Darkhall")

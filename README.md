@@ -1,9 +1,11 @@
 # Darkhall
 
 A sliders-only RAW developer for Android, built around the files an
-**Olympus Tough TG-7** writes.
+**Olympus Tough TG-7** writes, and opening the raws of most other cameras and phones too
+(DNG, Sony ARW, Nikon NEF, Canon CR2, Panasonic RW2, Pentax PEF, every Olympus/OM ORF; see
+[Other cameras and phones](#other-cameras-and-phones)).
 
-No curves, no masks, no presets: open an `.ORF`, drag sliders, export a JPEG.
+No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 
 ## What "tailored to the TG-7" means
 
@@ -45,8 +47,8 @@ No curves, no masks, no presets: open an `.ORF`, drag sliders, export a JPEG.
   dive shots. See [Looks](#looks).
 * **GPU preview rendering, tuned for Adreno.** Slider changes render on the phone's GPU
   (OpenGL ES 3.0 fragment shaders); see [GPU rendering](#gpu-rendering).
-* **Thumbnails from the embedded preview.** The library reads only the first ~1 MB of
-  each file to show the camera's own preview JPEG, so a card full of raws browses quickly.
+* **Thumbnails from the embedded preview.** The library reads only the start of each file
+  and the camera's own preview JPEG, so a card full of raws browses quickly.
 
 ## Sliders
 
@@ -65,12 +67,42 @@ Pinch or double-tap to zoom: once the preview runs out of pixels, the visible ar
 re-rendered from the raw at up to full resolution, so sharpening and noise reduction can be
 judged properly. Edits are saved automatically per file and restored when you reopen it.
 
+## Other cameras and phones
+
+The TG-7 is still what the defaults are tuned for, but the same sliders work on raws from
+other cameras. Each decoder is a Kotlin port of the dcraw/LibRaw algorithm and is checked
+**bit for bit against LibRaw** on real files (see [Tests](#tests)):
+
+| Format | Cameras | Variants decoded | Checked on |
+|---|---|---|---|
+| DNG | phones (Pixel, Galaxy Expert RAW, iPhone ProRAW), drones, Leica, Pentax, Ricoh, Adobe DNG Converter | uncompressed, packed, lossless JPEG (strips or tiles), linear (already demosaiced) DNGs, linearization tables, 16/24/32-bit floating-point (HDR merges) | Pixel 4a, Pixel 6 Pro, Galaxy S23 Ultra, iPhone 12 Pro, DJI Mini 2, Leica Q2, Pentax K-3 III, an HDRMerge file |
+| ORF | Olympus and OM System bodies with Olympus compression, high-res shot mode included | | TG-5, TG-7, E-M10 IV, E-M1 III, E-M1X, E-PL7, OM-1 (normal and 50 MP high-res), OM-5, OM-5 II |
+| ARW | Sony Alpha, RX, ZV | compressed (ARW 2), uncompressed, lossless compressed (L size), SR2-encrypted levels on older bodies | A7 III (both), A7 IV (lossless, APS-C), A6400, ZV-E10, RX100 VA, NEX-6 |
+| NEF | Nikon D and Z | lossless and lossy compression (12/14-bit, with the split tables), uncompressed, Z-series packed 14-bit | D3500, D610, D750, D7000, D850, Z 6, Z 7, Z 50 |
+| CR2 | Canon EOS 2004–2018 | lossless JPEG with Canon's slicing, 2- and 4-component streams, US/Japanese model names | 5D III, 6D II, 80D, 200D, 450D, Rebel T7i |
+| RW2 | Panasonic, Leica rebrands | all five encodings (original, GH5S/G9 high-res, S1/S5 generation, S1R high-res, and the GH6/G9 II/S5 II generation) | G9, GH5, GH5S, GH6, G85, GX7, LX100, S5 |
+| PEF | Pentax | Pentax Huffman, uncompressed | K-1, K-70 |
+
+What the file provides is used as on the TG-7: as-shot white balance, per-channel black
+level, the camera's crop, orientation and EXIF. Colour comes from the DNG's own matrix or,
+for the other formats, Adobe's matrix for that body (the table LibRaw ships, 811 camera entries).
+Highlights clip at the level where the camera says its sensor stops being linear (Sony, Canon
+and Panasonic record it), not at the converter's full scale, which keeps bright overcast skies
+from turning magenta. DNG lens corrections are applied: phones' lens-shading gain maps, radial
+vignetting, and the distortion/colour-fringe warp, which drives the *Lens profile* slider just
+like the TG lens profile; DNG BaselineExposure is honoured.
+
+Not supported, with a clear message when opened: Fujifilm RAF, Canon CR3, Canon sRAW/mRAW, Sony
+medium/small lossless ARWs, Nikon High Efficiency RAW and small/medium NEFs, lossy and JPEG XL
+DNGs, X-Trans DNGs. Very large sensors (45–60 MP) open and export, but need a phone with a
+generous memory allowance.
+
 ## Using it
 
 1. Copy the `.ORF` files from the TG-7's card (`DCIM/100OLYMP`) to the phone, or plug
-   the card in with an OTG reader.
-2. **Folder** picks a directory to browse; **Files** opens individual raws. Opening an
-   `.ORF` from a file manager also works.
+   the card in with an OTG reader. Other cameras' raws and phone DNGs work the same way.
+2. **Folder** picks a directory to browse; **Files** opens individual raws. Opening a
+   raw from a file manager also works.
 3. Tap a thumbnail, adjust, then **Export**. JPEGs (quality 95, full 12 MP, with the
    shooting data copied into EXIF) land in `Pictures/Darkhall`.
 4. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
@@ -193,9 +225,31 @@ libgl1-mesa-dri`) is used by default; for ANGLE pass
 The reference dump is the `raw_image` array from rawpy/LibRaw written as little-endian
 uint16. Without `-Pdarkhall.sample` the file-based tests are skipped.
 
+The other formats are tested on a directory of sample raws (raw.pixls.us has files for most
+bodies) plus a LibRaw reference written by `tools/raws/reference.py` (needs `pip install rawpy`):
+
+```
+python3 tools/raws/reference.py ~/raws            # writes ~/raws/reference.tsv
+./gradlew :core:test --tests '*RawFormatsTest*' -Pdarkhall.rawsDir=$HOME/raws \
+    -Pdarkhall.outDir=/tmp/darkhall-out           # optional: default renders of each file
+```
+
+Every file must decode to exactly LibRaw's sensor data with matching size, CFA pattern and
+black levels; white balance, white level, colour matrix and the embedded preview are checked
+too, and truncated or corrupted copies of one file per format must fail cleanly.
+
+The app itself can be driven end to end on any of those files (open from a file manager, wait
+for the preview, export, check the JPEG's size and EXIF), one file per run:
+
+```
+./gradlew :app:testDebugUnitTest --tests '*OtherFormatsSmokeTest*' \
+    -Pdarkhall.otherSample=$HOME/raws/some_camera.nef
+```
+
 What they cover:
 
-* bit-exact decoding against LibRaw, and metadata parsing for both bodies;
+* bit-exact decoding against LibRaw, and metadata parsing for both bodies; the same for
+  52 files from 46 cameras and phones across seven formats;
 * fuzzing: truncated files, random corruption, and every IFD entry rewritten with hostile
   counts, offsets and types — all must fail cleanly, never crash;
 * every slider at both extremes; band seams in the full-size export;
@@ -222,7 +276,8 @@ What they cover:
 
 ## Layout
 
-* `core/` – pure Kotlin/JVM: ORF parser, Olympus decoder, demosaic (superpixel for
+* `core/` – pure Kotlin/JVM: raw format readers and decoders (`core/raw`: a TIFF reader,
+  lossless JPEG, DNG, ORF, ARW, NEF, CR2, RW2, PEF), the camera colour table, demosaic (superpixel for
   previews, Malvar-He-Cutler for export and zoom), the slider pipeline and its shared
   `RenderPlan`, the GLSL ES port behind a small `Gl` interface, lens geometry, region
   rendering for zoom, banded 12 MP export.
@@ -233,9 +288,8 @@ What they cover:
 
 * Preview edits run on a ~1280 px proxy; export re-renders at full resolution in bands
   so a 12 MP float pipeline fits in a phone's heap.
-* Only the TG-series ORF layout is exercised. Other Olympus/OM bodies that use the same
-  compression will probably open, but no promises; the lens profile is applied only to
-  TG-5, TG-6 and TG-7 files.
+* The built-in lens profile is for the TG-5/6/7 lens; other cameras get lens corrections only
+  when their DNGs carry them. The noise-reduction and tone defaults were tuned on TG files.
 * The underwater correction is a global one (veil removal plus grey-world balance). It
   cannot bring back red that is completely gone; very deep natural-light shots stay blue-ish.
 * GPU rendering covers the live preview. The full-resolution zoom and exports run on the CPU:
@@ -254,3 +308,9 @@ in `app/src/main/assets/looks/LICENSES.txt` and in the app (Looks → Credits).
 
 Lens distortion and TCA coefficients for the TG-5/6/7 lens come from the
 [lensfun](https://lensfun.github.io) database (CC BY-SA 3.0).
+
+The raw decoders follow the algorithms of [dcraw](https://www.dechifro.org/dcraw/) by Dave
+Coffin and [LibRaw](https://www.libraw.org) (LibRaw LLC). The camera colour table
+(`core/src/main/resources/darkhall/camera_colors.tsv`, Adobe DNG Converter matrices) and
+the Canon model table are extracted from LibRaw 0.22.1 by `tools/colors/`; LibRaw is
+available under LGPL 2.1 or CDDL 1.0.

@@ -2,7 +2,7 @@ package com.verdictzero.darkhall.core.develop
 
 /**
  * Planar floating point RGB image in camera-native linear space: black has been
- * subtracted and raw white (the 12-bit clip point) maps to 1.0. No white balance
+ * subtracted and raw white (the sensor's clip point) maps to 1.0. No white balance
  * or colour matrix has been applied yet, so a [Developer] can do both under
  * slider control.
  */

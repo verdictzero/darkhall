@@ -138,11 +138,12 @@ object AutoTone {
     fun solve(img: LinearImage, ctx: RenderContext, base: DevelopParams, frame: Frame): Result {
         val s = samples(img, ctx, base, frame)
         if (s.size < 16) return Result(base, 0f, 0)
-        // Start from the exposure that puts the scene's log-average luminance at mid-grey.
+        // Start from the exposure that puts the scene's log-average luminance at mid-grey
+        // (the slider sits on top of the file's baseline exposure).
         var logSum = 0.0
         for (i in 0 until s.size) logSum += ln(LUM_R * s.r[i] + LUM_G * s.g[i] + LUM_B * s.b[i] + 1e-4)
         val key = exp(logSum / s.size).toFloat()
-        val ev0 = (ln(0.18f / key) / ln(2f)).coerceIn(Adjustment.EXPOSURE.min, Adjustment.EXPOSURE.max)
+        val ev0 = (ln(0.18f / key) / ln(2f) - ctx.baselineEv).coerceIn(Adjustment.EXPOSURE.min, Adjustment.EXPOSURE.max)
 
         val x = floatArrayOf(ev0, 0f, 0f, 0f, 0f, 0f)
         val steps = floatArrayOf(0.5f, 20f, 20f, 20f, 20f, 20f)

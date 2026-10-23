@@ -9,9 +9,9 @@ import com.verdictzero.darkhall.core.develop.NoiseCalibration
 import com.verdictzero.darkhall.core.develop.NoiseProfile
 import com.verdictzero.darkhall.core.develop.Region
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfParser
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.OrfParser
+import com.verdictzero.darkhall.core.raw.RawImage
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
@@ -37,11 +37,10 @@ class NoiseTest {
         val m = raw.meta
         val rnd = Random(seed)
         val out = raw.data.copyOf()
-        val span = (m.whiteLevel - m.blackLevels[1]).toDouble()
+        val span = (m.whiteLevel - m.blackLevels[0]).toDouble()
         for (y in 0 until raw.height) for (x in 0 until raw.width) {
             val i = y * raw.width + x
-            val c = m.cfaColor(y, x)
-            val black = m.blackLevels[c]
+            val black = m.blackAt(y, x)
             val base = replaceWith?.invoke(y, x) ?: (((raw.data[i].toInt() and 0xFFFF) - black) / span)
             val sd = sqrt(maxOf(0.0, a * base + b))
             val v = base + rnd.nextGaussian() * sd

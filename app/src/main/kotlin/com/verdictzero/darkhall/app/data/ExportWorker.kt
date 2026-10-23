@@ -18,7 +18,7 @@ import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.FullRender
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.RawFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -41,7 +41,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val failedNames = ArrayList<String>()
         for ((i, uri) in uris.withIndex()) {
             if (isStopped) break
-            val name = runCatching { OrfRepository.describe(applicationContext.contentResolver, uri).name }.getOrDefault("photo")
+            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uri).name }.getOrDefault("photo")
             report(i, 0f, name)
             try {
                 withContext(Dispatchers.Default) { exportOne(uri) { f -> reportAsync(i, f, name) } }
@@ -84,21 +84,19 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
     private fun exportOne(uri: Uri, progress: (Float) -> Unit) {
         val context = applicationContext
-        val file = OrfRepository.describe(context.contentResolver, uri)
+        val file = RawRepository.describe(context.contentResolver, uri)
         val (raw, ctx, meta) = run {
-            val loaded = OrfRepository.load(context.contentResolver, uri)
-            val raw = OlympusDecoder.decode(loaded.bytes, loaded.meta)
-            val ctx = RenderContext.forFile(loaded.meta, Demosaic.superpixel(raw).let { half ->
-                half.resizeArea(1280, (half.height.toLong() * 1280 / half.width).toInt())
-            }, raw, looks = LookLibrary.source(context))
-            Triple(raw, ctx, loaded.meta) // the 12 MB file buffer is released here
+            val loaded = RawRepository.load(context.contentResolver, uri)
+            val raw = RawFormats.decode(loaded.bytes, loaded.meta)
+            val ctx = RenderContext.forFile(loaded.meta, Demosaic.preview(raw, 1280), raw, looks = LookLibrary.source(context))
+            Triple(raw, ctx, loaded.meta) // the file buffer is released here
         }
         val defaults = DevelopParams.defaultsFor(meta, ctx.noise)
         val params = EditsStore.load(context, file.key, defaults) ?: defaults
         val rendered = FullRender.render(raw, ctx, params, progress = { progress(it * 0.85f) }, isCancelled = { isStopped })
             ?: throw IllegalStateException("cancelled")
         var bmp = Bitmap.createBitmap(rendered.argb, rendered.width, rendered.height, Bitmap.Config.ARGB_8888)
-        bmp = OrfRepository.applyOrientation(bmp, meta.orientation)
+        bmp = RawRepository.applyOrientation(bmp, meta.orientation)
         progress(0.92f)
         ExportService.saveJpeg(context, bmp, meta, file.baseName)
         bmp.recycle()

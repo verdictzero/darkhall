@@ -8,8 +8,8 @@ import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.LookSource
 import com.verdictzero.darkhall.core.develop.Lut
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.OrfParser
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File

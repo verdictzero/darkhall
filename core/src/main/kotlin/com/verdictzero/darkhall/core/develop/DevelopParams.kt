@@ -1,6 +1,6 @@
 package com.verdictzero.darkhall.core.develop
 
-import com.verdictzero.darkhall.core.orf.OrfMetadata
+import com.verdictzero.darkhall.core.raw.RawMetadata
 import kotlin.math.ln
 import kotlin.math.roundToInt
 
@@ -99,7 +99,7 @@ class DevelopParams private constructor(private val values: FloatArray, val look
          * the EXIF ISO when no measurement is available. Underwater shots start with the
          * underwater correction switched on.
          */
-        fun defaultsFor(meta: OrfMetadata, noise: NoiseProfile? = null): DevelopParams {
+        fun defaultsFor(meta: RawMetadata, noise: NoiseProfile? = null): DevelopParams {
             val iso = noise?.takeIf { it.measured }?.effectiveIso?.toDouble() ?: (if (meta.iso > 0) meta.iso.toDouble() else 100.0)
             val stops = (ln(iso / 100.0) / ln(2.0)).coerceIn(0.0, 7.0) // 0 at ISO 100, 5 at ISO 3200
             val chroma = (25.0 + stops * 12.0).coerceIn(0.0, 90.0).toFloat()

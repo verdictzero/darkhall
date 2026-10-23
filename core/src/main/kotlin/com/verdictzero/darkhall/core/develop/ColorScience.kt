@@ -1,15 +1,15 @@
 package com.verdictzero.darkhall.core.develop
 
-import com.verdictzero.darkhall.core.orf.OrfMetadata
+import com.verdictzero.darkhall.core.raw.RawMetadata
 import kotlin.math.pow
 
-/** Colour matrices and transfer functions for the TG-7 sensor. */
+/** Colour matrices and transfer functions. */
 object ColorScience {
 
     /**
      * Adobe/LibRaw XYZ-to-camera matrix for the Tough TG-5/TG-6/TG-7 sensor
-     * (12 MP 1/2.33" BSI CMOS, shared across the three bodies). Only used when the
-     * ORF does not carry the camera's own matrix.
+     * (12 MP 1/2.33" BSI CMOS, shared across the three bodies). The last resort when
+     * neither the file nor the camera table provides a matrix.
      */
     val TG_XYZ_TO_CAM = floatArrayOf(
         1.0899f, -0.3833f, -0.1082f,
@@ -30,13 +30,13 @@ object ColorScience {
 
     /**
      * Returns the 3x3 row-major matrix mapping white-balanced camera RGB to linear sRGB.
-     * Prefers the matrix the camera wrote into the MakerNote (it is what the camera
-     * itself uses for its JPEGs, so colours match the TG-7's own rendering); falls back
-     * to the Adobe matrix following dcraw's derivation.
+     * Prefers the matrix an Olympus camera writes into its MakerNote (it is what the camera
+     * itself uses for its JPEGs, so colours match its own rendering); then the file's or the
+     * camera table's Adobe matrix, following dcraw's derivation.
      */
-    fun cameraToSrgb(meta: OrfMetadata): FloatArray {
+    fun cameraToSrgb(meta: RawMetadata): FloatArray {
         meta.cameraMatrix?.let { return it.copyOf() }
-        return fromXyzToCam(TG_XYZ_TO_CAM)
+        return fromXyzToCam(meta.xyzToCam ?: TG_XYZ_TO_CAM)
     }
 
     fun fromXyzToCam(xyzToCam: FloatArray): FloatArray {

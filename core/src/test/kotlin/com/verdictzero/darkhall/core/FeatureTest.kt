@@ -11,10 +11,10 @@ import com.verdictzero.darkhall.core.develop.LinearImage
 import com.verdictzero.darkhall.core.develop.Region
 import com.verdictzero.darkhall.core.develop.RegionRender
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.OrfParser
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.OrfParser
+import com.verdictzero.darkhall.core.raw.RawImage
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.awt.image.BufferedImage
@@ -39,7 +39,7 @@ class FeatureTest {
         ImageIO.write(img, "png", File(outDir, name))
     }
 
-    private class Loaded(val meta: OrfMetadata, val raw: RawImage, val preview: LinearImage)
+    private class Loaded(val meta: RawMetadata, val raw: RawImage, val preview: LinearImage)
 
     private fun load(): Loaded {
         val bytes = File(samplePath).readBytes()

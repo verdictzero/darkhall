@@ -13,16 +13,15 @@ import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.RawFormats
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
 /** File access, folder listing and thumbnail caching. */
-object OrfRepository {
+object RawRepository {
 
     private const val HEAD_BYTES = 2 * 1024 * 1024
     private const val THUMB_SIZE = 480
@@ -75,7 +74,7 @@ object OrfRepository {
     }
 
     fun describe(resolver: ContentResolver, uri: Uri): RawFile {
-        var name = uri.lastPathSegment?.substringAfterLast('/') ?: "image.orf"
+        var name = uri.lastPathSegment?.substringAfterLast('/') ?: "image.raw"
         var size = 0L
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
             if (c.moveToFirst()) {
@@ -88,7 +87,7 @@ object OrfRepository {
         return RawFile(uri, name, size, 0L)
     }
 
-    /** Lists the .ORF files directly inside a SAF tree (e.g. the TG-7's DCIM/100OLYMP). */
+    /** Lists the raw files directly inside a SAF tree (e.g. the TG-7's DCIM/100OLYMP). */
     fun listFolder(resolver: ContentResolver, treeUri: Uri): List<RawFile> {
         val docId = DocumentsContract.getTreeDocumentId(treeUri)
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, docId)
@@ -117,42 +116,73 @@ object OrfRepository {
         }
     }
 
-    class Loaded(val bytes: ByteArray, val meta: OrfMetadata)
+    class Loaded(val bytes: ByteArray, val meta: RawMetadata)
 
     fun load(resolver: ContentResolver, uri: Uri): Loaded {
         val bytes = readBytes(resolver, uri)
-        if (!OrfParser.isOrf(bytes)) throw IllegalArgumentException("Not an ORF raw file")
-        return Loaded(bytes, OrfParser.parse(bytes))
+        // The parser names unsupported formats (RAF, CR3, ...) instead of a generic error.
+        return Loaded(bytes, RawFormats.parse(bytes))
     }
 
     /** Only one full raw decode at a time for thumbnails; a grid of them would exhaust the heap. */
     private val heavyThumbnailLock = Any()
 
-    /** Thumbnail from the camera's embedded JPEG preview (first ~1 MB of the file), cached on disk. */
+    /**
+     * Thumbnail from the camera's embedded JPEG preview, cached on disk. Only the start of the
+     * file and the preview's own bytes are read; a full decode is the last resort.
+     */
     fun thumbnail(context: Context, file: RawFile): Bitmap? {
         val dir = File(context.cacheDir, "thumbs").apply { mkdirs() }
         val cached = File(dir, "${file.key}.jpg")
         if (cached.exists()) BitmapFactory.decodeFile(cached.path)?.let { return it }
         val resolver = context.contentResolver
         return try {
-            var bytes = readHead(resolver, file.uri, HEAD_BYTES)
-            if (!OrfParser.isOrf(bytes)) return null
-            var meta = runCatching { OrfParser.parse(bytes) }.getOrNull()
-            if (meta == null || meta.previewLength == 0) {
-                bytes = readBytes(resolver, file.uri)
-                meta = OrfParser.parse(bytes)
+            val head = readHead(resolver, file.uri, HEAD_BYTES)
+            if (!RawFormats.looksLikeRaw(head)) return null
+            val size = file.size.takeIf { it > 0 }
+                ?: runCatching { resolver.openAssetFileDescriptor(file.uri, "r")?.use { it.length } }.getOrNull()?.takeIf { it > 0 }
+                ?: Long.MAX_VALUE
+            var orientation = 1
+            var bmp: Bitmap? = RawFormats.locatePreview(head, size)?.let { loc ->
+                orientation = loc.orientation
+                if (loc.offset + loc.length <= head.size) {
+                    decodeJpeg(head, loc.offset.toInt(), loc.length, THUMB_SIZE)
+                } else {
+                    readRange(resolver, file.uri, loc.offset, loc.length)?.let { decodeJpeg(it, 0, it.size, THUMB_SIZE) }
+                }
             }
-            val bmp = if (meta.previewLength > 0) {
-                decodeJpeg(bytes, meta.previewOffset.toInt(), meta.previewLength, THUMB_SIZE)
-            } else {
-                synchronized(heavyThumbnailLock) { renderTiny(bytes, meta) }
-            } ?: return null
-            val oriented = applyOrientation(bmp, meta.orientation)
+            if (bmp == null) {
+                val bytes = readBytes(resolver, file.uri)
+                val meta = RawFormats.parse(bytes)
+                orientation = meta.orientation
+                bmp = synchronized(heavyThumbnailLock) { renderTiny(bytes, meta) }
+            }
+            val oriented = applyOrientation(bmp, orientation)
             FileOutputStream(cached).use { oriented.compress(Bitmap.CompressFormat.JPEG, 85, it) }
             oriented
         } catch (e: Throwable) {
             // Includes OutOfMemoryError: a missing thumbnail is better than a dead app.
             null
+        }
+    }
+
+    /** Reads [length] bytes at [offset], or null if the file is shorter. */
+    private fun readRange(resolver: ContentResolver, uri: Uri, offset: Long, length: Int): ByteArray? {
+        val input = resolver.openInputStream(uri) ?: return null
+        input.use {
+            var skipped = 0L
+            while (skipped < offset) {
+                val k = it.skip(offset - skipped)
+                if (k <= 0) { if (it.read() < 0) return null; skipped++ } else skipped += k
+            }
+            val buf = ByteArray(length)
+            var off = 0
+            while (off < length) {
+                val n = it.read(buf, off, length - off)
+                if (n < 0) return null
+                off += n
+            }
+            return buf
         }
     }
 
@@ -166,12 +196,11 @@ object OrfRepository {
         return BitmapFactory.decodeByteArray(bytes, offset, length, opts)
     }
 
-    private fun renderTiny(bytes: ByteArray, meta: OrfMetadata): Bitmap {
-        val raw = OlympusDecoder.decode(bytes, meta)
-        val half = Demosaic.superpixel(raw)
-        val w = THUMB_SIZE
-        val h = (half.height.toLong() * w / half.width).toInt().coerceAtLeast(1)
-        val small = half.resizeArea(w, h)
+    private fun renderTiny(bytes: ByteArray, meta: RawMetadata): Bitmap {
+        val raw = RawFormats.decode(bytes, meta)
+        val small = Demosaic.preview(raw, THUMB_SIZE)
+        val w = small.width
+        val h = small.height
         val ctx = RenderContext.forFile(meta, small, raw)
         val px = Developer().render(small, ctx, DevelopParams.defaultsFor(meta, ctx.noise), Frame(0, 0, w.toFloat() / meta.crop.width))
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)

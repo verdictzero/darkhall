@@ -32,11 +32,20 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Open .ORF files handed over by file managers / the camera app. -->
+            <!-- Open raw files handed over by file managers / camera apps. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/x-olympus-orf" />
+                <data android:mimeType="image/x-adobe-dng" />
+                <data android:mimeType="image/dng" />
+                <data android:mimeType="image/x-sony-arw" />
+                <data android:mimeType="image/x-nikon-nef" />
+                <data android:mimeType="image/x-nikon-nrw" />
+                <data android:mimeType="image/x-canon-cr2" />
+                <data android:mimeType="image/x-panasonic-rw2" />
+                <data android:mimeType="image/x-panasonic-raw" />
+                <data android:mimeType="image/x-pentax-pef" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -46,14 +55,59 @@
                 <data android:host="*" />
                 <data android:mimeType="*/*" />
                 <data android:pathPattern=".*\\.orf" />
-                <data android:pathPattern=".*\\.ORF" />
                 <data android:pathPattern=".*\\..*\\.orf" />
+                <data android:pathPattern=".*\\.ORF" />
                 <data android:pathPattern=".*\\..*\\.ORF" />
+                <data android:pathPattern=".*\\.ori" />
+                <data android:pathPattern=".*\\..*\\.ori" />
+                <data android:pathPattern=".*\\.ORI" />
+                <data android:pathPattern=".*\\..*\\.ORI" />
+                <data android:pathPattern=".*\\.dng" />
+                <data android:pathPattern=".*\\..*\\.dng" />
+                <data android:pathPattern=".*\\.DNG" />
+                <data android:pathPattern=".*\\..*\\.DNG" />
+                <data android:pathPattern=".*\\.arw" />
+                <data android:pathPattern=".*\\..*\\.arw" />
+                <data android:pathPattern=".*\\.ARW" />
+                <data android:pathPattern=".*\\..*\\.ARW" />
+                <data android:pathPattern=".*\\.nef" />
+                <data android:pathPattern=".*\\..*\\.nef" />
+                <data android:pathPattern=".*\\.NEF" />
+                <data android:pathPattern=".*\\..*\\.NEF" />
+                <data android:pathPattern=".*\\.nrw" />
+                <data android:pathPattern=".*\\..*\\.nrw" />
+                <data android:pathPattern=".*\\.NRW" />
+                <data android:pathPattern=".*\\..*\\.NRW" />
+                <data android:pathPattern=".*\\.cr2" />
+                <data android:pathPattern=".*\\..*\\.cr2" />
+                <data android:pathPattern=".*\\.CR2" />
+                <data android:pathPattern=".*\\..*\\.CR2" />
+                <data android:pathPattern=".*\\.rw2" />
+                <data android:pathPattern=".*\\..*\\.rw2" />
+                <data android:pathPattern=".*\\.RW2" />
+                <data android:pathPattern=".*\\..*\\.RW2" />
+                <data android:pathPattern=".*\\.rwl" />
+                <data android:pathPattern=".*\\..*\\.rwl" />
+                <data android:pathPattern=".*\\.RWL" />
+                <data android:pathPattern=".*\\..*\\.RWL" />
+                <data android:pathPattern=".*\\.pef" />
+                <data android:pathPattern=".*\\..*\\.pef" />
+                <data android:pathPattern=".*\\.PEF" />
+                <data android:pathPattern=".*\\..*\\.PEF" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/x-olympus-orf" />
+                <data android:mimeType="image/x-adobe-dng" />
+                <data android:mimeType="image/dng" />
+                <data android:mimeType="image/x-sony-arw" />
+                <data android:mimeType="image/x-nikon-nef" />
+                <data android:mimeType="image/x-nikon-nrw" />
+                <data android:mimeType="image/x-canon-cr2" />
+                <data android:mimeType="image/x-panasonic-rw2" />
+                <data android:mimeType="image/x-panasonic-raw" />
+                <data android:mimeType="image/x-pentax-pef" />
             </intent-filter>
         </activity>
 

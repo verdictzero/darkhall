@@ -347,14 +347,12 @@ class GpuDeveloper(
                 gl.uniform1i(loc("uTca"), if (geom.hasTca) 1 else 0)
                 gl.uniform2f(loc("uC"), geom.cx, geom.cy)
                 gl.uniform1f(loc("uRadius"), geom.radius)
-                gl.uniform1f(loc("uShort"), geom.shortRatio)
                 gl.uniform1f(loc("uZoom"), geom.zoom)
                 gl.uniform2f(loc("uRot"), geom.cos, geom.sin)
                 gl.uniform1f(loc("uK"), geom.k)
                 gl.uniform1i(loc("uLens"), if (geom.lensOn) 1 else 0)
-                gl.uniform3f(loc("uLensAbc"), geom.a, geom.b, geom.c)
                 gl.uniform1f(loc("uAmount"), geom.amount)
-                gl.uniform2f(loc("uVrVb"), geom.vr, geom.vb)
+                for (i in 0 until 7) gl.uniform3f(loc("uP$i"), geom.poly[i][0], geom.poly[i][1], geom.poly[i][2])
             }
         }
         val rb = readBuffer!!

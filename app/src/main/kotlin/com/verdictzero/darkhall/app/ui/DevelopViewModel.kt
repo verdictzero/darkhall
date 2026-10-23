@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
-import com.verdictzero.darkhall.app.data.OrfRepository
+import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
 import com.verdictzero.darkhall.core.gpu.ImageCompare
@@ -23,9 +23,9 @@ import com.verdictzero.darkhall.core.develop.LinearImage
 import com.verdictzero.darkhall.core.develop.Region
 import com.verdictzero.darkhall.core.develop.RegionRender
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.RawFormats
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.RawImage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -98,7 +98,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = Prefs(app)
     private var loadedUri: Uri? = null
-    private var meta: OrfMetadata? = null
+    private var meta: RawMetadata? = null
     private var raw: RawImage? = null
     private var preview: LinearImage? = null
     private var ctx: RenderContext? = null
@@ -194,19 +194,15 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun loadFile(uri: Uri) {
         val app = getApplication<Application>()
-        val file = OrfRepository.describe(app.contentResolver, uri)
-        val m: OrfMetadata
+        val file = RawRepository.describe(app.contentResolver, uri)
+        val m: RawMetadata
         val r: RawImage
         run {
-            val loaded = OrfRepository.load(app.contentResolver, uri)
+            val loaded = RawRepository.load(app.contentResolver, uri)
             m = loaded.meta
-            r = OlympusDecoder.decode(loaded.bytes, m)
+            r = RawFormats.decode(loaded.bytes, m)
         }
-        val half = Demosaic.superpixel(r)
-        val longEdge = prefs.previewLongEdge
-        val pv = if (half.width > longEdge) {
-            half.resizeArea(longEdge, (half.height.toLong() * longEdge / half.width).toInt())
-        } else half
+        val pv = Demosaic.preview(r, prefs.previewLongEdge)
         // Measures this file's sensor noise; looks come from the bundled library.
         val c = RenderContext.forFile(m, pv, r, looks = LookLibrary.source(app))
         val defaults = DevelopParams.defaultsFor(m, c.noise)
@@ -339,7 +335,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun toBitmap(argb: IntArray, w: Int, h: Int, orientation: Int): Bitmap {
         val bmp = Bitmap.createBitmap(argb, w, h, Bitmap.Config.ARGB_8888)
-        return OrfRepository.applyOrientation(bmp, orientation)
+        return RawRepository.applyOrientation(bmp, orientation)
     }
 
     // ---- full-resolution zoom ------------------------------------------------------------

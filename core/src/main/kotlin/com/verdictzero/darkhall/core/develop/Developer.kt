@@ -3,8 +3,8 @@ package com.verdictzero.darkhall.core.develop
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_B
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_G
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_R
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.RawImage
 import com.verdictzero.darkhall.core.util.Parallel
 import kotlin.math.abs
 import kotlin.math.exp
@@ -30,7 +30,7 @@ class RenderContext(
     /** Atmospheric light estimate in camera-linear space (pre white balance). */
     val haze: FloatArray,
     val water: WaterStats = WaterStats(FloatArray(3), floatArrayOf(1f, 1f, 1f)),
-    /** Built-in lens profile for TG-5/6/7 files, null for anything else. */
+    /** Built-in lens profile (TG-5/6/7 files only), null for anything else. */
     val lens: LensProfile? = null,
     /** Where look (LUT) ids are resolved; the app supplies its bundled library. */
     val looks: LookSource = LookSource.NONE,
@@ -42,6 +42,8 @@ class RenderContext(
      * and white balance, so it is measured per file ([NoiseCalibration]).
      */
     val demosaicNoise: FloatArray = floatArrayOf(0.89f, 0.55f),
+    /** Exposure the file asks to be added before the Exposure slider (DNG BaselineExposure), in EV. */
+    val baselineEv: Float = 0f,
 ) {
     /** Noise variance of one rendered pixel relative to one raw sample, at render [scale]. */
     fun demosaicNoise(scale: Float): Float {
@@ -53,7 +55,7 @@ class RenderContext(
 
     companion object {
         /** [raw] enables per-file noise measurement; without it the ISO-based model is used. */
-        fun forFile(meta: OrfMetadata, preview: LinearImage, raw: RawImage? = null, looks: LookSource = LookSource.NONE): RenderContext = RenderContext(
+        fun forFile(meta: RawMetadata, preview: LinearImage, raw: RawImage? = null, looks: LookSource = LookSource.NONE): RenderContext = RenderContext(
             cameraWb = meta.cameraWb.copyOf(),
             matrix = ColorScience.cameraToSrgb(meta),
             fullWidth = meta.crop.width,
@@ -64,6 +66,7 @@ class RenderContext(
             looks = looks,
             noise = raw?.let { NoiseProfile.estimate(it) } ?: NoiseProfile.fromIso(meta),
             demosaicNoise = NoiseCalibration.demosaicFactors(meta, ColorScience.cameraToSrgb(meta)),
+            baselineEv = meta.baselineExposure,
         )
     }
 }
@@ -438,9 +441,23 @@ class Developer {
                     // brightest unclipped channel after white balance, i.e. towards neutral;
                     // otherwise near-white surfaces whose green clipped first turn magenta.
                     val floorWb = max(if (cR) 0f else rr * wbR, max(if (cG) 0f else gg * wbG, if (cB) 0f else bb * wbB))
+                    // Neither may an estimate leave the pixel less neutral than the data allows.
+                    // One channel clipped (nearly always green, the most sensitive): keep it at least
+                    // at the mean of the other two after white balance, or a bright overcast sky goes
+                    // pink when its neighbours' colour is a little warm. Two clipped: the higher of
+                    // their recorded levels is a hard lower bound, so keep the other at least halfway
+                    // between it and the unclipped channel; otherwise a blown sky is ringed in
+                    // lavender where blue joins green in clipping.
+                    val twoClipped = (if (cR) 1 else 0) + (if (cG) 1 else 0) + (if (cB) 1 else 0) == 2
+                    val clipWb = max(if (cR) rr * wbR else 0f, max(if (cG) gg * wbG else 0f, if (cB) bb * wbB else 0f))
+                    val neutralWb = if (twoClipped) {
+                        0.5f * (floorWb + clipWb)
+                    } else {
+                        0.5f * ((if (cR) 0f else rr * wbR) + (if (cG) 0f else gg * wbG) + (if (cB) 0f else bb * wbB))
+                    }
                     fun recover(v: Float, chroma: Float, wb: Float): Float {
                         val est = scale * chroma
-                        val pick = if (est >= CLIP) est else max(est, floorWb / wb)
+                        val pick = max(if (est >= CLIP) est else max(est, floorWb / wb), neutralWb / wb)
                         return max(v, min(MAX_RECOVERED, pick))
                     }
                     if (cR) r[i] = recover(rr, chR, wbR)
@@ -454,7 +471,7 @@ class Developer {
     companion object {
         private val LN2 = ln(2.0).toFloat()
 
-        /** Normalised raw level treated as clipped (the 12-bit white point minus a safety margin). */
+        /** Normalised raw level treated as clipped (the white point minus a safety margin). */
         const val CLIP = 0.96f
         private const val MAX_RECOVERED = 4f
 

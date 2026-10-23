@@ -8,9 +8,9 @@ import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.LinearImage
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.OrfParser
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.awt.Color
@@ -24,7 +24,7 @@ class AutoToneTest {
     private val samplePath = System.getProperty("darkhall.sample").orEmpty()
     private val outDir = System.getProperty("darkhall.outDir").orEmpty()
 
-    private class Scene(val meta: OrfMetadata, val pv: LinearImage, val ctx: RenderContext, val frame: Frame, val base: DevelopParams)
+    private class Scene(val meta: RawMetadata, val pv: LinearImage, val ctx: RenderContext, val frame: Frame, val base: DevelopParams)
 
     private fun load(): Scene {
         val bytes = File(samplePath).readBytes()

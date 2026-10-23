@@ -1,9 +1,9 @@
 package com.verdictzero.darkhall.core
 
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.OrfParseException
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.RawFormatException
+import com.verdictzero.darkhall.core.raw.OrfParser
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
@@ -13,14 +13,14 @@ import kotlin.test.fail
 
 /**
  * Feeds truncated and corrupted copies of a real ORF to the parser and decoder.
- * Every outcome must be either a decoded image or an [OrfParseException];
+ * Every outcome must be either a decoded image or an [RawFormatException];
  * anything else (index errors, huge allocations) would crash the app.
  */
 class FuzzTest {
 
     private val samplePath = System.getProperty("darkhall.sample").orEmpty()
 
-    private var baseline: OrfMetadata? = null
+    private var baseline: RawMetadata? = null
 
     /** Parses [bytes]; decodes too unless [decodeOnlyIfLayoutChanged] and the raw layout matches the original. */
     private fun attempt(bytes: ByteArray, label: String, decodeOnlyIfLayoutChanged: Boolean = false) {
@@ -28,12 +28,11 @@ class FuzzTest {
             val meta = OrfParser.parse(bytes)
             val b = baseline
             if (decodeOnlyIfLayoutChanged && b != null && b.rawWidth == meta.rawWidth && b.rawHeight == meta.rawHeight &&
-                b.stripOffset == meta.stripOffset && b.stripBytes == meta.stripBytes && b.compression == meta.compression &&
-                b.bitsPerSample == meta.bitsPerSample && b.crop == meta.crop
+                b.layout == meta.layout && b.crop == meta.crop
             ) return
             val raw = OlympusDecoder.decode(bytes, meta)
             assertEquals(meta.rawWidth * meta.rawHeight, raw.data.size, label)
-        } catch (e: OrfParseException) {
+        } catch (e: RawFormatException) {
             // expected for many corruptions
         } catch (e: Throwable) {
             fail("$label: ${e.javaClass.name}: ${e.message}")
@@ -128,7 +127,7 @@ class FuzzTest {
         val rnd = Random(99)
         repeat(6) { i ->
             val b = original.copyOf()
-            val start = meta.stripOffset.toInt()
+            val start = meta.layout.dataOffset.toInt()
             repeat(2000) { b[start + rnd.nextInt(b.size - start)] = rnd.nextInt(256).toByte() }
             attempt(b, "strip corruption #$i")
         }

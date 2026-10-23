@@ -1,6 +1,6 @@
 package com.verdictzero.darkhall.core.develop
 
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.RawImage
 
 class RenderedImage(val width: Int, val height: Int, val argb: IntArray)
 

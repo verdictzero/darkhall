@@ -22,7 +22,7 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     /** Per channel: c = max(0, raw·mulA − subB), then the camera matrix. */
     val mulA = FloatArray(3)
     val subB = FloatArray(3)
-    val ev: Float = pow2(p[Adjustment.EXPOSURE])
+    val ev: Float = pow2(p[Adjustment.EXPOSURE] + ctx.baselineEv)
     val matrix: FloatArray = ctx.matrix
     val vignette: Float = p[Adjustment.VIGNETTE] / 100f * 0.8f
     val centerX: Float = ctx.fullWidth * 0.5f

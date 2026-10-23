@@ -1,4 +1,4 @@
-package com.verdictzero.darkhall.core.orf
+package com.verdictzero.darkhall.core.raw
 
 /**
  * Decoder for the raw strip of an Olympus ORF.
@@ -11,67 +11,38 @@ package com.verdictzero.darkhall.core.orf
  */
 object OlympusDecoder {
 
-    fun decode(data: ByteArray, meta: OrfMetadata): RawImage = try {
+    fun decode(data: ByteArray, meta: RawMetadata): RawImage = try {
         decodeUnchecked(data, meta)
-    } catch (e: OrfParseException) {
+    } catch (e: RawFormatException) {
         throw e
     } catch (e: RuntimeException) {
-        throw OrfParseException("Raw data is corrupt (${e.javaClass.simpleName})", e)
+        throw RawFormatException("Raw data is corrupt (${e.javaClass.simpleName})", e)
     }
 
-    private fun decodeUnchecked(data: ByteArray, meta: OrfMetadata): RawImage {
+    private fun decodeUnchecked(data: ByteArray, meta: RawMetadata): RawImage {
         if (meta.crop.left + meta.crop.width > meta.rawWidth || meta.crop.top + meta.crop.height > meta.rawHeight) {
-            throw OrfParseException("Crop outside sensor area")
+            throw RawFormatException("Crop outside sensor area")
         }
+        val layout = meta.layout as? OrfLayout ?: throw RawFormatException("Not an ORF layout")
         return when {
-            meta.isOlympusCompressed -> decodeCompressed(data, meta)
-            meta.isUnpacked16 -> decodeUnpacked16(data, meta)
-            else -> throw OrfParseException(
-                "Unsupported ORF raw layout (bps=${meta.bitsPerSample}, compression=${meta.compression}, strip=${meta.stripBytes} bytes)"
-            )
+            layout.compressed -> decodeCompressed(data, meta, layout)
+            layout.dataBytes >= meta.rawWidth.toLong() * meta.rawHeight * 2 -> decodeUnpacked16(data, meta, layout)
+            else -> throw RawFormatException("Unsupported ORF raw layout (strip of ${layout.dataBytes} bytes)")
         }
     }
 
-    /** MSB-first bit reader with a 64-bit accumulator. Reads past the end yield zero bits. */
-    private class BitReader(private val d: ByteArray, private var pos: Int, private val end: Int) {
-        private var acc = 0L
-        private var n = 0
-
-        private fun fill() {
-            while (n <= 56) {
-                val b = if (pos < end) d[pos++].toInt() and 0xFF else 0
-                acc = (acc shl 8) or b.toLong()
-                n += 8
-            }
-        }
-
-        fun peek(k: Int): Int {
-            if (n < k) fill()
-            return ((acc ushr (n - k)) and ((1L shl k) - 1)).toInt()
-        }
-
-        fun skip(k: Int) { n -= k }
-
-        fun get(k: Int): Int {
-            if (k == 0) return 0
-            val v = peek(k)
-            n -= k
-            return v
-        }
-    }
-
-    private fun decodeCompressed(data: ByteArray, meta: OrfMetadata): RawImage {
+    private fun decodeCompressed(data: ByteArray, meta: RawMetadata, layout: OrfLayout): RawImage {
         val rw = meta.rawWidth
         val rh = meta.rawHeight
-        val start = meta.stripOffset.toInt() + 7 // dcraw: fseek(ifp, 7, SEEK_CUR)
-        if (start < 0 || start >= data.size) throw OrfParseException("Raw strip offset out of range")
-        val end = minOf(data.size.toLong(), meta.stripOffset + meta.stripBytes).toInt()
+        val start = layout.dataOffset.toInt() + 7 // dcraw: fseek(ifp, 7, SEEK_CUR)
+        if (start < 0 || start >= data.size) throw RawFormatException("Raw strip offset out of range")
+        val end = minOf(data.size.toLong(), layout.dataOffset + layout.dataBytes).toInt()
         // A file cut short (card pulled mid-copy) decodes as long as most of the strip is there;
         // the missing tail reads as zero bits and is caught by the error count below.
-        if (end - start < meta.stripBytes / 2) throw OrfParseException("File is truncated")
+        if (end - start < layout.dataBytes / 2) throw RawFormatException("File is truncated")
         // Every compressed sample costs at least 6 bits, so the strip bounds the pixel count.
         // This stops a corrupt width/height from allocating hundreds of megabytes.
-        if (rw.toLong() * rh > (end - start).toLong() * 8 / 3) throw OrfParseException("Raw size does not match the data")
+        if (rw.toLong() * rh > (end - start).toLong() * 8 / 3) throw RawFormatException("Raw size does not match the data")
         val br = BitReader(data, start, end)
         val raw = ShortArray(rw * rh)
         val acarry = IntArray(6)
@@ -132,16 +103,16 @@ object OlympusDecoder {
             rowBase += rw
         }
         if (errors > rw * rh / 100) {
-            throw OrfParseException("Raw data looks corrupt ($errors out-of-range samples)")
+            throw RawFormatException("Raw data looks corrupt ($errors out-of-range samples)")
         }
         return RawImage(rw, rh, raw, meta)
     }
 
-    private fun decodeUnpacked16(data: ByteArray, meta: OrfMetadata): RawImage {
+    private fun decodeUnpacked16(data: ByteArray, meta: RawMetadata, layout: OrfLayout): RawImage {
         val rw = meta.rawWidth
         val rh = meta.rawHeight
-        val start = meta.stripOffset.toInt()
-        if (start < 0 || start + rw.toLong() * rh * 2 > data.size) throw OrfParseException("Raw strip truncated")
+        val start = layout.dataOffset.toInt()
+        if (start < 0 || start + rw.toLong() * rh * 2 > data.size) throw RawFormatException("Raw strip truncated")
         val little = data[0] == 'I'.code.toByte()
         val raw = ShortArray(rw * rh)
         var p = start

@@ -1,6 +1,6 @@
 package com.verdictzero.darkhall.core
 
-import com.verdictzero.darkhall.core.orf.OrfParser
+import com.verdictzero.darkhall.core.raw.OrfParser
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import kotlin.test.assertEquals
@@ -83,8 +83,8 @@ class MakerNoteHeaderTest {
         assertEquals(1600, meta.iso)
         assertEquals(2.0f, meta.cameraWb[0], 1e-5f)
         assertEquals(1.5f, meta.cameraWb[2], 1e-5f)
-        // file order R, G, G2, B -> colour index R, G, B, G2
-        assertEquals(listOf(255, 254, 252, 253), meta.blackLevels.toList())
+        // file order R, Gr, Gb, B -> positions of the GRBG cell: Gr, R, B, Gb
+        assertEquals(listOf(254, 255, 252, 253), meta.blackLevels.toList())
         assertEquals(4000, meta.crop.width); assertEquals(8, meta.crop.left)
         assertEquals(400L + 500, meta.previewOffset)
         assertEquals(4, meta.previewLength)

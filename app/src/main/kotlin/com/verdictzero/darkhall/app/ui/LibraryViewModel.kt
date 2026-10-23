@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
-import com.verdictzero.darkhall.app.data.OrfRepository
+import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.data.RawFile
 import com.verdictzero.darkhall.core.develop.AutoTone
@@ -17,7 +17,7 @@ import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.RenderContext
-import com.verdictzero.darkhall.core.orf.OlympusDecoder
+import com.verdictzero.darkhall.core.raw.RawFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -122,10 +122,9 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 _state.update { it.copy(autoProgress = "Auto tone ${i + 1} of ${targets.size}") }
                 val done = withContext(Dispatchers.Default) {
                     runCatching {
-                        val loaded = OrfRepository.load(app.contentResolver, f.uri)
-                        val raw = OlympusDecoder.decode(loaded.bytes, loaded.meta)
-                        val half = Demosaic.superpixel(raw)
-                        val pv = half.resizeArea(1280, (half.height.toLong() * 1280 / half.width).toInt())
+                        val loaded = RawRepository.load(app.contentResolver, f.uri)
+                        val raw = RawFormats.decode(loaded.bytes, loaded.meta)
+                        val pv = Demosaic.preview(raw, 1280)
                         val ctx = RenderContext.forFile(loaded.meta, pv, raw, looks = LookLibrary.source(app))
                         val defaults = DevelopParams.defaultsFor(loaded.meta, ctx.noise)
                         val base = EditsStore.load(app, f.key, defaults) ?: defaults
@@ -167,7 +166,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 var message: String? = null
                 prefs.folderUri?.let { tree ->
                     try {
-                        files += OrfRepository.listFolder(resolver, tree)
+                        files += RawRepository.listFolder(resolver, tree)
                         folderName = runCatching {
                             DocumentsContract.getTreeDocumentId(tree).substringAfterLast(':').substringAfterLast('/')
                         }.getOrNull()?.ifEmpty { null } ?: "Folder"
@@ -180,7 +179,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 val kept = ArrayList<Uri>()
                 for (u in extras) {
                     try {
-                        val f = OrfRepository.describe(resolver, u)
+                        val f = RawRepository.describe(resolver, u)
                         if (RawFile.isRawName(f.name) && files.none { it.key == f.key }) files += f
                         kept += u
                     } catch (e: Exception) { /* permission gone */ }

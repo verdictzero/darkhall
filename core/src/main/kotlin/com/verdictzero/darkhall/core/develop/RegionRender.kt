@@ -1,6 +1,6 @@
 package com.verdictzero.darkhall.core.develop
 
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.RawImage
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max

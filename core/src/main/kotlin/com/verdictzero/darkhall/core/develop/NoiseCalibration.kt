@@ -3,9 +3,9 @@ package com.verdictzero.darkhall.core.develop
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_B
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_G
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_R
-import com.verdictzero.darkhall.core.orf.Crop
-import com.verdictzero.darkhall.core.orf.OrfMetadata
-import com.verdictzero.darkhall.core.orf.RawImage
+import com.verdictzero.darkhall.core.raw.Crop
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.raw.RawImage
 import java.util.Random
 import kotlin.math.sqrt
 
@@ -25,7 +25,10 @@ object NoiseCalibration {
     private const val B = 1e-5
 
     /** Returns [full-resolution factor, half-size superpixel factor]. */
-    fun demosaicFactors(meta: OrfMetadata, matrix: FloatArray): FloatArray {
+    fun demosaicFactors(meta: RawMetadata, matrix: FloatArray): FloatArray {
+        // Linear DNGs are not demosaiced here: full size keeps the per-sample noise and the
+        // half-size path averages four independent pixels.
+        if (meta.isLinear) return floatArrayOf(1f, 0.25f)
         val pad = 8
         val w = SIZE + 2 * pad
         val fake = meta.copy(rawWidth = w, rawHeight = w, crop = Crop(pad, pad, SIZE, SIZE))
@@ -33,8 +36,7 @@ object NoiseCalibration {
         val rnd = Random(42)
         val sd = sqrt(A * LEVEL + B)
         for (y in 0 until w) for (x in 0 until w) {
-            val c = fake.cfaColor(y, x)
-            val black = fake.blackLevels[c]
+            val black = fake.blackAt(y, x)
             val span = (fake.whiteLevel - black).toDouble()
             val v = LEVEL + rnd.nextGaussian() * sd
             data[y * w + x] = (black + v * span).toInt().coerceIn(0, 65535).toShort()

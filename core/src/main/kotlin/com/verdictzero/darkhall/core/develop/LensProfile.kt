@@ -1,20 +1,46 @@
 package com.verdictzero.darkhall.core.develop
 
-import com.verdictzero.darkhall.core.orf.OrfMetadata
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import kotlin.math.sqrt
 
 /**
- * Distortion and lateral chromatic aberration for the 4.5-18 mm f/2.0-4.9 zoom shared by the
- * Tough TG-5, TG-6 and TG-7.
+ * Distortion and lateral chromatic aberration correction, as a radial scale per colour:
+ * the output pixel at radius r (1 = half the frame diagonal) samples the image at r * f_c(r).
  *
- * Coefficients come from the lensfun database ("Olympus Tough TG-5" in compact-olympus.xml,
- * CC BY-SA 3.0, https://lensfun.github.io), measured on a TG-5. The TG-6 and TG-7 use the
- * same lens and sensor, so the calibration carries over.
- *
- * Model (lensfun "ptlens"): for a corrected radius r (1 = half the short image side) the lens
- * put the light at r * (a r^3 + b r^2 + c r + 1 - a - b - c). TCA scales red and blue radially
- * relative to green by vr and vb.
+ * Two sources:
+ *  - the built-in calibration of the 4.5-18 mm f/2.0-4.9 zoom shared by the Tough TG-5, TG-6
+ *    and TG-7, from the lensfun database ("Olympus Tough TG-5" in compact-olympus.xml, CC BY-SA
+ *    3.0, https://lensfun.github.io), measured on a TG-5. Model (lensfun "ptlens"): for a
+ *    corrected radius ru (1 = half the short image side) the lens put the light at
+ *    ru * (a ru^3 + b ru^2 + c ru + 1 - a - b - c); TCA scales red and blue by vr and vb.
+ *  - the WarpRectilinear opcode a DNG carries (phones, drones, Leica), per-plane polynomials
+ *    k0 + k1 r^2 + k2 r^4 + k3 r^6 in units of the distance from the centre to a corner of
+ *    the camera's active area.
  */
-class LensProfile(val a: Float, val b: Float, val c: Float, val vr: Float, val vb: Float) {
+class LensProfile private constructor(
+    val a: Float, val b: Float, val c: Float, val vr: Float, val vb: Float,
+    /** DNG warp: [channel][k0..k3], already rescaled to this frame's half diagonal; null for ptlens. */
+    private val dng: Array<FloatArray>?,
+) {
+    /**
+     * Coefficients of f_c(r) = sum p[i][c] r^i (i = 0..6, c = R, G, B) for a frame whose half
+     * diagonal is [shortRatio] times its half short side.
+     */
+    fun polynomial(shortRatio: Float): Array<FloatArray> {
+        val p = Array(7) { FloatArray(3) }
+        if (dng != null) {
+            for (ch in 0 until 3) {
+                val k = dng[ch]
+                p[0][ch] = k[0]; p[2][ch] = k[1]; p[4][ch] = k[2]; p[6][ch] = k[3]
+            }
+        } else {
+            val s = shortRatio
+            val g = floatArrayOf(1f - a - b - c, c * s, b * s * s, a * s * s * s)
+            val scale = floatArrayOf(vr, 1f, vb)
+            for (i in 0 until 4) for (ch in 0 until 3) p[i][ch] = g[i] * scale[ch]
+        }
+        return p
+    }
 
     companion object {
         private val MODELS = setOf("TG-5", "TG-6", "TG-7")
@@ -37,7 +63,17 @@ class LensProfile(val a: Float, val b: Float, val c: Float, val vr: Float, val v
             doubleArrayOf(18.0, 0.9999040, 1.0001551),
         )
 
-        fun forFile(meta: OrfMetadata): LensProfile? {
+        fun forFile(meta: RawMetadata): LensProfile? {
+            meta.lensWarp?.let { w ->
+                // Rescale from the active area's centre-to-corner distance to the cropped frame's.
+                val t = (sqrt(meta.crop.width.toDouble() * meta.crop.width + meta.crop.height.toDouble() * meta.crop.height) /
+                    sqrt(w.refWidth.toDouble() * w.refWidth + w.refHeight.toDouble() * w.refHeight)).toFloat()
+                val k = Array(3) { ch ->
+                    val pl = w.planes[minOf(ch, w.planes.size - 1)]
+                    floatArrayOf(pl[0].toFloat(), (pl[1] * t * t).toFloat(), (pl[2] * Math.pow(t.toDouble(), 4.0)).toFloat(), (pl[3] * Math.pow(t.toDouble(), 6.0)).toFloat())
+                }
+                return LensProfile(0f, 0f, 0f, 1f, 1f, k)
+            }
             if (meta.model.trim().uppercase() !in MODELS) return null
             val f = meta.focalLength
             if (f <= 0.0) return null
@@ -47,7 +83,7 @@ class LensProfile(val a: Float, val b: Float, val c: Float, val vr: Float, val v
         fun forFocal(focal: Double): LensProfile {
             val d = interpolate(DISTORTION, focal)
             val t = interpolate(TCA, focal)
-            return LensProfile(d[0].toFloat(), d[1].toFloat(), d[2].toFloat(), t[0].toFloat(), t[1].toFloat())
+            return LensProfile(d[0].toFloat(), d[1].toFloat(), d[2].toFloat(), t[0].toFloat(), t[1].toFloat(), null)
         }
 
         /** Linear interpolation in focal length, clamped to the calibrated range. */

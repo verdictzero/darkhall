@@ -324,14 +324,19 @@ uniform int uGeom;
 uniform int uTca;
 uniform vec2 uC;
 uniform float uRadius;
-uniform float uShort;
 uniform float uZoom;
 uniform vec2 uRot;
 uniform float uK;
 uniform int uLens;
-uniform vec3 uLensAbc;
 uniform float uAmount;
-uniform vec2 uVrVb;
+// Lens correction f(r) = sum uPi r^i, per channel (r, g, b).
+uniform vec3 uP0;
+uniform vec3 uP1;
+uniform vec3 uP2;
+uniform vec3 uP3;
+uniform vec3 uP4;
+uniform vec3 uP5;
+uniform vec3 uP6;
 float q(float v) { return floor(clamp(v, 0.0, 1.0) * 255.0 + 0.5); }
 // One channel, bilinear on quantised values; -1 when outside the frame.
 float sampleCh(vec2 s, int ch) {
@@ -366,12 +371,11 @@ void main() {
     float fr = 1.0;
     float fb = 1.0;
     if (uLens == 1) {
-        float ru = length(qv) * uShort;
-        float d0 = 1.0 - uLensAbc.x - uLensAbc.y - uLensAbc.z;
-        float fd = ((uLensAbc.x * ru + uLensAbc.y) * ru + uLensAbc.z) * ru + d0;
-        fg = 1.0 + uAmount * (fd - 1.0);
-        fr = fg * (1.0 + uAmount * (uVrVb.x - 1.0));
-        fb = fg * (1.0 + uAmount * (uVrVb.y - 1.0));
+        float r = length(qv);
+        vec3 f = uP6;
+        f = f * r + uP5; f = f * r + uP4; f = f * r + uP3; f = f * r + uP2; f = f * r + uP1; f = f * r + uP0;
+        vec3 fa = vec3(1.0) + uAmount * (f - vec3(1.0));
+        fr = fa.x; fg = fa.y; fb = fa.z;
     }
     vec2 sg = uC + qv * fg * uRadius;
     if (uTca == 0) {
