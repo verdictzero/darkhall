@@ -2,6 +2,12 @@ package com.verdictzero.darkhall.app.ui
 
 import android.net.Uri
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
+import androidx.compose.material3.Snackbar
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -104,6 +110,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     }
     val startExport = rememberExportStarter { vm.export() }
     val ready = !state.loading && state.error == null
+    val strokes = LocalStrokes.current
 
     Scaffold(
         topBar = {
@@ -117,15 +124,20 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    StrokedIconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
-                    TextButton(onClick = startExport, enabled = ready) { Text("Export") }
+                    StrokedTextButton("Export", onClick = startExport, enabled = ready)
                     Box {
-                        IconButton(onClick = { menuOpen = true }, enabled = ready) {
+                        StrokedIconButton(onClick = { menuOpen = true }, enabled = ready) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "More")
                         }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(strokes.width, strokes.container),
+                        ) {
                             DropdownMenuItem(text = { Text("Copy settings") }, onClick = { menuOpen = false; vm.copySettings() })
                             DropdownMenuItem(
                                 text = { Text("Paste settings") },
@@ -154,9 +166,21 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                modifier = Modifier.bottomStroke(strokes.container),
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = {
+            SnackbarHost(snackbar) { data ->
+                Snackbar(
+                    data,
+                    shape = RoundedCornerShape(12.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    actionColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.border(strokes.width, strokes.action, RoundedCornerShape(12.dp)),
+                )
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
@@ -198,7 +222,7 @@ private fun ErrorPane(message: String, onBack: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onBack) { Text("Back to library") }
+        Button(onClick = onBack, border = BorderStroke(LocalStrokes.current.width, LocalStrokes.current.selected)) { Text("Back to library") }
     }
 }
 
@@ -240,9 +264,11 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
         vm.requestLoupe(LoupeRequest(a.x, a.y, b.x, b.y, (b.x - a.x) * imgW * scale))
     }
 
+    val strokes = LocalStrokes.current
+    val frameStroke = strokes.overlay
     Box(
         modifier
-            .background(MaterialTheme.colorScheme.background)
+            .cautionStripes()
             .onSizeChanged { boxSize = it },
         contentAlignment = Alignment.Center,
     ) {
@@ -292,6 +318,9 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
                     dstSize = IntSize(w.roundToInt(), h.roundToInt()),
                     filterQuality = FilterQuality.Medium,
                 )
+                // Thin light frame separating the photo from the stripes; constant on screen at any zoom.
+                val sw = 1.dp.toPx() / scale
+                drawRect(frameStroke, topLeft = Offset(left - sw / 2f, top - sw / 2f), size = Size(w + sw, h + sw), style = Stroke(sw))
                 if (loupe != null) {
                     val lx = left + loupe.left * w
                     val ly = top + loupe.top * h
@@ -313,7 +342,8 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
                     .align(Alignment.TopEnd)
                     .padding(8.dp)
                     .size(width = 112.dp, height = 48.dp)
-                    .clip(RoundedCornerShape(4.dp)),
+                    .clip(RoundedCornerShape(6.dp))
+                    .border(strokes.width, strokes.overlay, RoundedCornerShape(6.dp)),
             )
         }
         Row(
@@ -324,6 +354,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
                 Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (comparing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
+                    .border(strokes.width, if (comparing) strokes.selected else strokes.overlay, RoundedCornerShape(16.dp))
                     .pointerInput(Unit) {
                         detectTapGestures(onPress = {
                             comparing = true
@@ -346,12 +377,18 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
                 state.renderMs > 0 -> "${state.renderMs} ms · ${state.engine}"
                 else -> ""
             }
-            Text(
-                zoomLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontFamily = FontFamily.Monospace,
-            )
+            if (zoomLabel.isNotEmpty()) {
+                Text(
+                    zoomLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier
+                        .background(Color(0xB3141416), RoundedCornerShape(10.dp))
+                        .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
         }
     }
 }
@@ -364,62 +401,63 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
         state.params.look?.let { id -> LookLibrary.info(context, id)?.name ?: "Unknown look" } ?: "None"
     }
     if (browsing) LookBrowser(vm, state.params.look, onDismiss = { browsing = false })
-    LazyColumn(modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 96.dp)) {
+    LazyColumn(
+        modifier.background(MaterialTheme.colorScheme.surface),
+        contentPadding = PaddingValues(top = 6.dp, bottom = 96.dp),
+    ) {
         for (group in AdjustmentGroup.entries) {
-            item(key = "h-${group.name}") {
-                Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = if (group == AdjustmentGroup.LIGHT) 4.dp else 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        group.title,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (group == AdjustmentGroup.LIGHT) {
-                        TextButton(onClick = { vm.autoTone() }, enabled = !state.autoBusy) {
-                            Text(if (state.autoBusy) "Auto…" else "Auto")
-                        }
-                    }
-                }
-            }
-            if (group == AdjustmentGroup.LOOK) {
-                item(key = "look-picker") {
-                    val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { browsing = true }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                lookName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (info != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                info?.let { "${it.group} · ${it.category}" } ?: "Film simulations and creative looks",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Text("Browse", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Browse looks", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
             val adjustments = Adjustment.entries.filter { it.group == group }
                 .filter { it != Adjustment.LENS_PROFILE || state.hasLensProfile }
                 .filter { it != Adjustment.LOOK_AMOUNT || state.params.look != null }
-            items(adjustments, key = { it.name }) { adj ->
-                SliderRow(adj, state.params, state.defaults, onChange = { vm.set(adj, it) }, onReset = { vm.resetOne(adj) })
+            item(key = "g-${group.name}") {
+                SectionCard(
+                    group.title,
+                    trailing = {
+                        if (group == AdjustmentGroup.LIGHT) {
+                            StrokedTextButton(if (state.autoBusy) "Auto…" else "Auto", onClick = { vm.autoTone() }, enabled = !state.autoBusy)
+                        }
+                    },
+                ) {
+                    if (group == AdjustmentGroup.LOOK) {
+                        val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { browsing = true }
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    lookName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (info != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    info?.let { "${it.group} · ${it.category}" } ?: "Film simulations and creative looks",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Row(
+                                Modifier
+                                    .border(LocalStrokes.current.width, LocalStrokes.current.action, RoundedCornerShape(10.dp))
+                                    .padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Browse", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Browse looks", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                    for (adj in adjustments) {
+                        SliderRow(adj, state.params, state.defaults, onChange = { vm.set(adj, it) }, onReset = { vm.resetOne(adj) })
+                    }
+                }
             }
         }
     }
@@ -436,7 +474,7 @@ private fun SliderRow(
 ) {
     val value = params[adj]
     val isDefault = params.isDefault(adj, defaults)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 adj.label,
@@ -454,31 +492,6 @@ private fun SliderRow(
         }
         // Two-sided adjustments fill from zero outwards; one-sided ones from the left.
         val anchor = if (adj.min < 0f && adj.max > 0f) 0f else adj.min
-        val active = MaterialTheme.colorScheme.primary
-        val inactive = MaterialTheme.colorScheme.outlineVariant
-        val tick = MaterialTheme.colorScheme.outline
-        Slider(
-            value = value,
-            onValueChange = onChange,
-            valueRange = adj.min..adj.max,
-            colors = SliderDefaults.colors(thumbColor = active),
-            track = {
-                Canvas(Modifier.fillMaxWidth().height(18.dp)) {
-                    val span = adj.max - adj.min
-                    val y = size.height / 2f
-                    val stroke = 4.dp.toPx()
-                    fun xOf(v: Float) = (v - adj.min) / span * size.width
-                    drawLine(inactive, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke, cap = StrokeCap.Round)
-                    if (anchor != adj.min) {
-                        val cx = xOf(anchor)
-                        drawLine(tick, Offset(cx, y - 6.dp.toPx()), Offset(cx, y + 6.dp.toPx()), strokeWidth = 2.dp.toPx())
-                    }
-                    val a = xOf(anchor); val b = xOf(value)
-                    if (abs(b - a) > 0.5f) {
-                        drawLine(active, Offset(minOf(a, b), y), Offset(maxOf(a, b), y), strokeWidth = stroke, cap = StrokeCap.Round)
-                    }
-                }
-            },
-        )
+        ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor)
     }
 }

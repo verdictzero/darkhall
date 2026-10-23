@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +38,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -90,6 +90,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         state.message?.let { snackbar.showSnackbar(it); vm.clearMessage() }
     }
     BackHandler(enabled = state.selecting) { vm.clearSelection() }
+    val strokes = LocalStrokes.current
 
     Scaffold(
         topBar = {
@@ -97,29 +98,44 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                 TopAppBar(
                     title = { Text("${state.selected.size} selected") },
                     navigationIcon = {
-                        IconButton(onClick = { vm.clearSelection() }) { Icon(Icons.Filled.Close, contentDescription = "Cancel selection") }
+                        StrokedIconButton(onClick = { vm.clearSelection() }) { Icon(Icons.Filled.Close, contentDescription = "Cancel selection") }
                     },
                     actions = {
-                        TextButton(onClick = { vm.pasteToSelection() }, enabled = state.canPaste) { Text("Paste") }
-                        TextButton(onClick = { vm.autoToneSelection() }, enabled = state.autoProgress == null) { Text("Auto") }
-                        TextButton(onClick = exportSelection) { Text("Export") }
-                        Box {
-                            IconButton(onClick = { selectionMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
-                            DropdownMenu(expanded = selectionMenu, onDismissRequest = { selectionMenu = false }) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            StrokedTextButton("Paste", onClick = { vm.pasteToSelection() }, enabled = state.canPaste)
+                            StrokedTextButton("Auto", onClick = { vm.autoToneSelection() }, enabled = state.autoProgress == null)
+                            StrokedTextButton("Export", onClick = exportSelection)
+                        }
+                        Box(Modifier.padding(horizontal = 6.dp)) {
+                            StrokedIconButton(onClick = { selectionMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
+                            DropdownMenu(
+                                expanded = selectionMenu,
+                                onDismissRequest = { selectionMenu = false },
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(strokes.width, strokes.container),
+                            ) {
                                 DropdownMenuItem(text = { Text("Select all") }, onClick = { selectionMenu = false; vm.selectAll() })
                             }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.bottomStroke(strokes.selected),
                 )
             } else {
                 TopAppBar(
                     title = { Text("Darkhall") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                     actions = {
-                        TextButton(onClick = { pickFolder.launch(null) }) { Text("Folder") }
-                        TextButton(onClick = { pickFiles.launch(arrayOf("*/*")) }) { Text("Files") }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            StrokedTextButton("Folder", onClick = { pickFolder.launch(null) })
+                            StrokedTextButton("Files", onClick = { pickFiles.launch(arrayOf("*/*")) })
+                        }
                     },
+                    modifier = Modifier.bottomStroke(strokes.container),
                 )
             }
         },
@@ -182,9 +198,10 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onPickFolder) { Text("Choose folder") }
+        val strokes = LocalStrokes.current
+        Button(onClick = onPickFolder, border = BorderStroke(strokes.width, strokes.selected)) { Text("Choose folder") }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onPickFiles) { Text("Open files") }
+        OutlinedButton(onClick = onPickFiles, border = BorderStroke(strokes.width, strokes.action)) { Text("Open files") }
     }
 }
 
@@ -196,6 +213,7 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
         value = withContext(Dispatchers.IO) { OrfRepository.thumbnail(context, file) }
     }
     val accent = MaterialTheme.colorScheme.primary
+    val strokes = LocalStrokes.current
     Column(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
         Box(
             Modifier
@@ -203,7 +221,11 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
                 .aspectRatio(4f / 3f)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .then(if (selected) Modifier.border(3.dp, accent, RoundedCornerShape(6.dp)) else Modifier),
+                .border(
+                    if (selected) strokes.selectedWidth else strokes.width,
+                    if (selected) strokes.selected else strokes.container,
+                    RoundedCornerShape(6.dp),
+                ),
             contentAlignment = Alignment.Center,
         ) {
             val b = thumb
@@ -219,7 +241,8 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
             }
             if (selected) {
                 Box(
-                    Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(CircleShape).background(accent),
+                    Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(CircleShape).background(accent)
+                        .border(strokes.width, strokes.overlay, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
@@ -235,6 +258,7 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
                         .padding(6.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
+                        .border(strokes.width, strokes.action, RoundedCornerShape(4.dp))
                         .padding(horizontal = 5.dp, vertical = 1.dp),
                 )
             }

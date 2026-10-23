@@ -1,5 +1,9 @@
 package com.verdictzero.darkhall.app
 
+import com.verdictzero.darkhall.app.ui.StrokedTextButton
+import com.verdictzero.darkhall.app.ui.LocalStrokes
+import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.foundation.border
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -16,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -109,8 +112,10 @@ private fun CrashDialog(text: String) {
     var open by remember { mutableStateOf(true) }
     if (!open) return
     val dismiss = { CrashLog.clear(context); open = false }
+    val strokes = LocalStrokes.current
     AlertDialog(
         onDismissRequest = dismiss,
+        modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
         title = { Text("Darkhall crashed last time") },
         text = {
             Text(
@@ -121,18 +126,18 @@ private fun CrashDialog(text: String) {
             )
         },
         confirmButton = {
-            TextButton(onClick = {
+            StrokedTextButton("Copy", onClick = {
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("Darkhall crash", text))
                 dismiss()
-            }) { Text("Copy") }
+            })
         },
         dismissButton = {
-            TextButton(onClick = {
+            StrokedTextButton("Share", onClick = {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
                 runCatching { context.startActivity(Intent.createChooser(send, "Share crash report")) }
                 dismiss()
-            }) { Text("Share") }
+            })
         },
     )
 }

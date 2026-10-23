@@ -3,6 +3,7 @@ package com.verdictzero.darkhall.app.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 /** A darkroom: always dark, violet accent from the icon, neutral surfaces so the image is the only colour. */
@@ -33,5 +34,7 @@ fun DarkhallTheme(content: @Composable () -> Unit) {
         outlineVariant = Color(0xFF34343A),
         error = Color(0xFFFF8A80),
     )
-    MaterialTheme(colorScheme = scheme, content = content)
+    CompositionLocalProvider(LocalStrokes provides DarkhallStrokes) {
+        MaterialTheme(colorScheme = scheme, content = content)
+    }
 }

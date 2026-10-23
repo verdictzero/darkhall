@@ -1,5 +1,6 @@
 package com.verdictzero.darkhall.app.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -83,6 +84,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
                     .padding(bottom = 20.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer)
+                    .border(LocalStrokes.current.width, LocalStrokes.current.action, RoundedCornerShape(18.dp))
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

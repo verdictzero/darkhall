@@ -1,5 +1,8 @@
 package com.verdictzero.darkhall.app.ui
 
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.AlertDialogDefaults
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,12 +36,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,11 +78,16 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
         all.filter { (group == null || it.group == group) && (q.isEmpty() || q in it.name.lowercase() || q in it.category.lowercase()) }
     }
 
+    val strokes = LocalStrokes.current
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
-                Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close looks") }
+                Row(
+                    Modifier.fillMaxWidth().bottomStroke(strokes.container).padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StrokedIconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close looks") }
+                    Spacer(Modifier.width(10.dp))
                     Text("Looks", style = MaterialTheme.typography.titleLarge)
                     Text(
                         "  ${all.size}",
@@ -90,7 +96,7 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                         fontFamily = FontFamily.Monospace,
                     )
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = { showCredits = true }) { Text("Credits") }
+                    StrokedTextButton("Credits", onClick = { showCredits = true })
                 }
                 OutlinedTextField(
                     value = query,
@@ -98,15 +104,20 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                     singleLine = true,
                     placeholder = { Text("Search films and looks") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = strokes.action,
+                        focusedBorderColor = strokes.selected,
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp),
                 )
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item { FilterChip(selected = group == null, onClick = { group = null }, label = { Text("All") }) }
+                    item { GroupChip("All", selected = group == null) { group = null } }
                     items(LookLibrary.GROUPS) { g ->
-                        FilterChip(selected = group == g, onClick = { group = if (group == g) null else g }, label = { Text(g) })
+                        GroupChip(g, selected = group == g) { group = if (group == g) null else g }
                     }
                 }
                 LazyVerticalGrid(
@@ -152,7 +163,8 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
     if (showCredits) {
         AlertDialog(
             onDismissRequest = { showCredits = false },
-            confirmButton = { TextButton(onClick = { showCredits = false }) { Text("Close") } },
+            modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
+            confirmButton = { StrokedTextButton("Close", onClick = { showCredits = false }) },
             title = { Text("Look credits") },
             text = {
                 Text(
@@ -166,11 +178,30 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
 }
 
 @Composable
+private fun GroupChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val strokes = LocalStrokes.current
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = strokes.action,
+            selectedBorderColor = strokes.selected,
+            borderWidth = strokes.width,
+            selectedBorderWidth = strokes.width,
+        ),
+    )
+}
+
+@Composable
 private fun LookCell(vm: DevelopViewModel, look: LookInfo?, name: String, selected: Boolean, onClick: () -> Unit) {
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = look?.id) {
         value = vm.lookThumbnail(look?.id)
     }
     val accent = MaterialTheme.colorScheme.primary
+    val strokes = LocalStrokes.current
     Column(
         Modifier
             .clickable(onClick = onClick)
@@ -182,7 +213,11 @@ private fun LookCell(vm: DevelopViewModel, look: LookInfo?, name: String, select
                 .aspectRatio(3f / 4f)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .then(if (selected) Modifier.border(3.dp, accent, RoundedCornerShape(6.dp)) else Modifier),
+                .border(
+                    if (selected) strokes.selectedWidth else strokes.width,
+                    if (selected) strokes.selected else strokes.container,
+                    RoundedCornerShape(6.dp),
+                ),
         ) {
             thumb?.let {
                 Image(it.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
