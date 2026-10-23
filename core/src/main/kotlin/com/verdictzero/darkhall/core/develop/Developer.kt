@@ -237,55 +237,13 @@ class Developer {
             }
         }
 
-        // ---- 4/5. tone + colour -----------------------------------------------------------
-        val sh = plan.shadows
-        val hl = plan.highlights
-        val doSh = plan.shadowsHighlightsOn
-        val vib = plan.vibrance
-        val sat = plan.saturation
-        val doSat = plan.saturationOn
-        val lut = plan.curve
-        val look = if (plan.lookOn) plan.look else null
-        val lookAmount = plan.lookAmount
+        // ---- 4/5. tone + colour (shared with AutoTone) -------------------------------------
         Parallel.rows(h) { y0, y1 ->
+            val o = FloatArray(3)
             val lk = FloatArray(3)
             for (i in y0 * w until y1 * w) {
-                var rr = r[i]; var gg = g[i]; var bb = b[i]
-                if (doSh) {
-                    val l = LUM_R * rr + LUM_G * gg + LUM_B * bb
-                    // Above display white (recovered highlights) keep counting up, so a negative
-                    // Highlights slider can pull that detail back into range.
-                    val yd = if (l <= 1f) ColorScience.encode(l) else 1f + 0.5f * ln(l) / LN2
-                    val ys = min(yd, 1f)
-                    val k = exp(sh * (1f - ys) * (1f - ys) + hl * yd * yd)
-                    rr *= k; gg *= k; bb *= k
-                }
-                // Soft shoulder: compress the top of the range instead of clipping it, scaling all
-                // three channels together so bright colours keep their hue.
-                val mx = max(rr, max(gg, bb))
-                if (mx > RenderPlan.SHOULDER) {
-                    val f = RenderPlan.SHOULDER + (1f - RenderPlan.SHOULDER) * (1f - exp(-(mx - RenderPlan.SHOULDER) / (1f - RenderPlan.SHOULDER)))
-                    val k = f / mx
-                    rr *= k; gg *= k; bb *= k
-                }
-                var dr = lut[(ColorScience.encode(rr) * 4096f).toInt()]
-                var dg = lut[(ColorScience.encode(gg) * 4096f).toInt()]
-                var db = lut[(ColorScience.encode(bb) * 4096f).toInt()]
-                if (doSat) {
-                    val yv = LUM_R * dr + LUM_G * dg + LUM_B * db
-                    val s = max(dr, max(dg, db)) - min(dr, min(dg, db))
-                    val k = (1f + vib * (1f - s)) * (1f + sat)
-                    dr = clamp01(yv + (dr - yv) * k)
-                    dg = clamp01(yv + (dg - yv) * k)
-                    db = clamp01(yv + (db - yv) * k)
-                }
-                if (look != null) {
-                    look.sample(dr, dg, db, lk)
-                    dr += (lk[0] - dr) * lookAmount
-                    dg += (lk[1] - dg) * lookAmount
-                    db += (lk[2] - db) * lookAmount
-                }
-                r[i] = dr; g[i] = dg; b[i] = db
+                ToneStage.apply(plan, r[i], g[i], b[i], o, lk)
+                r[i] = o[0]; g[i] = o[1]; b[i] = o[2]
             }
         }
 
@@ -421,8 +379,9 @@ class Developer {
      * the sensor saw. Values may exceed 1.0; the tone stage's shoulder brings them back.
      */
     private fun reconstructHighlights(r: FloatArray, g: FloatArray, b: FloatArray, w: Int, h: Int, ctx: RenderContext, frame: Frame) {
+        val wbR = ctx.cameraWb[0]; val wbG = ctx.cameraWb[1]; val wbB = ctx.cameraWb[2]
         // Neutral (white after white balance) chromaticity in raw space.
-        var nR = 1f / ctx.cameraWb[0]; var nG = 1f / ctx.cameraWb[1]; var nB = 1f / ctx.cameraWb[2]
+        var nR = 1f / wbR; var nG = 1f / wbG; var nB = 1f / wbB
         val ns = nR + nG + nB
         nR /= ns; nG /= ns; nB /= ns
         Parallel.rows(h) { y0, y1 ->
@@ -473,9 +432,20 @@ class Developer {
                     g[i] = max(gg, min(MAX_RECOVERED, scale * nG))
                     b[i] = max(bb, min(MAX_RECOVERED, scale * nB))
                 } else {
-                    if (cR) r[i] = max(rr, min(MAX_RECOVERED, scale * chR))
-                    if (cG) g[i] = max(gg, min(MAX_RECOVERED, scale * chG))
-                    if (cB) b[i] = max(bb, min(MAX_RECOVERED, scale * chB))
+                    // The surrounding colour predicts each clipped channel. A prediction below the
+                    // clip level is known to be wrong (the sensor saw at least that much): the
+                    // neighbours don't share this surface's colour. Then fall back to the
+                    // brightest unclipped channel after white balance, i.e. towards neutral;
+                    // otherwise near-white surfaces whose green clipped first turn magenta.
+                    val floorWb = max(if (cR) 0f else rr * wbR, max(if (cG) 0f else gg * wbG, if (cB) 0f else bb * wbB))
+                    fun recover(v: Float, chroma: Float, wb: Float): Float {
+                        val est = scale * chroma
+                        val pick = if (est >= CLIP) est else max(est, floorWb / wb)
+                        return max(v, min(MAX_RECOVERED, pick))
+                    }
+                    if (cR) r[i] = recover(rr, chR, wbR)
+                    if (cG) g[i] = recover(gg, chG, wbG)
+                    if (cB) b[i] = recover(bb, chB, wbB)
                 }
             }
         }

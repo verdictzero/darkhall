@@ -142,6 +142,9 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
 
         /** Linear level where the highlight shoulder starts. */
         const val SHOULDER = 0.85f
+        /** Pre-shoulder level (about 1.8 stops over white) where highlight desaturation peaks. */
+        const val DESAT_END = 3.0f
+        const val DESAT_MAX = 0.85f
         const val FINEST_BOOST = 1.25f
 
         /**

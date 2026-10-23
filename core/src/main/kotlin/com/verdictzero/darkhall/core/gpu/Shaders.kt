@@ -225,6 +225,8 @@ uniform int uLookOn;
 uniform int uLookN;
 uniform float uLookAmount;
 const float SHOULDER = 0.85;
+const float DESAT_END = 3.0;
+const float DESAT_MAX = 0.85;
 // Look table: N*N wide, N tall; texel (r + N*g, b). Manual trilinear, same arithmetic as the CPU.
 vec3 lk(int r, int g, int b) { return texelFetch(uLook, ivec2(r + g * uLookN, b), 0).rgb; }
 vec3 applyLook(vec3 c) {
@@ -260,6 +262,9 @@ void main() {
     if (mx > SHOULDER) {
         float f = SHOULDER + (1.0 - SHOULDER) * (1.0 - exp(-(mx - SHOULDER) / (1.0 - SHOULDER)));
         c *= f / mx;
+        float t = clamp((mx - SHOULDER) / (DESAT_END - SHOULDER), 0.0, 1.0);
+        float d = t * t * (3.0 - 2.0 * t) * DESAT_MAX;
+        c += (dot(LUM, c) - c) * d;
     }
     vec3 d = vec3(lut(c.r), lut(c.g), lut(c.b));
     if (uDoSat == 1) {
