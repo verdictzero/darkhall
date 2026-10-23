@@ -66,6 +66,12 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     /** Display-space curve (blacks → whites → contrast) on 4097 points. */
     val curve = FloatArray(CURVE_SIZE)
 
+    // ---- look (3D LUT on display-encoded colour, after tone and saturation) ---------------------
+    val lookId: String? = p.look
+    val look: Lut? = p.look?.let { ctx.looks.lut(it) }
+    val lookAmount: Float = p[Adjustment.LOOK_AMOUNT] / 100f
+    val lookOn: Boolean = look != null && lookAmount > 0.005f
+
     // ---- detail ------------------------------------------------------------------------------
     val clarity: Float = p[Adjustment.CLARITY] / 100f
     val sharpen: Float = p[Adjustment.SHARPEN] / 100f

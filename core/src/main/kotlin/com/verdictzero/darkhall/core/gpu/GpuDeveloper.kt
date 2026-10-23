@@ -4,6 +4,7 @@ import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.LinearImage
+import com.verdictzero.darkhall.core.develop.Lut
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.develop.RenderPlan
 import com.verdictzero.darkhall.core.gpu.GlConst as C
@@ -133,6 +134,7 @@ class GpuDeveloper(
         for (t in textures.values) { gl.deleteFramebuffer(t.fbo); gl.deleteTexture(t.id) }
         textures.clear()
         readBuffer = null
+        uploadedLook = null
     }
 
     /** Uploads the render input (after highlight reconstruction) and sizes the work textures. */
@@ -146,6 +148,8 @@ class GpuDeveloper(
             for (n in listOf("c", "d")) textures[n] = newTex(w, h, fmt2, C.RG, fmtType)
             for (n in listOf("y", "s1", "s2", "s3", "s4", "s5")) textures[n] = newTex(w, h, fmt1, C.RED, fmtType)
             textures["lut"] = newTex(64, 65, fmt1, C.RED, fmtType)
+            textures["look"] = newTex(1, 1, C.RGBA8, C.RGBA, C.UNSIGNED_BYTE)
+            uploadedLook = null
             textures["out"] = newTex(w, h, C.RGBA8, C.RGBA, C.UNSIGNED_BYTE)
             readBuffer = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.nativeOrder())
         }
@@ -305,7 +309,12 @@ class GpuDeveloper(
 
         // 4/5. tone + colour
         uploadCurve(plan.curve)
-        pass("tone", other, listOf("uIn" to cur, "uLut" to tex("lut"))) {
+        val look = if (plan.lookOn) plan.look else null
+        if (look != null) uploadLook(look)
+        pass("tone", other, listOf("uIn" to cur, "uLut" to tex("lut"), "uLook" to tex("look"))) {
+            gl.uniform1i(loc("uLookOn"), if (look != null) 1 else 0)
+            gl.uniform1i(loc("uLookN"), look?.size ?: 2)
+            gl.uniform1f(loc("uLookAmount"), plan.lookAmount)
             gl.uniform1f(loc("uSh"), plan.shadows)
             gl.uniform1f(loc("uHl"), plan.highlights)
             gl.uniform1i(loc("uDoSh"), if (plan.shadowsHighlightsOn) 1 else 0)
@@ -362,6 +371,29 @@ class GpuDeveloper(
             px[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
         return px
+    }
+
+    private var uploadedLook: Lut? = null
+
+    /** Puts [lut] in the look texture: N*N wide, N tall, texel (r + N*g, b) — the table's own order. */
+    private fun uploadLook(lut: Lut) {
+        if (uploadedLook === lut) return
+        val n = lut.size
+        val old = textures.getValue("look")
+        gl.deleteFramebuffer(old.fbo); gl.deleteTexture(old.id)
+        val t = newTex(n * n, n, C.RGBA8, C.RGBA, C.UNSIGNED_BYTE)
+        textures["look"] = t
+        val count = n * n * n
+        val buf = ByteBuffer.allocateDirect(count * 4).order(ByteOrder.nativeOrder())
+        for (i in 0 until count) {
+            buf.put(lut.rgb[3 * i]); buf.put(lut.rgb[3 * i + 1]); buf.put(lut.rgb[3 * i + 2]); buf.put(0xFF.toByte())
+        }
+        buf.flip()
+        gl.pixelStorei(C.UNPACK_ALIGNMENT, 1)
+        gl.bindTexture(C.TEXTURE_2D, t.id)
+        gl.texSubImage2D(C.TEXTURE_2D, 0, 0, 0, n * n, n, C.RGBA, C.UNSIGNED_BYTE, buf)
+        gl.bindTexture(C.TEXTURE_2D, 0)
+        uploadedLook = lut
     }
 
     private val curveBuffer = ByteBuffer.allocateDirect(64 * 65 * 4).order(ByteOrder.nativeOrder())

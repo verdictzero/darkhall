@@ -5,7 +5,7 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 
 enum class AdjustmentGroup(val title: String) {
-    LIGHT("Light"), COLOR("Color"), DETAIL("Detail"), LENS("Lens")
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"), DETAIL("Detail"), LENS("Lens")
 }
 
 /**
@@ -21,6 +21,8 @@ enum class Adjustment(
     val decimals: Int = 0,
     val unit: String = "",
 ) {
+    /** How strongly the chosen look (3D LUT) is applied. */
+    LOOK_AMOUNT("Look strength", AdjustmentGroup.LOOK, 0f, 100f, 100f),
     EXPOSURE("Exposure", AdjustmentGroup.LIGHT, -3f, 3f, 0f, 2, " EV"),
     CONTRAST("Contrast", AdjustmentGroup.LIGHT, -100f, 100f, 0f),
     HIGHLIGHTS("Highlights", AdjustmentGroup.LIGHT, -100f, 100f, 0f),
@@ -55,16 +57,18 @@ enum class Adjustment(
     }
 }
 
-/** Immutable slider state. */
-class DevelopParams private constructor(private val values: FloatArray) {
+/** Immutable slider state, plus the chosen look (a LUT id, or null for none). */
+class DevelopParams private constructor(private val values: FloatArray, val look: String? = null) {
 
     operator fun get(a: Adjustment): Float = values[a.ordinal]
 
     fun with(a: Adjustment, v: Float): DevelopParams {
         val c = values.copyOf()
         c[a.ordinal] = v.coerceIn(a.min, a.max)
-        return DevelopParams(c)
+        return DevelopParams(c, look)
     }
+
+    fun withLook(id: String?): DevelopParams = DevelopParams(values.copyOf(), id)
 
     fun reset(a: Adjustment, defaults: DevelopParams) = with(a, defaults[a])
 
@@ -72,17 +76,17 @@ class DevelopParams private constructor(private val values: FloatArray) {
 
     fun toMap(): Map<String, Float> = Adjustment.entries.associate { it.name to values[it.ordinal] }
 
-    override fun equals(other: Any?) = other is DevelopParams && other.values.contentEquals(values)
-    override fun hashCode() = values.contentHashCode()
-    override fun toString() = toMap().toString()
+    override fun equals(other: Any?) = other is DevelopParams && other.values.contentEquals(values) && other.look == look
+    override fun hashCode() = values.contentHashCode() * 31 + (look?.hashCode() ?: 0)
+    override fun toString() = toMap().toString() + " look=$look"
 
     companion object {
         val NEUTRAL: DevelopParams = DevelopParams(FloatArray(Adjustment.entries.size) { Adjustment.entries[it].default })
 
-        fun fromMap(m: Map<String, Float>, base: DevelopParams = NEUTRAL): DevelopParams {
+        fun fromMap(m: Map<String, Float>, base: DevelopParams = NEUTRAL, look: String? = base.look): DevelopParams {
             val c = base.values.copyOf()
             for (a in Adjustment.entries) m[a.name]?.let { c[a.ordinal] = it.coerceIn(a.min, a.max) }
-            return DevelopParams(c)
+            return DevelopParams(c, look)
         }
 
         /**

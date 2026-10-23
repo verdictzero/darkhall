@@ -11,6 +11,8 @@ package com.verdictzero.darkhall.core.gpu
  *    is needed and the result does not depend on sampler state;
  *  - no compute shaders, image load/store or SSBOs (GLES 3.0 fragment shaders only);
  *  - loop bounds are uniforms with small ranges; no dynamic indexing into arrays;
+ *  - looks (3D LUTs) live in an ordinary 2D RGBA8 texture and are interpolated by hand, so
+ *    neither 3D-texture support nor the driver's (often 8-bit) filtering weights matter;
  *  - a full-screen triangle from gl_VertexID, no vertex attributes.
  */
 object Shaders {
@@ -218,7 +220,26 @@ uniform int uDoSh;
 uniform float uVib;
 uniform float uSat;
 uniform int uDoSat;
+uniform sampler2D uLook;
+uniform int uLookOn;
+uniform int uLookN;
+uniform float uLookAmount;
 const float SHOULDER = 0.85;
+// Look table: N*N wide, N tall; texel (r + N*g, b). Manual trilinear, same arithmetic as the CPU.
+vec3 lk(int r, int g, int b) { return texelFetch(uLook, ivec2(r + g * uLookN, b), 0).rgb; }
+vec3 applyLook(vec3 c) {
+    int n1 = uLookN - 1;
+    vec3 p = c * float(n1);
+    ivec3 i = clamp(ivec3(p), ivec3(0), ivec3(n1 - 1));
+    vec3 f = p - vec3(i);
+    vec3 c00 = lk(i.x, i.y, i.z) * (1.0 - f.x) + lk(i.x + 1, i.y, i.z) * f.x;
+    vec3 c01 = lk(i.x, i.y + 1, i.z) * (1.0 - f.x) + lk(i.x + 1, i.y + 1, i.z) * f.x;
+    vec3 c10 = lk(i.x, i.y, i.z + 1) * (1.0 - f.x) + lk(i.x + 1, i.y, i.z + 1) * f.x;
+    vec3 c11 = lk(i.x, i.y + 1, i.z + 1) * (1.0 - f.x) + lk(i.x + 1, i.y + 1, i.z + 1) * f.x;
+    vec3 c0 = c00 * (1.0 - f.y) + c01 * f.y;
+    vec3 c1 = c10 * (1.0 - f.y) + c11 * f.y;
+    return c0 * (1.0 - f.z) + c1 * f.z;
+}
 float enc(float v) {
     float x = clamp(v, 0.0, 1.0);
     return x <= 0.0031308 ? 12.92 * x : 1.055 * pow(x, 1.0 / 2.4) - 0.055;
@@ -246,6 +267,9 @@ void main() {
         float s = max(d.r, max(d.g, d.b)) - min(d.r, min(d.g, d.b));
         float k = (1.0 + uVib * (1.0 - s)) * (1.0 + uSat);
         d = clamp(yv + (d - yv) * k, 0.0, 1.0);
+    }
+    if (uLookOn == 1) {
+        d += (applyLook(d) - d) * uLookAmount;
     }
     o = vec4(d, 1.0);
 }

@@ -1,0 +1,2596 @@
+{
+ "version": 1,
+ "size": 33,
+ "looks": [
+  {
+   "id": "dh-underwater-reef",
+   "name": "Reef",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-blue-water",
+   "name": "Blue Water",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-clear-lagoon",
+   "name": "Clear Lagoon",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-kelp-forest",
+   "name": "Kelp Forest",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-deep",
+   "name": "Deep",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-wreck",
+   "name": "Wreck",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-coral-glow",
+   "name": "Coral Glow",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-night-dive",
+   "name": "Night Dive",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-snorkel",
+   "name": "Snorkel",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-underwater-freediver",
+   "name": "Freediver",
+   "group": "Darkhall",
+   "category": "Underwater",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-teal-orange-soft",
+   "name": "Teal & Orange Soft",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-teal-orange",
+   "name": "Teal & Orange",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-teal-orange-bold",
+   "name": "Teal & Orange Bold",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-bleach-bypass",
+   "name": "Bleach Bypass",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-silver-retention",
+   "name": "Silver Retention",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-day-for-night",
+   "name": "Day for Night",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-golden-hour",
+   "name": "Golden Hour",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-desert",
+   "name": "Desert",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-arctic",
+   "name": "Arctic",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-neo-noir",
+   "name": "Neo Noir",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-moonlit",
+   "name": "Moonlit",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-summer-blockbuster",
+   "name": "Summer Blockbuster",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-matrix",
+   "name": "Matrix",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cinematic-vaulted-violet",
+   "name": "Vaulted Violet",
+   "group": "Darkhall",
+   "category": "Cinematic",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-teal-amber",
+   "name": "Teal / Amber",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-navy-gold",
+   "name": "Navy / Gold",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-violet-peach",
+   "name": "Violet / Peach",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-forest-rose",
+   "name": "Forest / Rose",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-steel-cream",
+   "name": "Steel / Cream",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-plum-mint",
+   "name": "Plum / Mint",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-oxblood-ice",
+   "name": "Oxblood / Ice",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-slate-sand",
+   "name": "Slate / Sand",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-petrol-coral",
+   "name": "Petrol / Coral",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-indigo-sun",
+   "name": "Indigo / Sun",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-olive-linen",
+   "name": "Olive / Linen",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-split-tone-wine-apricot",
+   "name": "Wine / Apricot",
+   "group": "Darkhall",
+   "category": "Split tone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-matte",
+   "name": "Matte",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-matte-warm",
+   "name": "Matte Warm",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-matte-cool",
+   "name": "Matte Cool",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-pastel",
+   "name": "Pastel",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-sun-bleached",
+   "name": "Sun Bleached",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-washed-out",
+   "name": "Washed Out",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-vintage-print",
+   "name": "Vintage Print",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-faded-polar-fade",
+   "name": "Polar Fade",
+   "group": "Darkhall",
+   "category": "Faded",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cross-process-e-6-in-c-41",
+   "name": "E-6 in C-41",
+   "group": "Darkhall",
+   "category": "Cross process",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cross-process-c-41-in-e-6",
+   "name": "C-41 in E-6",
+   "group": "Darkhall",
+   "category": "Cross process",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cross-process-acid-green",
+   "name": "Acid Green",
+   "group": "Darkhall",
+   "category": "Cross process",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-cross-process-magenta-shift",
+   "name": "Magenta Shift",
+   "group": "Darkhall",
+   "category": "Cross process",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-neutral-soft",
+   "name": "Neutral Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-neutral",
+   "name": "Neutral",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-neutral-hard",
+   "name": "Neutral Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-red-filter-soft",
+   "name": "Red Filter Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-red-filter",
+   "name": "Red Filter",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-red-filter-hard",
+   "name": "Red Filter Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-orange-filter-soft",
+   "name": "Orange Filter Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-orange-filter",
+   "name": "Orange Filter",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-orange-filter-hard",
+   "name": "Orange Filter Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-yellow-filter-soft",
+   "name": "Yellow Filter Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-yellow-filter",
+   "name": "Yellow Filter",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-yellow-filter-hard",
+   "name": "Yellow Filter Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-green-filter-soft",
+   "name": "Green Filter Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-green-filter",
+   "name": "Green Filter",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-green-filter-hard",
+   "name": "Green Filter Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-blue-filter-soft",
+   "name": "Blue Filter Soft",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-blue-filter",
+   "name": "Blue Filter",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-blue-filter-hard",
+   "name": "Blue Filter Hard",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-matte-mono",
+   "name": "Matte Mono",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-high-key",
+   "name": "High Key",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-black-white-low-key",
+   "name": "Low Key",
+   "group": "Darkhall",
+   "category": "Black & white",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-darkhall-violet",
+   "name": "Darkhall Violet",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-sepia",
+   "name": "Sepia",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-cyanotype",
+   "name": "Cyanotype",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-selenium",
+   "name": "Selenium",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-platinum",
+   "name": "Platinum",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-navy-cream",
+   "name": "Navy & Cream",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-oxblood-cream",
+   "name": "Oxblood & Cream",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "dh-duotone-petrol-amber",
+   "name": "Petrol & Amber",
+   "group": "Darkhall",
+   "category": "Duotone",
+   "source": "darkhall"
+  },
+  {
+   "id": "rt-black-and-white-agfa-agfa-apx-100",
+   "name": "Agfa APX 100",
+   "group": "Film B&W",
+   "category": "Agfa",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-agfa-agfa-apx-25",
+   "name": "Agfa APX 25",
+   "group": "Film B&W",
+   "category": "Agfa",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-1",
+   "name": "Fuji FP-3000b 1 --",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-2",
+   "name": "Fuji FP-3000b 2 -",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-3",
+   "name": "Fuji FP-3000b 3",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-4",
+   "name": "Fuji FP-3000b 4 +",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-5",
+   "name": "Fuji FP-3000b 5 ++",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-6",
+   "name": "Fuji FP-3000b 6 +++",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-hc",
+   "name": "Fuji FP-3000b HC",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-1",
+   "name": "Fuji FP-3000b Negative 1 --",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-2",
+   "name": "Fuji FP-3000b Negative 2 -",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-3",
+   "name": "Fuji FP-3000b Negative 3",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-4",
+   "name": "Fuji FP-3000b Negative 4 +",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-5",
+   "name": "Fuji FP-3000b Negative 5 ++",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-6",
+   "name": "Fuji FP-3000b Negative 6 +++",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-fp-3000b-negative-early",
+   "name": "Fuji FP-3000b Negative Early",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-neopan-1600-1",
+   "name": "Fuji Neopan 1600 1 -",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-neopan-1600-2",
+   "name": "Fuji Neopan 1600 2",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-neopan-1600-3",
+   "name": "Fuji Neopan 1600 3 +",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-neopan-1600-4",
+   "name": "Fuji Neopan 1600 4 ++",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-fuji-fuji-neopan-acros-100",
+   "name": "Fuji Neopan Acros 100",
+   "group": "Film B&W",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-100",
+   "name": "Ilford Delta 100",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-3200-1",
+   "name": "Ilford Delta 3200 1 -",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-3200-2",
+   "name": "Ilford Delta 3200 2",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-3200-3",
+   "name": "Ilford Delta 3200 3 +",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-3200-4",
+   "name": "Ilford Delta 3200 4 ++",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-delta-400",
+   "name": "Ilford Delta 400",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-fp4-plus-125",
+   "name": "Ilford FP4 Plus 125",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hp5-1",
+   "name": "Ilford HP5 1 -",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hp5-2",
+   "name": "Ilford HP5 2",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hp5-3",
+   "name": "Ilford HP5 3 +",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hp5-4",
+   "name": "Ilford HP5 4 ++",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hp5-plus-400",
+   "name": "Ilford HP5 Plus 400",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-hps-800",
+   "name": "Ilford HPS 800",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-pan-f-plus-50",
+   "name": "Ilford Pan F Plus 50",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-ilford-ilford-xp2",
+   "name": "Ilford XP2",
+   "group": "Film B&W",
+   "category": "Ilford",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-bw-400-cn",
+   "name": "Kodak BW 400 CN",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-hie-hs-infra",
+   "name": "Kodak HIE (HS Infra)",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-t-max-100",
+   "name": "Kodak T-Max 100",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-t-max-400",
+   "name": "Kodak T-Max 400",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tmax-3200-1",
+   "name": "Kodak TMAX 3200 1 -",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tmax-3200-2",
+   "name": "Kodak TMAX 3200 2",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tmax-3200-3-alt",
+   "name": "Kodak TMAX 3200 3 Alt",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tmax-3200-4",
+   "name": "Kodak TMAX 3200 4 +",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tmax-3200-5",
+   "name": "Kodak TMAX 3200 5 ++",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tri-x-400-1",
+   "name": "Kodak TRI-X 400 1 -",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tri-x-400-2",
+   "name": "Kodak TRI-X 400 2",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tri-x-400-3-alt",
+   "name": "Kodak TRI-X 400 3 Alt",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tri-x-400-4",
+   "name": "Kodak TRI-X 400 4 +",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-kodak-kodak-tri-x-400-5",
+   "name": "Kodak TRI-X 400 5 ++",
+   "group": "Film B&W",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-664",
+   "name": "Polaroid 664",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-1",
+   "name": "Polaroid 665 1 --",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-2",
+   "name": "Polaroid 665 2 -",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-3",
+   "name": "Polaroid 665 3",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-4",
+   "name": "Polaroid 665 4 +",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-5",
+   "name": "Polaroid 665 5 ++",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-negative-1",
+   "name": "Polaroid 665 Negative 1 -",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-negative-2",
+   "name": "Polaroid 665 Negative 2",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-negative-3",
+   "name": "Polaroid 665 Negative 3 +",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-665-negative-hc",
+   "name": "Polaroid 665 Negative HC",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-667",
+   "name": "Polaroid 667",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-polaroid-polaroid-672",
+   "name": "Polaroid 672",
+   "group": "Film B&W",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-rollei-rollei-ir-400",
+   "name": "Rollei IR 400",
+   "group": "Film B&W",
+   "category": "Rollei",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-rollei-rollei-ortho-25",
+   "name": "Rollei Ortho 25",
+   "group": "Film B&W",
+   "category": "Rollei",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-rollei-rollei-retro-100-tonal",
+   "name": "Rollei Retro 100 Tonal",
+   "group": "Film B&W",
+   "category": "Rollei",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-black-and-white-rollei-rollei-retro-80s",
+   "name": "Rollei Retro 80s",
+   "group": "Film B&W",
+   "category": "Rollei",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-agfa-agfa-precisa-100",
+   "name": "Agfa Precisa 100",
+   "group": "Film color",
+   "category": "Agfa",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-agfa-agfa-ultra-color-100",
+   "name": "Agfa Ultra Color 100",
+   "group": "Film color",
+   "category": "Agfa",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-agfa-agfa-vista-200",
+   "name": "Agfa Vista 200",
+   "group": "Film color",
+   "category": "Agfa",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-anime",
+   "name": "Anime",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-bleachbypass1",
+   "name": "Bleach Bypass1",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-bleachbypass2",
+   "name": "Bleach Bypass2",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-bleachbypass3",
+   "name": "Bleach Bypass3",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-bleachbypass4",
+   "name": "Bleach Bypass4",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-candlelight",
+   "name": "Candle Light",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-colornegative",
+   "name": "Color Negative",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-crispwarm",
+   "name": "Crisp Warm",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-crispwinter",
+   "name": "Crisp Winter",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-dropblues",
+   "name": "Drop Blues",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-edgyember",
+   "name": "Edgy Ember",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-fallcolors",
+   "name": "Fall Colors",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-foggynight",
+   "name": "Foggy Night",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-futuristicbleak1",
+   "name": "Futuristic Bleak1",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-futuristicbleak2",
+   "name": "Futuristic Bleak2",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-futuristicbleak3",
+   "name": "Futuristic Bleak3",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-futuristicbleak4",
+   "name": "Futuristic Bleak4",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-horrorblue",
+   "name": "Horror Blue",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-latesunset",
+   "name": "Late Sunset",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-moonlight",
+   "name": "Moonlight",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-nightfromday",
+   "name": "Night From Day",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-redblueyellow",
+   "name": "Red Blue Yellow",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-smokey",
+   "name": "Smokey",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-softwarming",
+   "name": "Soft Warming",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tealmagentagold",
+   "name": "Teal Magenta Gold",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tealorange",
+   "name": "Teal Orange",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tealorange1",
+   "name": "Teal Orange1",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tealorange2",
+   "name": "Teal Orange2",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tealorange3",
+   "name": "Teal Orange3",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tensiongreen1",
+   "name": "Tension Green1",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tensiongreen2",
+   "name": "Tension Green2",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tensiongreen3",
+   "name": "Tension Green3",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-creativepack-1-tensiongreen4",
+   "name": "Tension Green4",
+   "group": "Creative",
+   "category": "Creative pack",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-160c-1",
+   "name": "Fuji 160C 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-160c-2",
+   "name": "Fuji 160C 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-160c-3",
+   "name": "Fuji 160C 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-160c-4",
+   "name": "Fuji 160C 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-400h-1",
+   "name": "Fuji 400H 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-400h-2",
+   "name": "Fuji 400H 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-400h-3",
+   "name": "Fuji 400H 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-400h-4",
+   "name": "Fuji 400H 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-800z-1",
+   "name": "Fuji 800Z 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-800z-2",
+   "name": "Fuji 800Z 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-800z-3",
+   "name": "Fuji 800Z 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-800z-4",
+   "name": "Fuji 800Z 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-astia-100-generic",
+   "name": "Fuji Astia 100 Generic",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-astia-100f",
+   "name": "Fuji Astia 100F",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-1",
+   "name": "Fuji FP-100c 1 --",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-2",
+   "name": "Fuji FP-100c 2 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-3",
+   "name": "Fuji FP-100c 3",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-4-alt",
+   "name": "Fuji FP-100c 4 Alt",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-5",
+   "name": "Fuji FP-100c 5 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-6",
+   "name": "Fuji FP-100c 6 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-7-alt",
+   "name": "Fuji FP-100c 7 ++ Alt",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-8",
+   "name": "Fuji FP-100c 8 +++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-cool-1",
+   "name": "Fuji FP-100c Cool 1 --",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-cool-2",
+   "name": "Fuji FP-100c Cool 2 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-cool-3",
+   "name": "Fuji FP-100c Cool 3",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-cool-4",
+   "name": "Fuji FP-100c Cool 4 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-cool-5",
+   "name": "Fuji FP-100c Cool 5 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-1",
+   "name": "Fuji FP-100c Negative 1 --",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-2",
+   "name": "Fuji FP-100c Negative 2 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-3",
+   "name": "Fuji FP-100c Negative 3",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-4",
+   "name": "Fuji FP-100c Negative 4 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-5",
+   "name": "Fuji FP-100c Negative 5 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-6-alt",
+   "name": "Fuji FP-100c Negative 6 ++ Alt",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-fp-100c-negative-7",
+   "name": "Fuji FP-100c Negative 7 +++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-provia-100-generic",
+   "name": "Fuji Provia 100 Generic",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-provia-100f",
+   "name": "Fuji Provia 100F",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-provia-400f",
+   "name": "Fuji Provia 400F",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-provia-400x",
+   "name": "Fuji Provia 400X",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-sensia-100",
+   "name": "Fuji Sensia 100",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-100-1",
+   "name": "Fuji Superia 100 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-100-2",
+   "name": "Fuji Superia 100 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-100-3",
+   "name": "Fuji Superia 100 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-100-4",
+   "name": "Fuji Superia 100 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-1600-1",
+   "name": "Fuji Superia 1600 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-1600-2",
+   "name": "Fuji Superia 1600 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-1600-3",
+   "name": "Fuji Superia 1600 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-1600-4",
+   "name": "Fuji Superia 1600 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-200-xpro",
+   "name": "Fuji Superia 200 XPRO",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-200",
+   "name": "Fuji Superia 200",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-400-1",
+   "name": "Fuji Superia 400 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-400-2",
+   "name": "Fuji Superia 400 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-400-3",
+   "name": "Fuji Superia 400 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-400-4",
+   "name": "Fuji Superia 400 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-800-1",
+   "name": "Fuji Superia 800 1 -",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-800-2",
+   "name": "Fuji Superia 800 2",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-800-3",
+   "name": "Fuji Superia 800 3 +",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-800-4",
+   "name": "Fuji Superia 800 4 ++",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-hg-1600",
+   "name": "Fuji Superia HG 1600",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-reala-100",
+   "name": "Fuji Superia Reala 100",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-superia-x-tra-800",
+   "name": "Fuji Superia X-Tra 800",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-velvia-100-generic",
+   "name": "Fuji Velvia 100 Generic",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-fuji-fuji-velvia-50",
+   "name": "Fuji Velvia 50",
+   "group": "Film color",
+   "category": "Fuji",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-e-100-gx-ektachrome-100",
+   "name": "Kodak E-100 GX Ektachrome 100",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-ektachrome-100-vs-generic",
+   "name": "Kodak Ektachrome 100 VS Generic",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-ektachrome-100-vs",
+   "name": "Kodak Ektachrome 100 VS",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-ektar-100",
+   "name": "Kodak Ektar 100",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-100-xpro",
+   "name": "Kodak Elite 100 XPRO",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-chrome-200",
+   "name": "Kodak Elite Chrome 200",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-chrome-400",
+   "name": "Kodak Elite Chrome 400",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-color-200",
+   "name": "Kodak Elite Color 200",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-color-400",
+   "name": "Kodak Elite Color 400",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-elite-extracolor-100",
+   "name": "Kodak Elite Extra Color 100",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-kodachrome-200",
+   "name": "Kodak Kodachrome 200",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-kodachrome-25",
+   "name": "Kodak Kodachrome 25",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-kodachrome-64-generic",
+   "name": "Kodak Kodachrome 64 Generic",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-kodachrome-64",
+   "name": "Kodak Kodachrome 64",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-1",
+   "name": "Kodak Portra 160 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-2",
+   "name": "Kodak Portra 160 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-3",
+   "name": "Kodak Portra 160 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-4",
+   "name": "Kodak Portra 160 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-nc-1",
+   "name": "Kodak Portra 160 NC 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-nc-2",
+   "name": "Kodak Portra 160 NC 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-nc-3",
+   "name": "Kodak Portra 160 NC 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-nc-4",
+   "name": "Kodak Portra 160 NC 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-vc-1",
+   "name": "Kodak Portra 160 VC 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-vc-2",
+   "name": "Kodak Portra 160 VC 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-vc-3",
+   "name": "Kodak Portra 160 VC 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-160-vc-4",
+   "name": "Kodak Portra 160 VC 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-1",
+   "name": "Kodak Portra 400 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-2",
+   "name": "Kodak Portra 400 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-3",
+   "name": "Kodak Portra 400 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-4",
+   "name": "Kodak Portra 400 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-nc-1",
+   "name": "Kodak Portra 400 NC 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-nc-2",
+   "name": "Kodak Portra 400 NC 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-nc-3",
+   "name": "Kodak Portra 400 NC 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-nc-4",
+   "name": "Kodak Portra 400 NC 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-uc-1",
+   "name": "Kodak Portra 400 UC 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-uc-2",
+   "name": "Kodak Portra 400 UC 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-uc-3",
+   "name": "Kodak Portra 400 UC 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-uc-4",
+   "name": "Kodak Portra 400 UC 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-vc-1",
+   "name": "Kodak Portra 400 VC 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-vc-2",
+   "name": "Kodak Portra 400 VC 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-vc-3",
+   "name": "Kodak Portra 400 VC 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-400-vc-4",
+   "name": "Kodak Portra 400 VC 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-800-1",
+   "name": "Kodak Portra 800 1 -",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-800-2",
+   "name": "Kodak Portra 800 2",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-800-3",
+   "name": "Kodak Portra 800 3 +",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-800-4",
+   "name": "Kodak Portra 800 4 ++",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-kodak-kodak-portra-800-hc",
+   "name": "Kodak Portra 800 HC",
+   "group": "Film color",
+   "category": "Kodak",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-lomography-lomography-redscale-100",
+   "name": "Lomography Redscale 100",
+   "group": "Film color",
+   "category": "Lomography",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-lomography-lomography-x-pro-slide-200",
+   "name": "Lomography X-Pro Slide 200",
+   "group": "Film color",
+   "category": "Lomography",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-1",
+   "name": "Polaroid 669 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-2",
+   "name": "Polaroid 669 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-3",
+   "name": "Polaroid 669 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-4",
+   "name": "Polaroid 669 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-5",
+   "name": "Polaroid 669 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-6",
+   "name": "Polaroid 669 6 +++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-cold-1",
+   "name": "Polaroid 669 Cold 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-cold-2",
+   "name": "Polaroid 669 Cold 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-cold-3",
+   "name": "Polaroid 669 Cold 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-669-cold-4",
+   "name": "Polaroid 669 Cold 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-1",
+   "name": "Polaroid 690 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-2",
+   "name": "Polaroid 690 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-3",
+   "name": "Polaroid 690 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-4",
+   "name": "Polaroid 690 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-5",
+   "name": "Polaroid 690 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-cold-1",
+   "name": "Polaroid 690 Cold 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-cold-2",
+   "name": "Polaroid 690 Cold 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-cold-3",
+   "name": "Polaroid 690 Cold 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-cold-4",
+   "name": "Polaroid 690 Cold 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-cold-5",
+   "name": "Polaroid 690 Cold 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-warm-1",
+   "name": "Polaroid 690 Warm 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-warm-2",
+   "name": "Polaroid 690 Warm 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-warm-3",
+   "name": "Polaroid 690 Warm 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-warm-4",
+   "name": "Polaroid 690 Warm 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-690-warm-5",
+   "name": "Polaroid 690 Warm 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-1",
+   "name": "Polaroid PX-100UV+ Cold 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-2",
+   "name": "Polaroid PX-100UV+ Cold 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-3",
+   "name": "Polaroid PX-100UV+ Cold 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-4",
+   "name": "Polaroid PX-100UV+ Cold 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-5",
+   "name": "Polaroid PX-100UV+ Cold 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-cold-6",
+   "name": "Polaroid PX-100UV+ Cold 6 +++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-1",
+   "name": "Polaroid PX-100UV+ Warm 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-2",
+   "name": "Polaroid PX-100UV+ Warm 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-3",
+   "name": "Polaroid PX-100UV+ Warm 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-4",
+   "name": "Polaroid PX-100UV+ Warm 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-5",
+   "name": "Polaroid PX-100UV+ Warm 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-100uv-warm-6",
+   "name": "Polaroid PX-100UV+ Warm 6 +++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-1",
+   "name": "Polaroid PX-680 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-2",
+   "name": "Polaroid PX-680 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-3",
+   "name": "Polaroid PX-680 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-4",
+   "name": "Polaroid PX-680 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-5",
+   "name": "Polaroid PX-680 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-1",
+   "name": "Polaroid PX-680 Cold 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-2",
+   "name": "Polaroid PX-680 Cold 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-3",
+   "name": "Polaroid PX-680 Cold 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-4",
+   "name": "Polaroid PX-680 Cold 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-5",
+   "name": "Polaroid PX-680 Cold 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-cold-6-alt",
+   "name": "Polaroid PX-680 Cold 6 ++ Alt",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-warm-1",
+   "name": "Polaroid PX-680 Warm 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-warm-2",
+   "name": "Polaroid PX-680 Warm 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-warm-3",
+   "name": "Polaroid PX-680 Warm 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-warm-4",
+   "name": "Polaroid PX-680 Warm 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-680-warm-5",
+   "name": "Polaroid PX-680 Warm 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-1",
+   "name": "Polaroid PX-70 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-2",
+   "name": "Polaroid PX-70 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-3",
+   "name": "Polaroid PX-70 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-4",
+   "name": "Polaroid PX-70 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-5",
+   "name": "Polaroid PX-70 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-6",
+   "name": "Polaroid PX-70 6 +++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-cold-1",
+   "name": "Polaroid PX-70 Cold 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-cold-2",
+   "name": "Polaroid PX-70 Cold 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-cold-3",
+   "name": "Polaroid PX-70 Cold 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-cold-4",
+   "name": "Polaroid PX-70 Cold 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-cold-5",
+   "name": "Polaroid PX-70 Cold 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-warm-1",
+   "name": "Polaroid PX-70 Warm 1 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-warm-2",
+   "name": "Polaroid PX-70 Warm 2 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-warm-3",
+   "name": "Polaroid PX-70 Warm 3",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-warm-4",
+   "name": "Polaroid PX-70 Warm 4 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-px-70-warm-5",
+   "name": "Polaroid PX-70 Warm 5 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-polachrome",
+   "name": "Polaroid Polachrome",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-1",
+   "name": "Polaroid Time Zero (Expired) 1 ---",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-2",
+   "name": "Polaroid Time Zero (Expired) 2 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-3",
+   "name": "Polaroid Time Zero (Expired) 3 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-4",
+   "name": "Polaroid Time Zero (Expired) 4",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-5",
+   "name": "Polaroid Time Zero (Expired) 5 +",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-6",
+   "name": "Polaroid Time Zero (Expired) 6 ++",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-cold-1",
+   "name": "Polaroid Time Zero (Expired) Cold 1 ---",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-cold-2",
+   "name": "Polaroid Time Zero (Expired) Cold 2 --",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-cold-3",
+   "name": "Polaroid Time Zero (Expired) Cold 3 -",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  },
+  {
+   "id": "rt-color-polaroid-polaroid-time-zero-expired-cold-4",
+   "name": "Polaroid Time Zero (Expired) Cold 4",
+   "group": "Film color",
+   "category": "Polaroid",
+   "source": "rawtherapee"
+  }
+ ]
+}

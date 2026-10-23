@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -134,6 +135,16 @@ class AppSmokeTest {
             }
             waitForText("Full resolution", timeoutMs = 120_000)
 
+            // Pick a look in the browser: thumbnails render, the strength slider appears.
+            compose.onNodeWithText("Pinch").assertDoesNotExistCompat()
+            list.performScrollToIndex(0)
+            compose.onNodeWithContentDescription("Browse looks").performClick()
+            waitForText("Search films and looks")
+            waitFor { compose.onAllNodesWithContentDescription("Look Reef").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Look Reef").performClick()
+            waitForText("Look strength")
+            compose.onNodeWithText("Reef").assertExistsCompat()
+
             // Copy settings via the overflow menu.
             compose.onNodeWithContentDescription("More").performClick()
             compose.onNodeWithText("Copy settings").performClick()
@@ -172,6 +183,11 @@ class AppSmokeTest {
             val outDir = System.getProperty("darkhall.outDir").orEmpty()
             if (outDir.isNotEmpty()) file.copyTo(File(outDir, "app_export.jpg"), overwrite = true)
 
+            // The chosen look was saved with the photo's edits.
+            val key = com.verdictzero.darkhall.app.data.RawFile(Uri.fromFile(File(samplePath)), File(samplePath).name, 0, 0).key
+            val saved = com.verdictzero.darkhall.app.data.EditsStore.load(app, key, com.verdictzero.darkhall.core.develop.DevelopParams.NEUTRAL)
+            assertEquals("dh-underwater-reef", saved?.look)
+
             // Back to the library: the develop session is released.
             scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
             waitForText("Darkhall")
@@ -180,3 +196,4 @@ class AppSmokeTest {
 }
 
 private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertExistsCompat() = assertExists()
+private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExistCompat() = assertDoesNotExist()

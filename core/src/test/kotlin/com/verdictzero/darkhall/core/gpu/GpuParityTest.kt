@@ -6,6 +6,8 @@ import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
+import com.verdictzero.darkhall.core.develop.LookSource
+import com.verdictzero.darkhall.core.develop.Lut
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.orf.OlympusDecoder
 import com.verdictzero.darkhall.core.orf.OrfParser
@@ -42,7 +44,10 @@ class GpuParityTest {
             val meta = OrfParser.parse(bytes)
             val raw = OlympusDecoder.decode(bytes, meta)
             val pv = Demosaic.superpixel(raw).resizeArea(1280, 960)
-            val ctx = RenderContext.forFile(meta, pv, raw)
+            val looksDir = File(System.getProperty("darkhall.looksDir").orEmpty())
+            val ctx = RenderContext.forFile(meta, pv, raw, looks = LookSource { id ->
+                File(looksDir, "$id.dlut").takeIf { it.exists() }?.let { Lut.decode(it.readBytes()) }
+            })
             val frame = Frame(0, 0, pv.width.toFloat() / meta.crop.width)
             val cpu = Developer()
             val gpu = GpuDeveloper(LwjglGl(), forceHalfFloat = halfFloat)
@@ -56,6 +61,11 @@ class GpuParityTest {
                     add("${a.name}=min" to base.with(a, a.min))
                     add("${a.name}=max" to base.with(a, a.max))
                 }
+                for (look in listOf("rt-color-fuji-fuji-velvia-50", "rt-black-and-white-ilford-ilford-hp5-plus-400",
+                        "rt-color-creativepack-1-tealorange", "dh-duotone-darkhall-violet", "dh-underwater-reef")) {
+                    add("look $look" to base.withLook(look))
+                }
+                add("look at 40%" to base.withLook("rt-color-kodak-kodak-portra-400-2").with(Adjustment.LOOK_AMOUNT, 40f))
                 add("combo" to base.with(Adjustment.DEHAZE, 40f).with(Adjustment.CLARITY, 30f).with(Adjustment.WATER, 50f)
                     .with(Adjustment.EXPOSURE, 1.2f).with(Adjustment.STRAIGHTEN, 3f).with(Adjustment.LUMA_NR, 60f))
             }
@@ -67,7 +77,7 @@ class GpuParityTest {
                 val g = gpu.render(ctx, p, frame)
                 val ms = (System.nanoTime() - t0) / 1_000_000
                 val s = ImageCompare.of(c, g)
-                println("%-18s %s  (%d ms)".format(label, s, ms))
+                println("%-44s %s  (%d ms)".format(label, s, ms))
                 worst = maxOf(worst, s.meanAbs)
                 if (!s.acceptable) failures += "$label: $s"
                 val out = System.getProperty("darkhall.outDir").orEmpty()

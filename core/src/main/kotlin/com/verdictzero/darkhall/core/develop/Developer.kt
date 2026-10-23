@@ -32,6 +32,8 @@ class RenderContext(
     val water: WaterStats = WaterStats(FloatArray(3), floatArrayOf(1f, 1f, 1f)),
     /** Built-in lens profile for TG-5/6/7 files, null for anything else. */
     val lens: LensProfile? = null,
+    /** Where look (LUT) ids are resolved; the app supplies its bundled library. */
+    val looks: LookSource = LookSource.NONE,
     /** Sensor noise of this file; drives the luminance noise reduction thresholds. */
     val noise: NoiseProfile = NoiseProfile(FloatArray(3) { NoiseProfile.REF_A }, FloatArray(3) { NoiseProfile.REF_B }, false),
     /**
@@ -51,7 +53,7 @@ class RenderContext(
 
     companion object {
         /** [raw] enables per-file noise measurement; without it the ISO-based model is used. */
-        fun forFile(meta: OrfMetadata, preview: LinearImage, raw: RawImage? = null): RenderContext = RenderContext(
+        fun forFile(meta: OrfMetadata, preview: LinearImage, raw: RawImage? = null, looks: LookSource = LookSource.NONE): RenderContext = RenderContext(
             cameraWb = meta.cameraWb.copyOf(),
             matrix = ColorScience.cameraToSrgb(meta),
             fullWidth = meta.crop.width,
@@ -59,6 +61,7 @@ class RenderContext(
             haze = Developer.estimateHaze(preview),
             water = Developer.estimateWater(preview, meta.cameraWb),
             lens = LensProfile.forFile(meta),
+            looks = looks,
             noise = raw?.let { NoiseProfile.estimate(it) } ?: NoiseProfile.fromIso(meta),
             demosaicNoise = NoiseCalibration.demosaicFactors(meta, ColorScience.cameraToSrgb(meta)),
         )
@@ -78,7 +81,7 @@ class Frame(val x0: Int, val y0: Int, val scale: Float)
  *  2. dehaze (dark channel prior)
  *  3. noise reduction (luminance: profiled wavelet shrinkage; colour: chroma blur)
  *  4. shadows / highlights (luminance masked gains)
- *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation
+ *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation, look (3D LUT)
  *  6. clarity + sharpening (unsharp masks on display luminance)
  * Geometry (lens profile, distortion, straighten) is a separate pass on the 8-bit result, see [Geometry].
  */
@@ -242,7 +245,10 @@ class Developer {
         val sat = plan.saturation
         val doSat = plan.saturationOn
         val lut = plan.curve
+        val look = if (plan.lookOn) plan.look else null
+        val lookAmount = plan.lookAmount
         Parallel.rows(h) { y0, y1 ->
+            val lk = FloatArray(3)
             for (i in y0 * w until y1 * w) {
                 var rr = r[i]; var gg = g[i]; var bb = b[i]
                 if (doSh) {
@@ -272,6 +278,12 @@ class Developer {
                     dr = clamp01(yv + (dr - yv) * k)
                     dg = clamp01(yv + (dg - yv) * k)
                     db = clamp01(yv + (db - yv) * k)
+                }
+                if (look != null) {
+                    look.sample(dr, dg, db, lk)
+                    dr += (lk[0] - dr) * lookAmount
+                    dg += (lk[1] - dg) * lookAmount
+                    db += (lk[2] - db) * lookAmount
                 }
                 r[i] = dr; g[i] = dg; b[i] = db
             }

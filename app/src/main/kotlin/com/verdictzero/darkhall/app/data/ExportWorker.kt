@@ -90,7 +90,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             val raw = OlympusDecoder.decode(loaded.bytes, loaded.meta)
             val ctx = RenderContext.forFile(loaded.meta, Demosaic.superpixel(raw).let { half ->
                 half.resizeArea(1280, (half.height.toLong() * 1280 / half.width).toInt())
-            }, raw)
+            }, raw, looks = LookLibrary.source(context))
             Triple(raw, ctx, loaded.meta) // the 12 MB file buffer is released here
         }
         val defaults = DevelopParams.defaultsFor(meta, ctx.noise)

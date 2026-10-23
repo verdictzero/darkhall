@@ -8,25 +8,25 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
-import kotlin.math.ln
+import kotlin.math.sqrt
 
 /** Tiny RGB histogram overlay. [bins] is 3 x 256 counts. */
 @Composable
 fun Histogram(bins: IntArray, modifier: Modifier = Modifier) {
     Canvas(modifier) {
-        drawRect(Color(0x66000000))
-        var peak = 1
-        for (c in 0 until 3) for (i in 1 until 255) peak = maxOf(peak, bins[c * 256 + i])
-        val logPeak = ln(peak.toFloat() + 1f)
-        val colors = arrayOf(Color(0xCCFF5A5A), Color(0xCC5AFF5A), Color(0xCC5A8AFF))
+        drawRect(Color(0x99000000))
+        // Square-root scale against the 99th-percentile bin: shows the shape without letting
+        // one spike flatten everything (linear) or every bin reach the top (log).
+        val inner = IntArray(3 * 254) { c -> bins[(c / 254) * 256 + 1 + c % 254] }.sorted()
+        val ref = maxOf(1, inner[(inner.size * 0.99).toInt().coerceAtMost(inner.size - 1)])
+        val norm = sqrt(ref.toFloat())
+        val colors = arrayOf(Color(0x99FF5A5A), Color(0x995AFF5A), Color(0x995A8AFF))
         for (c in 0 until 3) {
             val path = Path()
             path.moveTo(0f, size.height)
             for (i in 0 until 256) {
-                val v = ln(bins[c * 256 + i].toFloat() + 1f) / logPeak
-                val x = i / 255f * size.width
-                val y = size.height - v.coerceIn(0f, 1f) * size.height
-                path.lineTo(x, y)
+                val v = (sqrt(bins[c * 256 + i].toFloat()) / norm).coerceIn(0f, 1f) * 0.95f
+                path.lineTo(i / 255f * size.width, size.height - v * size.height)
             }
             path.lineTo(size.width, size.height)
             path.close()

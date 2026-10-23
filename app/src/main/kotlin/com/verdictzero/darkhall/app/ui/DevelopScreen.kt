@@ -3,6 +3,7 @@ package com.verdictzero.darkhall.app.ui
 import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -55,10 +57,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -67,9 +71,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AdjustmentGroup
 import com.verdictzero.darkhall.core.develop.DevelopParams
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -336,6 +342,12 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
 
 @Composable
 private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modifier) {
+    val context = LocalContext.current
+    var browsing by remember { mutableStateOf(false) }
+    val lookName = remember(state.params.look) {
+        state.params.look?.let { id -> LookLibrary.info(context, id)?.name ?: "Unknown look" } ?: "None"
+    }
+    if (browsing) LookBrowser(vm, state.params.look, onDismiss = { browsing = false })
     LazyColumn(modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 96.dp)) {
         for (group in AdjustmentGroup.entries) {
             item(key = "h-${group.name}") {
@@ -346,8 +358,40 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
                     modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
                 )
             }
+            if (group == AdjustmentGroup.LOOK) {
+                item(key = "look-picker") {
+                    val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { browsing = true }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                lookName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (info != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                info?.let { "${it.group} · ${it.category}" } ?: "Film simulations and creative looks",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Text("Browse", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Browse looks", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
             val adjustments = Adjustment.entries.filter { it.group == group }
                 .filter { it != Adjustment.LENS_PROFILE || state.hasLensProfile }
+                .filter { it != Adjustment.LOOK_AMOUNT || state.params.look != null }
             items(adjustments, key = { it.name }) { adj ->
                 SliderRow(adj, state.params, state.defaults, onChange = { vm.set(adj, it) }, onReset = { vm.resetOne(adj) })
             }
@@ -355,6 +399,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SliderRow(
     adj: Adjustment,
@@ -381,15 +426,33 @@ private fun SliderRow(
                 color = if (isDefault) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
             )
         }
+        // Two-sided adjustments fill from zero outwards; one-sided ones from the left.
+        val anchor = if (adj.min < 0f && adj.max > 0f) 0f else adj.min
+        val active = MaterialTheme.colorScheme.primary
+        val inactive = MaterialTheme.colorScheme.outlineVariant
+        val tick = MaterialTheme.colorScheme.outline
         Slider(
             value = value,
             onValueChange = onChange,
             valueRange = adj.min..adj.max,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.outline,
-            ),
+            colors = SliderDefaults.colors(thumbColor = active),
+            track = {
+                Canvas(Modifier.fillMaxWidth().height(18.dp)) {
+                    val span = adj.max - adj.min
+                    val y = size.height / 2f
+                    val stroke = 4.dp.toPx()
+                    fun xOf(v: Float) = (v - adj.min) / span * size.width
+                    drawLine(inactive, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke, cap = StrokeCap.Round)
+                    if (anchor != adj.min) {
+                        val cx = xOf(anchor)
+                        drawLine(tick, Offset(cx, y - 6.dp.toPx()), Offset(cx, y + 6.dp.toPx()), strokeWidth = 2.dp.toPx())
+                    }
+                    val a = xOf(anchor); val b = xOf(value)
+                    if (abs(b - a) > 0.5f) {
+                        drawLine(active, Offset(minOf(a, b), y), Offset(maxOf(a, b), y), strokeWidth = stroke, cap = StrokeCap.Round)
+                    }
+                }
+            },
         )
     }
 }

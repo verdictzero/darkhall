@@ -37,11 +37,18 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             it.maxHeapSize = "3g"
+            // Lets captureToImage() work under Robolectric (screenshot test).
+            it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
             // End-to-end test input: -Pdarkhall.sample=/path/to/file.orf (skipped when absent).
             it.systemProperty("darkhall.sample", (project.findProperty("darkhall.sample") ?: "") as String)
             it.systemProperty("darkhall.outDir", (project.findProperty("darkhall.outDir") ?: "") as String)
             it.testLogging { events("passed", "failed", "skipped"); showStandardStreams = true }
         }
+    }
+
+    androidResources {
+        // Look tables are already zlib-compressed.
+        noCompress += "dlut"
     }
 
     packaging {

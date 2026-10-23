@@ -19,7 +19,7 @@ object EditsStore {
             val obj = JSONObject(f.readText()).getJSONObject("params")
             val map = HashMap<String, Float>()
             for (a in Adjustment.entries) if (obj.has(a.name)) map[a.name] = obj.getDouble(a.name).toFloat()
-            DevelopParams.fromMap(map, defaults)
+            DevelopParams.fromMap(map, defaults, look = obj.optString("look").ifEmpty { null })
         } catch (e: Exception) {
             null
         }
@@ -28,9 +28,7 @@ object EditsStore {
     fun save(context: Context, key: String, params: DevelopParams) {
         val obj = JSONObject()
         obj.put("version", 1)
-        val p = JSONObject()
-        for ((k, v) in params.toMap()) p.put(k, v.toDouble())
-        obj.put("params", p)
+        obj.put("params", JSONObject(toJson(params)))
         file(context, key).writeText(obj.toString())
     }
 
@@ -43,6 +41,7 @@ object EditsStore {
     fun toJson(params: DevelopParams): String {
         val p = JSONObject()
         for ((k, v) in params.toMap()) p.put(k, v.toDouble())
+        params.look?.let { p.put("look", it) }
         return p.toString()
     }
 
@@ -50,7 +49,7 @@ object EditsStore {
         val obj = JSONObject(json)
         val map = HashMap<String, Float>()
         for (a in Adjustment.entries) if (obj.has(a.name)) map[a.name] = obj.getDouble(a.name).toFloat()
-        DevelopParams.fromMap(map, base)
+        DevelopParams.fromMap(map, base, look = obj.optString("look").ifEmpty { null })
     } catch (e: Exception) {
         null
     }

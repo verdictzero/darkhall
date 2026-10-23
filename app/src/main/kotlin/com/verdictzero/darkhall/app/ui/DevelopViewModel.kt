@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
+import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.OrfRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
@@ -168,6 +169,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         meta = null; raw = null; preview = null; ctx = null; frame = null
         editsKey = ""
         useGpu = false
+        thumbBase = null
+        thumbCache.evictAll()
         viewModelScope.launch(Dispatchers.Default) {
             renderLock.withLock {
                 developer.release()
@@ -198,7 +201,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val pv = if (half.width > longEdge) {
             half.resizeArea(longEdge, (half.height.toLong() * longEdge / half.width).toInt())
         } else half
-        val c = RenderContext.forFile(m, pv, r) // measures this file's sensor noise
+        // Measures this file's sensor noise; looks come from the bundled library.
+        val c = RenderContext.forFile(m, pv, r, looks = LookLibrary.source(app))
         val defaults = DevelopParams.defaultsFor(m, c.noise)
         val saved = EditsStore.load(app, file.key, defaults)
         val f = Frame(0, 0, pv.width.toFloat() / m.crop.width)
@@ -417,6 +421,67 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         paramsFlow.value = d
         val key = editsKey
         viewModelScope.launch(Dispatchers.IO) { runCatching { EditsStore.clear(getApplication(), key) } }
+    }
+
+    // ---- looks -------------------------------------------------------------------------------
+
+    fun setLook(id: String?) {
+        var next = _state.value.params.withLook(id)
+        // Picking a look with the strength at zero would show nothing; start it at full.
+        if (id != null && next[Adjustment.LOOK_AMOUNT] < 1f) next = next.with(Adjustment.LOOK_AMOUNT, 100f)
+        _state.update { it.copy(params = next) }
+        paramsFlow.value = next
+    }
+
+    private class ThumbBase(val key: DevelopParams, val argb: IntArray, val width: Int, val height: Int, val orientation: Int)
+
+    private val thumbDeveloper = Developer()
+    private val thumbLock = Mutex()
+    @Volatile private var thumbBase: ThumbBase? = null
+    private val thumbCache = android.util.LruCache<String, Bitmap>(96)
+
+    /**
+     * Small render of the photo with the current sliders but no look, for the look browser.
+     * Re-rendered only when the sliders change.
+     */
+    private suspend fun thumbnailBase(): ThumbBase? = thumbLock.withLock {
+        val pv = preview ?: return null
+        val c = ctx ?: return null
+        val m = meta ?: return null
+        val key = _state.value.params.withLook(null)
+        thumbBase?.takeIf { it.key == key }?.let { return it }
+        val w = 200
+        val h = (pv.height.toLong() * w / pv.width).toInt().coerceAtLeast(1)
+        val small = pv.resizeArea(w, h)
+        val px = withContext(Dispatchers.Default) {
+            thumbDeveloper.render(small, c, key, Frame(0, 0, w.toFloat() / m.crop.width))
+        }
+        thumbCache.evictAll()
+        ThumbBase(key, px, w, h, m.orientation).also { thumbBase = it }
+    }
+
+    /** The current photo with look [id] (null = no look), for the browser grid. */
+    suspend fun lookThumbnail(id: String?): Bitmap? {
+        val base = thumbnailBase() ?: return null
+        val cacheKey = id ?: "<none>"
+        thumbCache.get(cacheKey)?.let { return it }
+        val bmp = withContext(Dispatchers.Default) {
+            val out = if (id == null) base.argb else {
+                val lut = LookLibrary.lut(getApplication(), id) ?: return@withContext null
+                val px = IntArray(base.argb.size)
+                val s = FloatArray(3)
+                for (i in px.indices) {
+                    val v = base.argb[i]
+                    lut.sample(((v ushr 16) and 0xFF) / 255f, ((v ushr 8) and 0xFF) / 255f, (v and 0xFF) / 255f, s)
+                    px[i] = (0xFF shl 24) or ((s[0] * 255f + 0.5f).toInt().coerceIn(0, 255) shl 16) or
+                        ((s[1] * 255f + 0.5f).toInt().coerceIn(0, 255) shl 8) or (s[2] * 255f + 0.5f).toInt().coerceIn(0, 255)
+                }
+                px
+            }
+            toBitmap(out, base.width, base.height, base.orientation)
+        } ?: return null
+        thumbCache.put(cacheKey, bmp)
+        return bmp
     }
 
     fun copySettings() {

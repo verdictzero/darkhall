@@ -30,6 +30,8 @@ tasks.withType<Test> {
     systemProperty("darkhall.sample", (project.findProperty("darkhall.sample") ?: "") as String)
     systemProperty("darkhall.sampleRef", (project.findProperty("darkhall.sampleRef") ?: "") as String)
     systemProperty("darkhall.outDir", (project.findProperty("darkhall.outDir") ?: "") as String)
+    systemProperty("darkhall.looksDir", rootProject.file("app/src/main/assets/looks").absolutePath)
+    systemProperty("darkhall.hald", (project.findProperty("darkhall.hald") ?: "") as String)
     // GPU tests: -Pdarkhall.gles=mesa (default) or angle; skipped when no EGL is available.
     val gles = (project.findProperty("darkhall.gles") ?: "mesa") as String
     systemProperty("darkhall.gles", gles)
