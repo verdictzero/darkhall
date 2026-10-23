@@ -90,10 +90,10 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             val raw = OlympusDecoder.decode(loaded.bytes, loaded.meta)
             val ctx = RenderContext.forFile(loaded.meta, Demosaic.superpixel(raw).let { half ->
                 half.resizeArea(1280, (half.height.toLong() * 1280 / half.width).toInt())
-            })
+            }, raw)
             Triple(raw, ctx, loaded.meta) // the 12 MB file buffer is released here
         }
-        val defaults = DevelopParams.defaultsFor(meta)
+        val defaults = DevelopParams.defaultsFor(meta, ctx.noise)
         val params = EditsStore.load(context, file.key, defaults) ?: defaults
         val rendered = FullRender.render(raw, ctx, params, progress = { progress(it * 0.85f) }, isCancelled = { isStopped })
             ?: throw IllegalStateException("cancelled")

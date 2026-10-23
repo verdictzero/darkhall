@@ -185,8 +185,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val pv = if (half.width > longEdge) {
             half.resizeArea(longEdge, (half.height.toLong() * longEdge / half.width).toInt())
         } else half
-        val c = RenderContext.forFile(m, pv)
-        val defaults = DevelopParams.defaultsFor(m)
+        val c = RenderContext.forFile(m, pv, r) // measures this file's sensor noise
+        val defaults = DevelopParams.defaultsFor(m, c.noise)
         val saved = EditsStore.load(app, file.key, defaults)
         val f = Frame(0, 0, pv.width.toFloat() / m.crop.width)
         // "As shot": the camera's own rendering, without the underwater correction.
@@ -201,7 +201,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update {
             it.copy(
                 fileName = file.name,
-                info = m.describe(),
+                info = m.describe() + if (c.noise.measured) "  noise ≈ ISO ${roundIso(c.noise.effectiveIso)}" else "",
                 loading = false,
                 defaults = defaults,
                 params = saved ?: defaults,
@@ -346,5 +346,11 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             ExportQueue.enqueue(getApplication(), listOf(uri))
             _state.update { it.copy(message = "Export started. It keeps running if you leave the app.") }
         }
+    }
+
+    /** Rounds to the nearest third-stop ISO value, the way cameras label them. */
+    private fun roundIso(iso: Float): Int {
+        val steps = intArrayOf(64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800)
+        return steps.minByOrNull { kotlin.math.abs(kotlin.math.ln(it / iso.toDouble())) } ?: iso.toInt()
     }
 }

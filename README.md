@@ -24,9 +24,14 @@ No curves, no masks, no presets: open an `.ORF`, drag sliders, export a JPEG.
   starts switched on, stronger the deeper the shot.
 * **Built-in lens profile.** Distortion and colour fringing of the 4.5–18 mm lens are
   corrected automatically (the *Lens profile* slider sets the strength).
-* **Defaults scaled to the small sensor.** The 1/2.33" sensor gets noisy early, so
-  luminance and colour noise reduction start at ISO-dependent values (nothing at ISO 100,
-  strong by ISO 3200) and sharpening backs off at high ISO.
+* **Profiled noise reduction.** The 1/2.33" sensor gets noisy early. Darkhall measures the
+  noise in each file's raw data (shot and read noise per colour channel, fitted from the
+  flattest patches of the picture), follows it through white balance, the colour matrix and
+  exposure, and sets the luminance denoiser's thresholds from it: a multi-scale wavelet
+  shrinkage that removes noise-sized detail and leaves real edges. Pushing exposure or
+  shooting at high ISO automatically gets proportionally more denoising at the same slider
+  value. Colour noise reduction and sharpening start from the measured noise level (shown as
+  an equivalent ISO in the editor).
 * **Highlight recovery.** Blown channels are rebuilt from the colour of their surroundings
   instead of turning magenta, and a soft shoulder keeps bright skies and surf from clipping
   hard; pull *Highlights* down to bring the recovered detail into range.
@@ -104,6 +109,9 @@ What they cover:
 * every slider at both extremes; band seams in the full-size export;
 * underwater correction on a simulated 8 m dive; highlight recovery on a simulated
   overexposure; zoomed regions matching the full export pixel for pixel;
+* noise profiling: recovers known synthetic noise within a few percent, measures noise added
+  to a real file, demosaic noise factors; the denoiser halves the error of simulated
+  ISO 1600 noise against the clean original while keeping strong-edge detail;
 * an end-to-end app run under Robolectric: open the file via a VIEW intent, move sliders,
   pinch to full-resolution zoom, copy settings, export through WorkManager, and check the
   JPEG's size, rotation and EXIF.

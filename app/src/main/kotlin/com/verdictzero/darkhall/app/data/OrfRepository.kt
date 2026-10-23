@@ -172,8 +172,8 @@ object OrfRepository {
         val w = THUMB_SIZE
         val h = (half.height.toLong() * w / half.width).toInt().coerceAtLeast(1)
         val small = half.resizeArea(w, h)
-        val ctx = RenderContext.forFile(meta, small)
-        val px = Developer().render(small, ctx, DevelopParams.defaultsFor(meta), Frame(0, 0, w.toFloat() / meta.crop.width))
+        val ctx = RenderContext.forFile(meta, small, raw)
+        val px = Developer().render(small, ctx, DevelopParams.defaultsFor(meta, ctx.noise), Frame(0, 0, w.toFloat() / meta.crop.width))
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 

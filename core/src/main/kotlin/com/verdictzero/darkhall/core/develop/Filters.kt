@@ -92,4 +92,35 @@ object Filters {
             for (x in x0 until x1) minLine(tmp, x, w, dst, x, w, h, r, g, hh)
         }
     }
+
+    /**
+     * One level of the "à trous" B3-spline wavelet smoothing: separable [1 4 6 4 1]/16 with
+     * [step]-pixel holes, edge clamped. src -> dst, [tmp] is scratch.
+     */
+    fun atrous(src: FloatArray, dst: FloatArray, tmp: FloatArray, w: Int, h: Int, step: Int) {
+        Parallel.rows(h) { y0, y1 ->
+            for (y in y0 until y1) {
+                val row = y * w
+                for (x in 0 until w) {
+                    val l2 = src[row + (x - 2 * step).coerceAtLeast(0)]
+                    val l1 = src[row + (x - step).coerceAtLeast(0)]
+                    val r1 = src[row + (x + step).coerceAtMost(w - 1)]
+                    val r2 = src[row + (x + 2 * step).coerceAtMost(w - 1)]
+                    tmp[row + x] = (l2 + r2 + 4f * (l1 + r1) + 6f * src[row + x]) * 0.0625f
+                }
+            }
+        }
+        Parallel.rows(h) { y0, y1 ->
+            for (y in y0 until y1) {
+                val u2 = (y - 2 * step).coerceAtLeast(0) * w
+                val u1 = (y - step).coerceAtLeast(0) * w
+                val d1 = (y + step).coerceAtMost(h - 1) * w
+                val d2 = (y + 2 * step).coerceAtMost(h - 1) * w
+                val row = y * w
+                for (x in 0 until w) {
+                    dst[row + x] = (tmp[u2 + x] + tmp[d2 + x] + 4f * (tmp[u1 + x] + tmp[d1 + x]) + 6f * tmp[row + x]) * 0.0625f
+                }
+            }
+        }
+    }
 }

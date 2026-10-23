@@ -4,6 +4,7 @@ import com.verdictzero.darkhall.core.develop.ColorScience.LUM_B
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_G
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_R
 import com.verdictzero.darkhall.core.orf.OrfMetadata
+import com.verdictzero.darkhall.core.orf.RawImage
 import com.verdictzero.darkhall.core.util.Parallel
 import kotlin.math.abs
 import kotlin.math.acos
@@ -34,9 +35,26 @@ class RenderContext(
     val water: WaterStats = WaterStats(FloatArray(3), floatArrayOf(1f, 1f, 1f)),
     /** Built-in lens profile for TG-5/6/7 files, null for anything else. */
     val lens: LensProfile? = null,
+    /** Sensor noise of this file; drives the luminance noise reduction thresholds. */
+    val noise: NoiseProfile = NoiseProfile(FloatArray(3) { NoiseProfile.REF_A }, FloatArray(3) { NoiseProfile.REF_B }, false),
+    /**
+     * Luminance noise variance kept by demosaicing, relative to the per-sample model:
+     * [0] full-resolution (Malvar), [1] half-size superpixel. Depends on the colour matrix
+     * and white balance, so it is measured per file ([NoiseCalibration]).
+     */
+    val demosaicNoise: FloatArray = floatArrayOf(0.89f, 0.55f),
 ) {
+    /** Noise variance of one rendered pixel relative to one raw sample, at render [scale]. */
+    fun demosaicNoise(scale: Float): Float {
+        val s = min(1f, scale)
+        // The superpixel path (half size and below) is followed by area resizing, which
+        // averages (0.5 / s)² pixels.
+        return if (s <= 0.5f) demosaicNoise[1] * 4f * s * s else demosaicNoise[0] * s * s
+    }
+
     companion object {
-        fun forFile(meta: OrfMetadata, preview: LinearImage): RenderContext = RenderContext(
+        /** [raw] enables per-file noise measurement; without it the ISO-based model is used. */
+        fun forFile(meta: OrfMetadata, preview: LinearImage, raw: RawImage? = null): RenderContext = RenderContext(
             cameraWb = meta.cameraWb.copyOf(),
             matrix = ColorScience.cameraToSrgb(meta),
             fullWidth = meta.crop.width,
@@ -44,6 +62,8 @@ class RenderContext(
             haze = Developer.estimateHaze(preview),
             water = Developer.estimateWater(preview, meta.cameraWb),
             lens = LensProfile.forFile(meta),
+            noise = raw?.let { NoiseProfile.estimate(it) } ?: NoiseProfile.fromIso(meta),
+            demosaicNoise = NoiseCalibration.demosaicFactors(meta, ColorScience.cameraToSrgb(meta)),
         )
     }
 }
@@ -59,7 +79,7 @@ class Frame(val x0: Int, val y0: Int, val scale: Float)
  *  0. highlight reconstruction (clipped channels rebuilt from their neighbours' colour)
  *  1. white balance, underwater correction, temperature/tint, camera matrix, exposure, vignette
  *  2. dehaze (dark channel prior)
- *  3. noise reduction (luminance: edge-aware; colour: chroma blur)
+ *  3. noise reduction (luminance: profiled wavelet shrinkage; colour: chroma blur)
  *  4. shadows / highlights (luminance masked gains)
  *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation
  *  6. clarity + sharpening (unsharp masks on display luminance)
@@ -226,24 +246,28 @@ class Developer {
                 }
             }
             if (lumaNr > 0.005f) {
-                val rad = max(1, ((1.5f + 4f * lumaNr) * frame.scale).roundToInt())
-                Filters.blur(t1, t2, t3, w, h, rad, passes = 2)
-                val s0 = 0.003f * lumaNr
-                val s1 = 0.09f * lumaNr
+                if (t5.size < n) t5 = FloatArray(cap)
+                // Luminance noise model in this render's working space. For a neutral pixel of
+                // linear luminance Y, raw channel c sits at Y / (ev·gain_c), so
+                // var(Y) = Y·ev·Σ gain_c β_c² a_c + ev²·Σ gain_c² β_c² b_c, β_c = luminance weight
+                // of camera channel c through the matrix. Downscaled renders average 1/scale²
+                // sensor pixels, which divides the variance accordingly.
+                var nA = 0f; var nB = 0f
+                for (c in 0 until 3) {
+                    val beta = LUM_R * m[c] + LUM_G * m[3 + c] + LUM_B * m[6 + c]
+                    nA += mulA[c] * beta * beta * ctx.noise.a[c]
+                    nB += mulA[c] * mulA[c] * beta * beta * ctx.noise.b[c]
+                }
+                val s2 = ctx.demosaicNoise(frame.scale)
+                nA *= ev * s2
+                nB *= ev * ev * s2
+                profiledLumaDenoise(t1, w, h, nA, nB, lumaNr * 3f, frame)
+                // Noise is additive, so is the correction: scaling RGB by new/old luminance would
+                // turn noisy shadow pixels' wild ratios into colour noise.
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
-                        val yy = t1[i]
-                        val d = t2[i] - yy
-                        val sigma = s0 + s1 * sqrt(max(yy, 0f))
-                        val k = exp(-(d * d) / (2f * sigma * sigma))
-                        val ny = yy + k * d
-                        if (yy > 1e-5f) {
-                            val ratio = ny / yy
-                            r[i] *= ratio; g[i] *= ratio; b[i] *= ratio
-                        } else {
-                            val add = ny - yy
-                            r[i] += add; g[i] += add; b[i] += add
-                        }
+                        val add = t4[i] - t1[i]
+                        r[i] += add; g[i] += add; b[i] += add
                     }
                 }
             }
@@ -374,6 +398,49 @@ class Developer {
         }
     }
 
+    /**
+     * Wavelet shrinkage of luminance [y] (left untouched) into t4. Five "à trous" levels; each
+     * detail coefficient is shrunk (non-negative garrote) against [k] times the noise expected at
+     * that scale and that brightness, var = [nA]·Y + [nB]. Brightness comes from the next coarser
+     * approximation, which is already free of fine noise.
+     */
+    private fun profiledLumaDenoise(y: FloatArray, w: Int, h: Int, nA: Float, nB: Float, k: Float, frame: Frame) {
+        val n = w * h
+        // Fewer levels when the image is already downscaled: its pixels are coarser scales.
+        val skip = if (frame.scale >= 1f) 0 else (ln(1f / frame.scale) / LN2).roundToInt().coerceIn(0, 3)
+        val levels = 5 - skip
+        System.arraycopy(y, 0, t2, 0, n)
+        java.util.Arrays.fill(t4, 0, n, 0f)
+        var cur = t2
+        var next = t3
+        for (j in 0 until levels) {
+            Filters.atrous(cur, next, t5, w, h, 1 shl j)
+            // The downscale is already in nA/nB, so each level sees white noise of that size.
+            // The finest level gets a higher threshold and soft shrinkage: isolated outlier
+            // pixels live there, and the garrote would let them through as speckles.
+            val finest = j == 0
+            val kk = k * ATROUS_NOISE[j] * (if (finest) FINEST_BOOST else 1f)
+            val c = cur; val nx = next
+            Parallel.rows(h) { y0, y1 ->
+                for (i in y0 * w until y1 * w) {
+                    val d = c[i] - nx[i]
+                    val level = max(nx[i], 0f)
+                    val t = kk * sqrt(nA * level + nB)
+                    t4[i] += if (finest) {
+                        if (d > t) d - t else if (d < -t) d + t else 0f
+                    } else {
+                        // Non-negative garrote: strong edges pass almost untouched, noise-sized detail goes.
+                        val t2v = t * t
+                        if (d * d > t2v) d - t2v / d else 0f
+                    }
+                }
+            }
+            val tmp = cur; cur = next; next = tmp
+        }
+        val c = cur
+        Parallel.rows(h) { y0, y1 -> for (i in y0 * w until y1 * w) t4[i] += c[i] }
+    }
+
     private fun hasClipped(img: LinearImage): Boolean {
         val r = img.r; val g = img.g; val b = img.b
         for (i in 0 until img.size) if (r[i] >= CLIP || g[i] >= CLIP || b[i] >= CLIP) return true
@@ -458,6 +525,15 @@ class Developer {
         private const val MAX_RECOVERED = 4f
         /** Linear level where the highlight shoulder starts. */
         private const val SHOULDER = 0.85f
+
+        /**
+         * Noise standard deviation in each "à trous" detail level for unit white noise
+         * (Starck & Murtagh, B3 spline). Index 0 is the finest scale.
+         */
+        private const val FINEST_BOOST = 1.25f
+
+        private val ATROUS_NOISE = floatArrayOf(0.889f, 0.200f, 0.086f, 0.041f, 0.020f, 0.010f, 0.005f, 0.0025f)
+
 
         /**
          * Underwater statistics: per-channel 0.5th percentile (the veil) and grey-world gains
