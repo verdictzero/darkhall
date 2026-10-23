@@ -10,6 +10,7 @@ documentfile = "1.1.0"
 exifinterface = "1.4.2"
 junit = "4.13.2"
 work = "2.12.0"
+lwjgl = "3.3.6"
 robolectric = "4.16.1"
 androidxTestCore = "1.7.0"
 androidxTestJunit = "1.3.0"
@@ -35,6 +36,9 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-test-core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "androidxTestCore" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+lwjgl = { group = "org.lwjgl", name = "lwjgl", version.ref = "lwjgl" }
+lwjgl-egl = { group = "org.lwjgl", name = "lwjgl-egl", version.ref = "lwjgl" }
+lwjgl-opengles = { group = "org.lwjgl", name = "lwjgl-opengles", version.ref = "lwjgl" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]

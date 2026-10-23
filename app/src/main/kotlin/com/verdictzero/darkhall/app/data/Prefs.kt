@@ -20,6 +20,21 @@ class Prefs(context: Context) {
         get() = sp.getString("copied", null)
         set(v) { sp.edit().putString("copied", v).apply() }
 
+    /** User switch for GPU preview rendering (on by default). */
+    var gpuEnabled: Boolean
+        get() = sp.getBoolean("gpuEnabled", true)
+        set(v) { sp.edit().putBoolean("gpuEnabled", v).apply() }
+
+    /** GPU + driver description that passed the CPU comparison, so the check runs once per driver. */
+    var gpuVerified: String?
+        get() = sp.getString("gpuVerified", null)
+        set(v) { sp.edit().putString("gpuVerified", v).apply() }
+
+    /** GPU + driver description that failed the comparison; the GPU stays off for it. */
+    var gpuRejected: String?
+        get() = sp.getString("gpuRejected", null)
+        set(v) { sp.edit().putString("gpuRejected", v).apply() }
+
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)
         set(v) { sp.edit().putInt("previewLongEdge", v).apply() }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -115,6 +116,18 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                                 onClick = { menuOpen = false; vm.pasteSettings() },
                             )
                             DropdownMenuItem(text = { Text("Reset all sliders") }, onClick = { menuOpen = false; vm.resetAll() })
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text("GPU rendering")
+                                        if (state.gpuLabel.isNotEmpty()) {
+                                            Text(state.gpuLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                },
+                                trailingIcon = { Checkbox(checked = state.gpuEnabled, onCheckedChange = null) },
+                                onClick = { menuOpen = false; vm.setGpuEnabled(!state.gpuEnabled) },
+                            )
                         }
                     }
                 },
@@ -308,7 +321,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
             val zoomLabel = when {
                 scale > 1.01f && state.loupeBusy -> "Rendering detail…"
                 scale > 1.01f && state.loupe != null && state.loupe.params == state.params -> "Full resolution"
-                state.renderMs > 0 -> "${state.renderMs} ms"
+                state.renderMs > 0 -> "${state.renderMs} ms · ${state.engine}"
                 else -> ""
             }
             Text(

@@ -7,15 +7,12 @@ import com.verdictzero.darkhall.core.orf.OrfMetadata
 import com.verdictzero.darkhall.core.orf.RawImage
 import com.verdictzero.darkhall.core.util.Parallel
 import kotlin.math.abs
-import kotlin.math.acos
-import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import kotlin.math.PI
 
 /**
  * Underwater statistics of a file, in white-balanced camera space: [floor] is the
@@ -137,30 +134,18 @@ class Developer {
             srcR = r; srcG = g; srcB = b
         }
 
+        val plan = RenderPlan(ctx, p, frame)
+
         // ---- 1. colour: WB, underwater, temperature/tint, matrix, exposure, vignette ----
-        val temp = p[Adjustment.TEMPERATURE] / 100f
-        val tint = p[Adjustment.TINT] / 100f
-        val user = floatArrayOf(pow2(temp * 0.8f), pow2(-tint * 0.5f), pow2(-temp * 0.8f))
-        // Per channel: c = max(0, raw * A - B). B removes the water's veil, A holds the camera WB,
-        // the underwater grey-world gain and the user's temperature/tint.
-        val water = p[Adjustment.WATER] / 100f
-        val mulA = FloatArray(3)
-        val subB = FloatArray(3)
-        for (c in 0 until 3) {
-            // Geometric blend: half the slider is half the correction in stops.
-            val wg = exp(water * ln(ctx.water.gain[c]))
-            mulA[c] = ctx.cameraWb[c] * wg * user[c]
-            subB[c] = water * ctx.water.floor[c] * wg * user[c]
-        }
-        val gainR = mulA[0]; val gainG = mulA[1]; val gainB = mulA[2]
-        val subR = subB[0]; val subG = subB[1]; val subBl = subB[2]
-        val ev = pow2(p[Adjustment.EXPOSURE])
-        val m = ctx.matrix
-        val vig = p[Adjustment.VIGNETTE] / 100f * 0.8f
-        val cx = ctx.fullWidth * 0.5f
-        val cy = ctx.fullHeight * 0.5f
-        val invR2 = 1f / (cx * cx + cy * cy)
-        val invScale = 1f / frame.scale
+        val gainR = plan.mulA[0]; val gainG = plan.mulA[1]; val gainB = plan.mulA[2]
+        val subR = plan.subB[0]; val subG = plan.subB[1]; val subBl = plan.subB[2]
+        val ev = plan.ev
+        val m = plan.matrix
+        val vig = plan.vignette
+        val cx = plan.centerX
+        val cy = plan.centerY
+        val invR2 = plan.invR2
+        val invScale = plan.invScale
 
         Parallel.rows(h) { y0, y1 ->
             for (y in y0 until y1) {
@@ -186,25 +171,17 @@ class Developer {
         }
 
         // ---- 2. dehaze ----------------------------------------------------------------
-        val dehaze = p[Adjustment.DEHAZE] / 100f
-        if (abs(dehaze) > 0.005f) {
-            // Push the haze estimate through the same colour transform.
-            val hr0 = max(0f, ctx.haze[0] * gainR - subR)
-            val hg0 = max(0f, ctx.haze[1] * gainG - subG)
-            val hb0 = max(0f, ctx.haze[2] * gainB - subBl)
-            val ar = max(0.05f, (m[0] * hr0 + m[1] * hg0 + m[2] * hb0) * ev)
-            val ag = max(0.05f, (m[3] * hr0 + m[4] * hg0 + m[5] * hb0) * ev)
-            val ab = max(0.05f, (m[6] * hr0 + m[7] * hg0 + m[8] * hb0) * ev)
-            if (dehaze > 0f) {
+        if (plan.dehazeOn) {
+            val ar = plan.atmosphere[0]; val ag = plan.atmosphere[1]; val ab = plan.atmosphere[2]
+            if (plan.dehaze > 0f) {
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
                         t1[i] = min(1f, max(0f, min(r[i] / ar, min(g[i] / ag, b[i] / ab))))
                     }
                 }
-                val rad = max(1, (0.008f * ctx.fullWidth * frame.scale).roundToInt())
-                Filters.minFilter(t1, t2, t3, w, h, rad)
-                Filters.blur(t2, t1, t3, w, h, max(1, rad * 2), passes = 3)
-                val omega = 0.85f * dehaze
+                Filters.minFilter(t1, t2, t3, w, h, plan.dehazeMinRadius)
+                Filters.blur(t2, t1, t3, w, h, plan.dehazeBlurRadius, passes = 3)
+                val omega = plan.dehazeOmega
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
                         val t = max(0.2f, 1f - omega * t1[i])
@@ -215,7 +192,7 @@ class Developer {
                     }
                 }
             } else {
-                val k = -dehaze * 0.5f
+                val k = plan.dehazeNegative
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
                         r[i] += (ar - r[i]) * k; g[i] += (ag - g[i]) * k; b[i] += (ab - b[i]) * k
@@ -225,14 +202,12 @@ class Developer {
         }
 
         // ---- 3. noise reduction ---------------------------------------------------------
-        val lumaNr = p[Adjustment.LUMA_NR] / 100f
-        val chromaNr = p[Adjustment.CHROMA_NR] / 100f
-        if (lumaNr > 0.005f || chromaNr > 0.005f) {
+        if (plan.lumaOn || plan.chromaOn) {
             Parallel.rows(h) { y0, y1 ->
                 for (i in y0 * w until y1 * w) t1[i] = LUM_R * r[i] + LUM_G * g[i] + LUM_B * b[i]
             }
-            if (chromaNr > 0.005f) {
-                val rad = max(1, ((4f + 32f * chromaNr) * frame.scale).roundToInt())
+            if (plan.chromaOn) {
+                val rad = plan.chromaRadius
                 Parallel.rows(h) { y0, y1 -> for (i in y0 * w until y1 * w) t2[i] = r[i] - t1[i] }
                 Filters.blur(t2, r, t3, w, h, rad, passes = 2)
                 Parallel.rows(h) { y0, y1 -> for (i in y0 * w until y1 * w) t2[i] = b[i] - t1[i] }
@@ -245,23 +220,9 @@ class Developer {
                     }
                 }
             }
-            if (lumaNr > 0.005f) {
+            if (plan.lumaOn) {
                 if (t5.size < n) t5 = FloatArray(cap)
-                // Luminance noise model in this render's working space. For a neutral pixel of
-                // linear luminance Y, raw channel c sits at Y / (ev·gain_c), so
-                // var(Y) = Y·ev·Σ gain_c β_c² a_c + ev²·Σ gain_c² β_c² b_c, β_c = luminance weight
-                // of camera channel c through the matrix. Downscaled renders average 1/scale²
-                // sensor pixels, which divides the variance accordingly.
-                var nA = 0f; var nB = 0f
-                for (c in 0 until 3) {
-                    val beta = LUM_R * m[c] + LUM_G * m[3 + c] + LUM_B * m[6 + c]
-                    nA += mulA[c] * beta * beta * ctx.noise.a[c]
-                    nB += mulA[c] * mulA[c] * beta * beta * ctx.noise.b[c]
-                }
-                val s2 = ctx.demosaicNoise(frame.scale)
-                nA *= ev * s2
-                nB *= ev * ev * s2
-                profiledLumaDenoise(t1, w, h, nA, nB, lumaNr * 3f, frame)
+                profiledLumaDenoise(t1, w, h, plan)
                 // Noise is additive, so is the correction: scaling RGB by new/old luminance would
                 // turn noisy shadow pixels' wild ratios into colour noise.
                 Parallel.rows(h) { y0, y1 ->
@@ -274,14 +235,13 @@ class Developer {
         }
 
         // ---- 4/5. tone + colour -----------------------------------------------------------
-        buildCurve(p)
-        val sh = p[Adjustment.SHADOWS] / 100f * 1.5f * LN2
-        val hl = p[Adjustment.HIGHLIGHTS] / 100f * 1.2f * LN2
-        val doSh = abs(sh) > 1e-4f || abs(hl) > 1e-4f
-        val vib = p[Adjustment.VIBRANCE] / 100f
-        val sat = p[Adjustment.SATURATION] / 100f
-        val doSat = abs(vib) > 1e-4f || abs(sat) > 1e-4f
-        val lut = curve
+        val sh = plan.shadows
+        val hl = plan.highlights
+        val doSh = plan.shadowsHighlightsOn
+        val vib = plan.vibrance
+        val sat = plan.saturation
+        val doSat = plan.saturationOn
+        val lut = plan.curve
         Parallel.rows(h) { y0, y1 ->
             for (i in y0 * w until y1 * w) {
                 var rr = r[i]; var gg = g[i]; var bb = b[i]
@@ -297,8 +257,8 @@ class Developer {
                 // Soft shoulder: compress the top of the range instead of clipping it, scaling all
                 // three channels together so bright colours keep their hue.
                 val mx = max(rr, max(gg, bb))
-                if (mx > SHOULDER) {
-                    val f = SHOULDER + (1f - SHOULDER) * (1f - exp(-(mx - SHOULDER) / (1f - SHOULDER)))
+                if (mx > RenderPlan.SHOULDER) {
+                    val f = RenderPlan.SHOULDER + (1f - RenderPlan.SHOULDER) * (1f - exp(-(mx - RenderPlan.SHOULDER) / (1f - RenderPlan.SHOULDER)))
                     val k = f / mx
                     rr *= k; gg *= k; bb *= k
                 }
@@ -318,19 +278,16 @@ class Developer {
         }
 
         // ---- 6. clarity + sharpening ------------------------------------------------------
-        val clarity = p[Adjustment.CLARITY] / 100f
-        val sharpen = p[Adjustment.SHARPEN] / 100f
-        if (abs(clarity) > 0.005f || sharpen > 0.005f) {
+        if (plan.detailOn) {
             Parallel.rows(h) { y0, y1 ->
                 for (i in y0 * w until y1 * w) {
                     t1[i] = LUM_R * r[i] + LUM_G * g[i] + LUM_B * b[i]
                     t2[i] = 0f
                 }
             }
-            if (sharpen > 0.005f) {
-                val rad = max(1, (1.0f * frame.scale).roundToInt())
-                Filters.blur(t1, t4, t3, w, h, rad, passes = 2)
-                val a = sharpen * 1.6f
+            if (plan.sharpenOn) {
+                Filters.blur(t1, t4, t3, w, h, plan.sharpenRadius, passes = 2)
+                val a = plan.sharpenAmount
                 val tau2 = 0.006f * 0.006f
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
@@ -340,10 +297,9 @@ class Developer {
                     }
                 }
             }
-            if (abs(clarity) > 0.005f) {
-                val rad = max(2, (0.015f * ctx.fullWidth * frame.scale).roundToInt())
-                Filters.blur(t1, t4, t3, w, h, rad, passes = 3)
-                val a = clarity * 0.7f
+            if (plan.clarityOn) {
+                Filters.blur(t1, t4, t3, w, h, plan.clarityRadius, passes = 3)
+                val a = plan.clarityAmount
                 Parallel.rows(h) { y0, y1 ->
                     for (i in y0 * w until y1 * w) {
                         val d = t1[i] - t4[i]
@@ -378,37 +334,18 @@ class Developer {
         return out
     }
 
-    /** Display-space curve: blacks -> whites -> contrast, sampled on 4097 points. */
-    private fun buildCurve(p: DevelopParams) {
-        val blacks = p[Adjustment.BLACKS] / 100f * 0.3f
-        val whites = p[Adjustment.WHITES] / 100f * 0.25f
-        val contrast = p[Adjustment.CONTRAST] / 100f
-        for (i in 0..4096) {
-            var v = i / 4096f
-            v = clamp01(v + blacks * (1f - v) * (1f - v))
-            v = clamp01(v + whites * v * v)
-            if (contrast > 0f) {
-                val s = 0.5f - 0.5f * cos(PI.toFloat() * v)
-                v += contrast * 0.9f * (s - v)
-            } else if (contrast < 0f) {
-                val inv = (acos((1f - 2f * v).coerceIn(-1f, 1f)) / PI).toFloat()
-                v += -contrast * 0.8f * (inv - v)
-            }
-            curve[i] = clamp01(v)
-        }
-    }
-
     /**
      * Wavelet shrinkage of luminance [y] (left untouched) into t4. Five "à trous" levels; each
-     * detail coefficient is shrunk (non-negative garrote) against [k] times the noise expected at
-     * that scale and that brightness, var = [nA]·Y + [nB]. Brightness comes from the next coarser
+     * detail coefficient is shrunk (non-negative garrote) against k times the noise expected at
+     * that scale and that brightness, var = nA·Y + nB (all from [RenderPlan]). Brightness comes from the next coarser
      * approximation, which is already free of fine noise.
      */
-    private fun profiledLumaDenoise(y: FloatArray, w: Int, h: Int, nA: Float, nB: Float, k: Float, frame: Frame) {
+    private fun profiledLumaDenoise(y: FloatArray, w: Int, h: Int, plan: RenderPlan) {
         val n = w * h
-        // Fewer levels when the image is already downscaled: its pixels are coarser scales.
-        val skip = if (frame.scale >= 1f) 0 else (ln(1f / frame.scale) / LN2).roundToInt().coerceIn(0, 3)
-        val levels = 5 - skip
+        val nA = plan.noiseA
+        val nB = plan.noiseB
+        val k = plan.nrK
+        val levels = plan.nrLevels
         System.arraycopy(y, 0, t2, 0, n)
         java.util.Arrays.fill(t4, 0, n, 0f)
         var cur = t2
@@ -419,7 +356,7 @@ class Developer {
             // The finest level gets a higher threshold and soft shrinkage: isolated outlier
             // pixels live there, and the garrote would let them through as speckles.
             val finest = j == 0
-            val kk = k * ATROUS_NOISE[j] * (if (finest) FINEST_BOOST else 1f)
+            val kk = k * RenderPlan.ATROUS_NOISE[j] * (if (finest) RenderPlan.FINEST_BOOST else 1f)
             val c = cur; val nx = next
             Parallel.rows(h) { y0, y1 ->
                 for (i in y0 * w until y1 * w) {
@@ -439,6 +376,21 @@ class Developer {
         }
         val c = cur
         Parallel.rows(h) { y0, y1 -> for (i in y0 * w until y1 * w) t4[i] += c[i] }
+    }
+
+    /**
+     * The render input after highlight reconstruction: [img] itself when nothing is clipped,
+     * otherwise a reconstructed copy. Reconstruction depends only on the file, never on the
+     * sliders, so the GPU renderer runs it once per image and starts from the result.
+     */
+    fun withReconstructedHighlights(img: LinearImage, ctx: RenderContext, frame: Frame): LinearImage {
+        if (!highlightReconstruction || !hasClipped(img)) return img
+        val n = img.size
+        ensureScratch(n, false)
+        if (t5.size < n) t5 = FloatArray(cap)
+        val out = LinearImage(img.width, img.height, img.r.copyOf(), img.g.copyOf(), img.b.copyOf())
+        reconstructHighlights(out.r, out.g, out.b, img.width, img.height, ctx, frame)
+        return out
     }
 
     private fun hasClipped(img: LinearImage): Boolean {
@@ -523,16 +475,7 @@ class Developer {
         /** Normalised raw level treated as clipped (the 12-bit white point minus a safety margin). */
         const val CLIP = 0.96f
         private const val MAX_RECOVERED = 4f
-        /** Linear level where the highlight shoulder starts. */
-        private const val SHOULDER = 0.85f
 
-        /**
-         * Noise standard deviation in each "à trous" detail level for unit white noise
-         * (Starck & Murtagh, B3 spline). Index 0 is the finest scale.
-         */
-        private const val FINEST_BOOST = 1.25f
-
-        private val ATROUS_NOISE = floatArrayOf(0.889f, 0.200f, 0.086f, 0.041f, 0.020f, 0.010f, 0.005f, 0.0025f)
 
 
         /**

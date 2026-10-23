@@ -105,7 +105,9 @@ class AppSmokeTest {
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
             // Develop screen: file decoded and sliders shown.
             waitForText("Exposure")
-            waitForText(" ms", substring = true) // first preview rendered
+            // First preview rendered. Robolectric has no OpenGL ES, so this also proves the
+            // GPU path backs off cleanly and the CPU takes over.
+            waitForText(" ms · CPU", substring = true)
             // The slider list scrolls; bring the TG-specific sliders into view.
             val list = compose.onNode(hasScrollToIndexAction())
             list.performScrollToNode(hasText("Underwater"))

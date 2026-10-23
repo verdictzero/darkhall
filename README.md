@@ -37,6 +37,8 @@ No curves, no masks, no presets: open an `.ORF`, drag sliders, export a JPEG.
   hard; pull *Highlights* down to bring the recovered detail into range.
 * **Field data kept.** Exported JPEGs carry the camera's GPS position and altitude, and the
   depth, temperature and pressure readings go into the image description.
+* **GPU preview rendering, tuned for Adreno.** Slider changes render on the phone's GPU
+  (OpenGL ES 3.0 fragment shaders); see [GPU rendering](#gpu-rendering).
 * **Thumbnails from the embedded preview.** The library reads only the first ~1 MB of
   each file to show the camera's own preview JPEG, so a card full of raws browses quickly.
 
@@ -74,6 +76,33 @@ leave the app; several exports queue up and run one after another.
 
 If the app ever crashes, the next launch shows the error with Copy and Share buttons.
 
+## GPU rendering
+
+The live preview runs the whole slider pipeline on the GPU: about 35 full-screen passes of
+OpenGL ES 3.0 fragment shaders over float textures, then one read-back. The CPU pipeline is
+still the reference: exports and the full-resolution zoom use it, and the GPU must reproduce it.
+
+Written with Qualcomm Adreno in mind:
+
+* all maths in `highp` (Adreno really does run `mediump` at 16 bits, too coarse for linear
+  light and noise thresholds);
+* only `texelFetch` with explicit edge clamping, so no float-filtering extension is needed;
+* no compute shaders, SSBOs or image load/store — plain GLES 3.0, which every Adreno from the
+  3xx series on supports;
+* 32-bit float render targets via `EXT_color_buffer_float` (Adreno 4xx and later), falling
+  back to 16-bit (`EXT_color_buffer_half_float`, Adreno 3xx);
+* every pass invalidates its target first, so Adreno's tiled renderer doesn't reload the old
+  contents into on-chip memory before overwriting them.
+
+Safety nets, because no GPU driver is tested here:
+
+* the first time a GPU/driver combination is seen, the app renders the same picture on GPU and
+  CPU and compares them; a driver that doesn't match is remembered and left off;
+* any GL error while editing switches that session to the CPU, with a message;
+* the ⋮ menu shows the GPU in use and has a switch to turn GPU rendering off.
+
+The editor shows which engine drew the preview next to the render time.
+
 ## Building
 
 Requires JDK 17+ and the Android SDK (platform 36).
@@ -98,6 +127,11 @@ The decoder, pipeline and app tests run against a real file. Two have been used:
 ./gradlew :app:testDebugUnitTest -Pdarkhall.sample=/path/to/file.orf
 ```
 
+GPU tests need an EGL/GLES 3 library: Mesa (`apt install libegl1 libgles2 libegl-mesa0
+libgl1-mesa-dri`) is used by default; for ANGLE pass
+`-Pdarkhall.gles=angle -Pdarkhall.angleDir=<dir with libEGL.so, libGLESv2.so, libvk_swiftshader.so>`
+(Chromium's install directory has all three). Without either, they are skipped.
+
 The reference dump is the `raw_image` array from rawpy/LibRaw written as little-endian
 uint16. Without `-Pdarkhall.sample` the file-based tests are skipped.
 
@@ -112,6 +146,10 @@ What they cover:
 * noise profiling: recovers known synthetic noise within a few percent, measures noise added
   to a real file, demosaic noise factors; the denoiser halves the error of simulated
   ISO 1600 noise against the clean original while keeping strong-edge detail;
+* GPU parity: the GLSL pipeline runs on two independent OpenGL ES implementations — Mesa
+  (llvmpipe) and Google's ANGLE on SwiftShader, the strict translator Chrome ships — and must
+  match the CPU renderer for every slider at both extremes (mean difference under 0.03 of an
+  8-bit level); the 16-bit float fallback is measured as well;
 * an end-to-end app run under Robolectric: open the file via a VIEW intent, move sliders,
   pinch to full-resolution zoom, copy settings, export through WorkManager, and check the
   JPEG's size, rotation and EXIF.
@@ -119,8 +157,9 @@ What they cover:
 ## Layout
 
 * `core/` – pure Kotlin/JVM: ORF parser, Olympus decoder, demosaic (superpixel for
-  previews, Malvar-He-Cutler for export and zoom), the slider pipeline, lens geometry,
-  region rendering for zoom, banded 12 MP export.
+  previews, Malvar-He-Cutler for export and zoom), the slider pipeline and its shared
+  `RenderPlan`, the GLSL ES port behind a small `Gl` interface, lens geometry, region
+  rendering for zoom, banded 12 MP export.
 * `app/` – Jetpack Compose UI, Storage Access Framework browsing, WorkManager export to
   MediaStore.
 
@@ -133,8 +172,11 @@ What they cover:
   TG-5, TG-6 and TG-7 files.
 * The underwater correction is a global one (veil removal plus grey-world balance). It
   cannot bring back red that is completely gone; very deep natural-light shots stay blue-ish.
-* Rendering is on the CPU. Slider updates take roughly 30–150 ms on a desktop-class CPU and
-  will be slower on a phone.
+* GPU rendering covers the live preview. The full-resolution zoom and exports run on the CPU:
+  a 12 MP float pipeline would need several hundred MB of GPU memory, and the CPU path is the
+  reference the GPU is checked against.
+* GPU performance on real Adreno hardware has not been measured here; the shaders have been
+  verified for correctness on two software implementations only.
 
 ## Credits
 

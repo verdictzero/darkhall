@@ -30,6 +30,20 @@ class Geometry private constructor(
     private val shortRatio = radius / min(cx, cy)
     private var zoom = 1f
 
+    /** Everything a shader needs to evaluate [map]. */
+    class Uniforms(
+        val cx: Float, val cy: Float, val radius: Float, val shortRatio: Float, val zoom: Float,
+        val cos: Float, val sin: Float, val k: Float,
+        val lensOn: Boolean, val a: Float, val b: Float, val c: Float, val amount: Float, val vr: Float, val vb: Float,
+        val hasTca: Boolean,
+    )
+
+    fun uniforms() = Uniforms(
+        cx, cy, radius, shortRatio, zoom, cosT, sinT, k,
+        lens != null && amount > 0f, lens?.a ?: 0f, lens?.b ?: 0f, lens?.c ?: 0f, amount, lens?.vr ?: 1f, lens?.vb ?: 1f,
+        hasTca,
+    )
+
     /** True when red and blue need sampling at different positions from green. */
     val hasTca: Boolean = lens != null && amount > 0f && (abs(lens.vr - 1f) > 1e-6f || abs(lens.vb - 1f) > 1e-6f)
 

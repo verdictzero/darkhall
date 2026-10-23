@@ -9,6 +9,8 @@ import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.OrfRepository
 import com.verdictzero.darkhall.app.data.Prefs
+import com.verdictzero.darkhall.app.gpu.GpuRenderer
+import com.verdictzero.darkhall.core.gpu.ImageCompare
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
@@ -69,6 +71,11 @@ data class DevelopState(
     val loupeBusy: Boolean = false,
     val canPaste: Boolean = false,
     val hasLensProfile: Boolean = false,
+    /** "GPU" or "CPU": which engine drew the last preview. */
+    val engine: String = "CPU",
+    /** GPU name for the menu, or why the GPU isn't used. */
+    val gpuLabel: String = "",
+    val gpuEnabled: Boolean = true,
 )
 
 /**
@@ -90,6 +97,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private var ctx: RenderContext? = null
     private var frame: Frame? = null
     private var editsKey = ""
+    /** True while the GPU holds this file's preview and passed verification. */
+    @Volatile private var useGpu = false
     private val developer = Developer()
     private val loupeDeveloper = Developer()
     private val renderLock = Mutex()
@@ -110,7 +119,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                     _state.update { it.copy(message = "Render failed: ${e.message ?: e.javaClass.simpleName}") }
                     return@collectLatest
                 }
-                _state.update { it.copy(preview = result.bitmap, histogram = result.histogram, renderMs = result.ms) }
+                _state.update { it.copy(preview = result.bitmap, histogram = result.histogram, renderMs = result.ms, engine = result.engine) }
             }
         }
         viewModelScope.launch {
@@ -130,7 +139,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         if (loadedUri == uri && _state.value.error == null) return
         close()
         loadedUri = uri
-        _state.value = DevelopState(canPaste = prefs.copiedSettings != null)
+        _state.value = DevelopState(canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled)
         loadJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { loadFile(uri) }
@@ -158,8 +167,12 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         loupeRequests.value = null
         meta = null; raw = null; preview = null; ctx = null; frame = null
         editsKey = ""
+        useGpu = false
         viewModelScope.launch(Dispatchers.Default) {
-            renderLock.withLock { developer.release() }
+            renderLock.withLock {
+                developer.release()
+                if (GpuRenderer.available) GpuRenderer.releaseImage()
+            }
             loupeLock.withLock { loupeDeveloper.release() }
         }
         _state.value = DevelopState()
@@ -209,10 +222,12 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 hasLensProfile = c.lens != null,
             )
         }
+        setUpGpu(pv, c, f, defaults)
+        if (loadedUri != uri) return
         paramsFlow.value = saved ?: defaults
     }
 
-    private class PreviewResult(val bitmap: Bitmap, val histogram: IntArray, val ms: Long)
+    private class PreviewResult(val bitmap: Bitmap, val histogram: IntArray, val ms: Long, val engine: String)
 
     private suspend fun renderPreview(p: DevelopParams): PreviewResult? = renderLock.withLock {
         val pv = preview ?: return null
@@ -220,10 +235,92 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val f = frame ?: return null
         val m = meta ?: return null
         val t0 = System.nanoTime()
-        val px = Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+        var engine = "CPU"
+        val px = if (useGpu) {
+            try {
+                GpuRenderer.render(c, p, f).also { engine = "GPU" }
+            } catch (e: Throwable) {
+                // The renderer has already switched itself off; finish this frame on the CPU.
+                useGpu = false
+                _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason.orEmpty(), message = "GPU rendering stopped; using the CPU") }
+                Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+            }
+        } else {
+            Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+        }
         val hist = Developer.histogram(px)
         val bmp = toBitmap(px, pv.width, pv.height, m.orientation)
-        PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000)
+        PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000, engine)
+    }
+
+    /**
+     * Puts this file's preview on the GPU. The first time a GPU/driver combination is seen,
+     * GPU and CPU renders of the same picture are compared; a driver that doesn't reproduce
+     * the CPU result is remembered and left off.
+     */
+    private suspend fun setUpGpu(pv: LinearImage, c: RenderContext, f: Frame, defaults: DevelopParams) {
+        useGpu = false
+        if (!prefs.gpuEnabled) {
+            _state.update { it.copy(gpuEnabled = false, gpuLabel = "Off") }
+            return
+        }
+        if (!GpuRenderer.ensureReady()) {
+            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason ?: "Unavailable") }
+            return
+        }
+        val name = GpuRenderer.description.orEmpty()
+        if (prefs.gpuRejected == name) {
+            _state.update { it.copy(gpuLabel = "Off: did not match the CPU on this driver") }
+            return
+        }
+        try {
+            val input = renderLock.withLock { developer.withReconstructedHighlights(pv, c, f) }
+            GpuRenderer.setImage(input)
+            if (prefs.gpuVerified != name) {
+                val checks = listOf(
+                    defaults,
+                    defaults.with(Adjustment.DEHAZE, 40f).with(Adjustment.CLARITY, 40f).with(Adjustment.EXPOSURE, 1f)
+                        .with(Adjustment.LUMA_NR, 60f).with(Adjustment.STRAIGHTEN, 2f),
+                )
+                for (p in checks) {
+                    val gpu = GpuRenderer.render(c, p, f)
+                    val cpu = renderLock.withLock {
+                        withContext(Dispatchers.Default) { Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens) }
+                    }
+                    val cmp = ImageCompare.of(cpu, gpu)
+                    if (!cmp.acceptable) {
+                        prefs.gpuRejected = name
+                        _state.update { it.copy(gpuLabel = "Off: did not match the CPU ($cmp)", message = "This GPU's output didn't match; using the CPU") }
+                        return
+                    }
+                }
+                prefs.gpuVerified = name
+            }
+            useGpu = true
+            _state.update { it.copy(gpuEnabled = true, gpuLabel = shortGpuName(name)) }
+        } catch (e: Throwable) {
+            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason ?: (e.message ?: "GPU error")) }
+        }
+    }
+
+    private fun shortGpuName(description: String) = description.substringBefore(" · ")
+
+    fun setGpuEnabled(enabled: Boolean) {
+        prefs.gpuEnabled = enabled
+        if (enabled) prefs.gpuRejected = null // let the user retry after a driver update
+        val pv = preview; val c = ctx; val f = frame
+        viewModelScope.launch {
+            if (enabled && pv != null && c != null && f != null) {
+                setUpGpu(pv, c, f, _state.value.defaults)
+            } else {
+                useGpu = false
+                _state.update { it.copy(gpuEnabled = enabled, gpuLabel = "Off") }
+            }
+            _state.update { it.copy(gpuEnabled = enabled) }
+            val p = paramsFlow.value ?: return@launch
+            val r = withContext(Dispatchers.Default) { renderPreview(p) } ?: return@launch
+            _state.update { s -> s.copy(preview = r.bitmap, histogram = r.histogram, renderMs = r.ms, engine = r.engine) }
+        }
     }
 
     private fun toBitmap(argb: IntArray, w: Int, h: Int, orientation: Int): Bitmap {
