@@ -39,8 +39,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -89,7 +91,16 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.message) {
-        state.message?.let { snackbar.showSnackbar(it); vm.clearMessage() }
+        val msg = state.message ?: return@LaunchedEffect
+        // Show first, clear after: clearing changes the key and would cancel this effect.
+        if (msg.startsWith("Auto:") && state.beforeAuto != null) {
+            val r = snackbar.showSnackbar(msg, actionLabel = "Undo", duration = SnackbarDuration.Long)
+            vm.clearMessage()
+            if (r == SnackbarResult.ActionPerformed) vm.undoAuto()
+        } else {
+            snackbar.showSnackbar(msg)
+            vm.clearMessage()
+        }
     }
     val startExport = rememberExportStarter { vm.export() }
     val ready = !state.loading && state.error == null
@@ -122,6 +133,11 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                                 onClick = { menuOpen = false; vm.pasteSettings() },
                             )
                             DropdownMenuItem(text = { Text("Reset all sliders") }, onClick = { menuOpen = false; vm.resetAll() })
+                            DropdownMenuItem(
+                                text = { Text("Auto tone new photos") },
+                                trailingIcon = { Checkbox(checked = state.autoToneOnOpen, onCheckedChange = null) },
+                                onClick = { menuOpen = false; vm.setAutoToneOnOpen(!state.autoToneOnOpen) },
+                            )
                             DropdownMenuItem(
                                 text = {
                                     Column {
@@ -351,12 +367,22 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
     LazyColumn(modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 96.dp)) {
         for (group in AdjustmentGroup.entries) {
             item(key = "h-${group.name}") {
-                Text(
-                    group.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
-                )
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = if (group == AdjustmentGroup.LIGHT) 4.dp else 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        group.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (group == AdjustmentGroup.LIGHT) {
+                        TextButton(onClick = { vm.autoTone() }, enabled = !state.autoBusy) {
+                            Text(if (state.autoBusy) "Auto…" else "Auto")
+                        }
+                    }
+                }
             }
             if (group == AdjustmentGroup.LOOK) {
                 item(key = "look-picker") {

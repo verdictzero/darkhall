@@ -29,8 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +50,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -78,6 +83,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         vm.addFiles(uris)
     }
     val exportSelection = rememberExportStarter { vm.exportSelection() }
+    var selectionMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.refreshEditMarks() } // returning from the develop screen
     LaunchedEffect(state.message) {
@@ -94,9 +100,15 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                         IconButton(onClick = { vm.clearSelection() }) { Icon(Icons.Filled.Close, contentDescription = "Cancel selection") }
                     },
                     actions = {
-                        TextButton(onClick = { vm.selectAll() }) { Text("All") }
                         TextButton(onClick = { vm.pasteToSelection() }, enabled = state.canPaste) { Text("Paste") }
+                        TextButton(onClick = { vm.autoToneSelection() }, enabled = state.autoProgress == null) { Text("Auto") }
                         TextButton(onClick = exportSelection) { Text("Export") }
+                        Box {
+                            IconButton(onClick = { selectionMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
+                            DropdownMenu(expanded = selectionMenu, onDismissRequest = { selectionMenu = false }) {
+                                DropdownMenuItem(text = { Text("Select all") }, onClick = { selectionMenu = false; vm.selectAll() })
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 )
@@ -115,14 +127,17 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (state.loading || state.autoProgress != null) LinearProgressIndicator(Modifier.fillMaxWidth())
+            state.autoProgress?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            }
             if (state.files.isEmpty() && !state.loading) {
                 EmptyLibrary(
                     onPickFolder = { pickFolder.launch(null) },
                     onPickFiles = { pickFiles.launch(arrayOf("*/*")) },
                 )
             } else {
-                val hint = if (state.selecting) "Tap to add or remove photos" else "Long-press to select photos for paste or batch export"
+                val hint = if (state.selecting) "Tap to add or remove photos" else "Long-press to select photos for paste, auto tone or batch export"
                 Text(
                     (state.folderName?.let { "$it  ·  ${state.files.size} raw files  ·  " } ?: "") + hint,
                     style = MaterialTheme.typography.labelMedium,

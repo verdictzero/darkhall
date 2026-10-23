@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -91,7 +92,10 @@ class AppSmokeTest {
         } catch (e: Throwable) {
             println("---- screen at timeout ----")
             println(compose.onAllNodes(SemanticsMatcher("any") { true }, useUnmergedTree = true).fetchSemanticsNodes()
-                .joinToString("\n") { n -> n.config.toString().take(200) })
+                .mapNotNull { n ->
+                    (n.config.getOrNull(SemanticsProperties.Text)?.joinToString("") ?: n.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString(""))
+                        ?.let { "  · $it" }
+                }.joinToString("\n"))
             throw e
         }
     }
@@ -134,6 +138,20 @@ class AppSmokeTest {
                 pinch(center - Offset(20f, 0f), center - Offset(200f, 0f), center + Offset(20f, 0f), center + Offset(200f, 0f))
             }
             waitForText("Full resolution", timeoutMs = 120_000)
+
+            // Auto tone: sets the tone sliders, reports them, and Undo restores the previous values.
+            list.performScrollToIndex(0)
+            compose.waitForIdle()
+            fun exposureText() = compose.onAllNodesWithText(" EV", substring = true).fetchSemanticsNodes()
+                .firstNotNullOf { n -> n.config.getOrNull(SemanticsProperties.Text)?.joinToString("") }
+            val beforeAuto = exposureText()
+            compose.onNodeWithText("Auto").performClick()
+            waitForText("Auto:", substring = true)
+            val afterAuto = exposureText()
+            println("exposure before auto: $beforeAuto, after: $afterAuto")
+            assertTrue("auto should change exposure", beforeAuto != afterAuto)
+            compose.onNodeWithText("Undo").performClick()
+            waitFor { exposureText() == beforeAuto }
 
             // Pick a look in the browser: thumbnails render, the strength slider appears.
             compose.onNodeWithText("Pinch").assertDoesNotExistCompat()

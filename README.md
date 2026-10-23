@@ -24,6 +24,8 @@ No curves, no masks, no presets: open an `.ORF`, drag sliders, export a JPEG.
   starts switched on, stronger the deeper the shot.
 * **Built-in lens profile.** Distortion and colour fringing of the 4.5–18 mm lens are
   corrected automatically (the *Lens profile* slider sets the strength).
+* **Auto tone.** One tap sets Exposure, Contrast, Highlights, Shadows, Whites and Blacks,
+  judged through the real tone pipeline; see [Auto tone](#auto-tone).
 * **Profiled noise reduction.** The 1/2.33" sensor gets noisy early. Darkhall measures the
   noise in each file's raw data (shot and read noise per colour channel, fitted from the
   flattest patches of the picture), follows it through white balance, the colour matrix and
@@ -79,6 +81,28 @@ Exports run in a background job with a progress notification, so they finish eve
 leave the app; several exports queue up and run one after another.
 
 If the app ever crashes, the next launch shows the error with Copy and Share buttons.
+
+## Auto tone
+
+**Auto** (on the Light section) sets the six tone sliders for the photo in front of you;
+the message lists what changed and offers **Undo**. ⋮ → **Auto tone new photos** applies it
+whenever a photo without saved edits is opened, and in the library a selection's **Auto**
+action tones a whole dive in one go (each photo's other edits and look are kept).
+
+How it decides: the photo is sampled after white balance, the underwater correction and the
+camera matrix, so it respects the colour settings already made. A search then tries slider
+combinations, rendering each through the same tone stage the editor uses (shadows/highlights,
+highlight shoulder, curve, clipping), and scores the result on
+
+* mean brightness close to a balanced 0.44 (display),
+* a tonal range reaching from near black (2nd percentile ≈ 0.045) to near white (98th ≈ 0.93),
+* few blown or crushed pixels,
+* sliders moved no further than needed, in the directions a person would use them
+  (Shadows only lifts, Highlights only recovers, moderate Contrast and Blacks).
+
+Exposure starts from the scene's log-average brightness, so a frame two stops too dark gets
+two stops more exposure and otherwise the same settings. Dehaze, clarity and noise reduction
+are left alone; very hazy water still benefits from the Dehaze slider.
 
 ## Looks
 
@@ -177,6 +201,9 @@ What they cover:
 * every slider at both extremes; band seams in the full-size export;
 * underwater correction on a simulated 8 m dive; highlight recovery on a simulated
   overexposure; zoomed regions matching the full export pixel for pixel;
+* auto tone: exposure tracks the scene (−2 EV in → +2 EV out), results are balanced
+  (mean, clipping, crushing), hard scenes (underexposed, clipped, hazy) are rescued; batch
+  auto through the library keeps other edits; the editor's Auto/Undo round-trip works;
 * noise profiling: recovers known synthetic noise within a few percent, measures noise added
   to a real file, demosaic noise factors; the denoiser halves the error of simulated
   ISO 1600 noise against the clean original while keeping strong-edge detail;

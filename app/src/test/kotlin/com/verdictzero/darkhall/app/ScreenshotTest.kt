@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -92,6 +93,11 @@ class ScreenshotTest {
         ActivityScenario.launch<MainActivity>(intent).use {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
             shot("editor")
+            compose.onNodeWithText("Auto").performClick()
+            waitFor { compose.onAllNodesWithText("Auto:", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(20)); Thread.sleep(40) }
+            shot("auto")
+            compose.onNodeWithText("Undo").performClick()
             compose.onNodeWithContentDescription("Browse looks").performClick()
             waitFor { compose.onAllNodesWithContentDescription("Look Reef").fetchSemanticsNodes().isNotEmpty() }
             // Let the first thumbnails render.

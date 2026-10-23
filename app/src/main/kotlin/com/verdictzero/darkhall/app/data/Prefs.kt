@@ -35,6 +35,11 @@ class Prefs(context: Context) {
         get() = sp.getString("gpuRejected", null)
         set(v) { sp.edit().putString("gpuRejected", v).apply() }
 
+    /** Apply auto tone to photos opened without saved edits. */
+    var autoToneOnOpen: Boolean
+        get() = sp.getBoolean("autoToneOnOpen", false)
+        set(v) { sp.edit().putBoolean("autoToneOnOpen", v).apply() }
+
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)
         set(v) { sp.edit().putInt("previewLongEdge", v).apply() }

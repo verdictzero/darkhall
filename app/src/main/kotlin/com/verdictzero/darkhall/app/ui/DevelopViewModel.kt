@@ -13,6 +13,7 @@ import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
 import com.verdictzero.darkhall.core.gpu.ImageCompare
 import com.verdictzero.darkhall.core.develop.Adjustment
+import com.verdictzero.darkhall.core.develop.AutoTone
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -77,6 +79,10 @@ data class DevelopState(
     /** GPU name for the menu, or why the GPU isn't used. */
     val gpuLabel: String = "",
     val gpuEnabled: Boolean = true,
+    val autoToneOnOpen: Boolean = false,
+    /** Sliders before the last Auto, for Undo. */
+    val beforeAuto: DevelopParams? = null,
+    val autoBusy: Boolean = false,
 )
 
 /**
@@ -140,7 +146,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         if (loadedUri == uri && _state.value.error == null) return
         close()
         loadedUri = uri
-        _state.value = DevelopState(canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled)
+        _state.value = DevelopState(canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled, autoToneOnOpen = prefs.autoToneOnOpen)
         loadJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { loadFile(uri) }
@@ -204,7 +210,11 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         // Measures this file's sensor noise; looks come from the bundled library.
         val c = RenderContext.forFile(m, pv, r, looks = LookLibrary.source(app))
         val defaults = DevelopParams.defaultsFor(m, c.noise)
-        val saved = EditsStore.load(app, file.key, defaults)
+        var saved = EditsStore.load(app, file.key, defaults)
+        if (saved == null && prefs.autoToneOnOpen) {
+            // New photo and auto tone on open: start from the automatic settings.
+            saved = AutoTone.solve(pv, c, defaults, Frame(0, 0, pv.width.toFloat() / m.crop.width)).params
+        }
         val f = Frame(0, 0, pv.width.toFloat() / m.crop.width)
         // "As shot": the camera's own rendering, without the underwater correction.
         val asShot = defaults.with(Adjustment.WATER, 0f)
@@ -409,7 +419,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     fun set(a: Adjustment, v: Float) {
         val next = _state.value.params.with(a, v)
-        _state.update { it.copy(params = next) }
+        _state.update { it.copy(params = next, beforeAuto = null) }
         paramsFlow.value = next
     }
 
@@ -421,6 +431,43 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         paramsFlow.value = d
         val key = editsKey
         viewModelScope.launch(Dispatchers.IO) { runCatching { EditsStore.clear(getApplication(), key) } }
+    }
+
+    // ---- auto tone ---------------------------------------------------------------------------
+
+    /** Sets Exposure, Contrast, Highlights, Shadows, Whites and Blacks automatically. */
+    fun autoTone() {
+        val pv = preview ?: return
+        val c = ctx ?: return
+        val f = frame ?: return
+        if (_state.value.autoBusy) return
+        val before = _state.value.params
+        _state.update { it.copy(autoBusy = true) }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.Default) { AutoTone.solve(pv, c, before, f) }
+            val p = result.params
+            _state.update {
+                it.copy(params = p, beforeAuto = before, autoBusy = false, message = "Auto: " + describeAuto(before, p))
+            }
+            paramsFlow.value = p
+        }
+    }
+
+    fun undoAuto() {
+        val before = _state.value.beforeAuto ?: return
+        _state.update { it.copy(params = before, beforeAuto = null) }
+        paramsFlow.value = before
+    }
+
+    fun setAutoToneOnOpen(on: Boolean) {
+        prefs.autoToneOnOpen = on
+        _state.update { it.copy(autoToneOnOpen = on) }
+    }
+
+    private fun describeAuto(before: DevelopParams, after: DevelopParams): String {
+        val changed = AutoTone.SLIDERS.filter { abs(after[it] - before[it]) > 1e-3f }
+        if (changed.isEmpty()) return "already balanced"
+        return changed.joinToString(", ") { "${it.label} ${it.format(after[it])}" }
     }
 
     // ---- looks -------------------------------------------------------------------------------

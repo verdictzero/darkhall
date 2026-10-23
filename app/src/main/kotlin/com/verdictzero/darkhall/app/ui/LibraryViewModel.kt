@@ -8,10 +8,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
+import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.OrfRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.data.RawFile
+import com.verdictzero.darkhall.core.develop.AutoTone
+import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
+import com.verdictzero.darkhall.core.develop.Frame
+import com.verdictzero.darkhall.core.develop.RenderContext
+import com.verdictzero.darkhall.core.orf.OlympusDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +33,8 @@ data class LibraryState(
     val selected: Set<String> = emptySet(),
     val edited: Set<String> = emptySet(),
     val canPaste: Boolean = false,
+    /** "Auto tone 3 of 12" while a batch auto tone runs. */
+    val autoProgress: String? = null,
 ) {
     val selecting get() = selected.isNotEmpty()
 }
@@ -96,6 +104,46 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         if (targets.isEmpty()) return
         ExportQueue.enqueue(getApplication(), targets.map { it.uri })
         _state.update { it.copy(selected = emptySet()) }
+    }
+
+    /**
+     * Auto tone for every selected photo, one at a time: each file is decoded, measured and its
+     * six tone sliders set automatically on top of its saved edits (or the defaults).
+     */
+    fun autoToneSelection() {
+        if (_state.value.autoProgress != null) return
+        val targets = _state.value.files.filter { it.key in _state.value.selected }
+        if (targets.isEmpty()) return
+        _state.update { it.copy(selected = emptySet()) }
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            var ok = 0
+            for ((i, f) in targets.withIndex()) {
+                _state.update { it.copy(autoProgress = "Auto tone ${i + 1} of ${targets.size}") }
+                val done = withContext(Dispatchers.Default) {
+                    runCatching {
+                        val loaded = OrfRepository.load(app.contentResolver, f.uri)
+                        val raw = OlympusDecoder.decode(loaded.bytes, loaded.meta)
+                        val half = Demosaic.superpixel(raw)
+                        val pv = half.resizeArea(1280, (half.height.toLong() * 1280 / half.width).toInt())
+                        val ctx = RenderContext.forFile(loaded.meta, pv, raw, looks = LookLibrary.source(app))
+                        val defaults = DevelopParams.defaultsFor(loaded.meta, ctx.noise)
+                        val base = EditsStore.load(app, f.key, defaults) ?: defaults
+                        val frame = Frame(0, 0, pv.width.toFloat() / loaded.meta.crop.width)
+                        EditsStore.save(app, f.key, AutoTone.solve(pv, ctx, base, frame).params)
+                    }.isSuccess
+                }
+                if (done) ok++
+            }
+            _state.update {
+                it.copy(
+                    autoProgress = null,
+                    edited = it.edited + targets.map { t -> t.key },
+                    message = if (ok == targets.size) "Auto tone applied to $ok ${if (ok == 1) "photo" else "photos"}"
+                    else "Auto tone applied to $ok of ${targets.size}; some files couldn't be read",
+                )
+            }
+        }
     }
 
     /** Re-reads which files have saved edits and whether settings are on the clipboard. */
