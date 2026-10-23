@@ -1,5 +1,7 @@
-# Builds the release APK and publishes it as a GitHub release when a version tag is pushed:
-#   git tag v0.1.0 && git push origin v0.1.0
+# Builds the release APK and publishes it as a GitHub release, tagged v<versionName>, when
+#  - a version tag is pushed (git tag v0.1.0 && git push origin v0.1.0), or
+#  - a branch push brings .github/release-notes/v<versionName>.md for a version that has no
+#    release yet (the workflow then creates the tag on the pushed commit).
 # Release notes come from .github/release-notes/<tag>.md when that file exists.
 #
 # Signing: add the repository secrets DARKHALL_KEYSTORE_BASE64 (base64 of a .jks),
@@ -11,6 +13,10 @@ name: Release
 on:
   push:
     tags: ["v*"]
+    branches: ["**"]
+    paths:
+      - ".github/release-notes/**"
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: write
@@ -28,15 +34,27 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Check the tag matches the app version
+      - name: Work out the release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match versionName $version"
-            exit 1
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "$tag" != "$GITHUB_REF_NAME" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match versionName $version"
+              exit 1
+            fi
+          elif [ ! -f ".github/release-notes/$tag.md" ]; then
+            echo "No release notes for $tag; nothing to release."; tag=""
+          elif gh release view "$tag" > /dev/null 2>&1; then
+            echo "$tag is already released."; tag=""
           fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Signing key
+        if: steps.tag.outputs.tag != ''
         env:
           KEYSTORE_BASE64: ${{ secrets.DARKHALL_KEYSTORE_BASE64 }}
         run: |
@@ -48,6 +66,7 @@ jobs:
           fi
 
       - name: Build
+        if: steps.tag.outputs.tag != ''
         env:
           DARKHALL_KEYSTORE_PASSWORD: ${{ secrets.DARKHALL_KEYSTORE_PASSWORD }}
           DARKHALL_KEY_ALIAS: ${{ secrets.DARKHALL_KEY_ALIAS }}
@@ -55,13 +74,14 @@ jobs:
         run: ./gradlew --no-daemon :app:assembleRelease
 
       - name: Publish
+        if: steps.tag.outputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="$GITHUB_REF_NAME"
+          tag="${{ steps.tag.outputs.tag }}"
           apk="darkhall-$tag.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           notes=".github/release-notes/$tag.md"
           if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
           case "$tag" in *-*) set -- "$@" --prerelease ;; esac
-          gh release create "$tag" "$apk" --title "Darkhall ${tag#v}" --verify-tag "$@"
+          gh release create "$tag" "$apk" --title "Darkhall ${tag#v}" --target "$GITHUB_SHA" "$@"
