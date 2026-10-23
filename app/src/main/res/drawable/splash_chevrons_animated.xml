@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash icon (Android 12+): the chevrons light up from the nearest to the farthest, like
+     lights coming on down a vaulted hall. 900 ms in all (Splash.ICON_MS). -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/splash_chevrons">
+    <target android:name="c0l">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="480"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="480"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.26"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c0r">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="480"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="480"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.26"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c1l">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="360"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="360"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.4"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c1r">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="360"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="360"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.4"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c2l">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="240"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="240"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.58"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c2r">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="240"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="240"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.58"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c3l">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="120"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="120"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.78"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c3r">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="120"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="120"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="0.78"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c4l">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="0"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="0"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1.0"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c4r">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="trimPathEnd"
+                    android:startOffset="0"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:startOffset="0"
+                    android:duration="420"
+                    android:valueFrom="0"
+                    android:valueTo="1.0"
+                    android:valueType="floatType"
+                    android:interpolator="@android:interpolator/linear_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>

@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private val externalOpen = MutableStateFlow<Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Splash.install(this, firstLaunch = savedInstanceState == null)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (savedInstanceState == null) externalOpen.value = uriFrom(intent)

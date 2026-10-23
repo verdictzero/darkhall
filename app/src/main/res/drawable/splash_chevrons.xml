@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher mark for the splash screen: every chevron starts invisible and is drawn
+     out from its apex by splash_chevrons_animated. Same layout as ic_launcher_foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="768"
+    android:viewportHeight="768">
+    <group
+        android:translateX="128"
+        android:translateY="128">
+        <path
+            android:name="c0l"
+            android:pathData="M256,257.2 L212.8,300.4"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="5.5"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c0r"
+            android:pathData="M256,257.2 L299.2,300.4"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="5.5"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c1l"
+            android:pathData="M256,244.8 L194.3,306.6"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="8"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c1r"
+            android:pathData="M256,244.8 L317.7,306.6"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="8"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c2l"
+            android:pathData="M256,227.2 L167.8,315.4"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="11.5"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c2r"
+            android:pathData="M256,227.2 L344.2,315.4"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="11.5"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c3l"
+            android:pathData="M256,202 L130,328"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="16"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c3r"
+            android:pathData="M256,202 L382,328"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="16"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c4l"
+            android:pathData="M256,166 L76,346"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="22"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:name="c4r"
+            android:pathData="M256,166 L436,346"
+            android:strokeColor="#9D7BFF"
+            android:strokeWidth="22"
+            android:strokeAlpha="0"
+            android:trimPathEnd="0"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+    </group>
+</vector>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The chevrons light up down the hall, with the wordmark underneath. -->
+    <style name="Theme.Darkhall.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/darkroom</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_chevrons_animated</item>
+        <item name="windowSplashScreenAnimationDuration">900</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/splash_wordmark</item>
+        <item name="postSplashScreenTheme">@style/Theme.Darkhall</item>
+    </style>
+</resources>

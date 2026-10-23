@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "DARKHALL" for the bottom of the Android 12+ splash screen (200 x 80 dp branding slot). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="80dp"
+    android:viewportWidth="400"
+    android:viewportHeight="160">
+    <path
+        android:pathData="M71.0,66 H79.0 A12,14 0 0 1 79.0,94 H71.0 Z M105.0,94 L115.0,66 L125.0,94 M108.6,84 H121.4 M139.0,94 V66 H150.0 A7,7 0 0 1 150.0,80 H139.0 M148.0,80 L158.0,94 M173.0,66 V94 M192.0,66 L174.0,83 M180.0,78 L192.0,94 M207.0,66 V94 M227.0,66 V94 M207.0,80 H227.0 M241.0,94 L251.0,66 L261.0,94 M244.6,84 H257.4 M275.0,66 V94 H292.0 M309.0,66 V94 H326.0"
+        android:strokeColor="#C6B6FF"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>
