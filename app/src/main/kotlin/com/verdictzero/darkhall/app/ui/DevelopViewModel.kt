@@ -13,6 +13,7 @@ import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
 import com.verdictzero.darkhall.core.gpu.ImageCompare
 import com.verdictzero.darkhall.core.develop.Adjustment
+import com.verdictzero.darkhall.core.develop.AutoStraighten
 import com.verdictzero.darkhall.core.develop.AutoTone
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
@@ -42,7 +43,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -64,6 +67,8 @@ data class DevelopState(
     val loading: Boolean = true,
     val error: String? = null,
     val preview: Bitmap? = null,
+    /** The sliders [preview] was rendered with (it can trail [params] by a frame). */
+    val previewParams: DevelopParams? = null,
     val compare: Bitmap? = null,
     val histogram: IntArray? = null,
     val params: DevelopParams = DevelopParams.NEUTRAL,
@@ -83,6 +88,7 @@ data class DevelopState(
     /** Sliders before the last Auto, for Undo. */
     val beforeAuto: DevelopParams? = null,
     val autoBusy: Boolean = false,
+    val straightenBusy: Boolean = false,
 )
 
 /**
@@ -126,7 +132,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                     _state.update { it.copy(message = "Render failed: ${e.message ?: e.javaClass.simpleName}") }
                     return@collectLatest
                 }
-                _state.update { it.copy(preview = result.bitmap, histogram = result.histogram, renderMs = result.ms, engine = result.engine) }
+                _state.update { it.copy(preview = result.bitmap, previewParams = p, histogram = result.histogram, renderMs = result.ms, engine = result.engine) }
             }
         }
         viewModelScope.launch {
@@ -329,7 +335,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(gpuEnabled = enabled) }
             val p = paramsFlow.value ?: return@launch
             val r = withContext(Dispatchers.Default) { renderPreview(p) } ?: return@launch
-            _state.update { s -> s.copy(preview = r.bitmap, histogram = r.histogram, renderMs = r.ms, engine = r.engine) }
+            _state.update { s -> s.copy(preview = r.bitmap, previewParams = p, histogram = r.histogram, renderMs = r.ms, engine = r.engine) }
         }
     }
 
@@ -455,6 +461,70 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         paramsFlow.value = before
     }
 
+    // ---- straighten ---------------------------------------------------------------------------
+
+    /** Levels the photo by its horizon or upright lines, measured on the current preview. */
+    fun autoStraighten() {
+        val bmp = _state.value.preview ?: return
+        val shownWith = _state.value.previewParams ?: return
+        if (_state.value.straightenBusy) return
+        _state.update { it.copy(straightenBusy = true) }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.Default) {
+                val px = IntArray(bmp.width * bmp.height)
+                bmp.getPixels(px, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+                AutoStraighten.detect(px, bmp.width, bmp.height)
+            }
+            _state.update { it.copy(straightenBusy = false) }
+            if (result == null) {
+                _state.update { it.copy(message = "No clear horizon or upright lines to level by") }
+                return@launch
+            }
+            val by = if (result.fromVerticals) "the upright lines" else "the horizon"
+            straightenBy(result.degrees, shownWith, "Auto", "from $by")
+        }
+    }
+
+    /**
+     * Levels a line drawn on the preview, from (0, 0) to ([dx], [dy]) in screen pixels: it
+     * becomes horizontal, or vertical if it is closer to that.
+     */
+    fun levelLine(dx: Float, dy: Float) {
+        var a = atan2(dy, dx) * 180f / PI.toFloat()
+        if (a > 90f) a -= 180f
+        if (a <= -90f) a += 180f
+        val tilt = when {
+            abs(a) <= 45f -> a
+            a > 0f -> a - 90f
+            else -> a + 90f
+        }
+        val shownWith = _state.value.previewParams ?: return
+        straightenBy(tilt, shownWith, "Level", if (abs(a) <= 45f) "to level" else "to upright")
+    }
+
+    /**
+     * Corrects a [tilt] measured on the preview (degrees, as seen on screen), undoably. The
+     * preview was drawn with [shownWith], which may trail the sliders by a frame, so the
+     * correction is added to the Straighten that was actually on screen.
+     */
+    private fun straightenBy(tilt: Float, shownWith: DevelopParams, source: String, how: String) {
+        val before = _state.value.params
+        // A mirrored orientation turns the other way on screen.
+        val sign = if (meta?.orientation in MIRRORED) -1f else 1f
+        val wanted = shownWith[Adjustment.STRAIGHTEN] + sign * tilt
+        val a = Adjustment.STRAIGHTEN
+        val next = (wanted * 10f).roundToInt() / 10f
+        val clamped = next.coerceIn(a.min, a.max)
+        val msg = when {
+            abs(clamped - before[a]) < 0.05f -> "$source: already level"
+            clamped != next -> "$source: Straighten ${a.format(clamped)} (as far as it goes; the line is ${"%.1f".format(abs(wanted))}° off)"
+            else -> "$source: Straighten ${a.format(clamped)} $how"
+        }
+        val p = before.with(a, clamped)
+        _state.update { it.copy(params = p, beforeAuto = before, message = msg) }
+        paramsFlow.value = p
+    }
+
     fun setAutoToneOnOpen(on: Boolean) {
         prefs.autoToneOnOpen = on
         _state.update { it.copy(autoToneOnOpen = on) }
@@ -557,5 +627,10 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private fun roundIso(iso: Float): Int {
         val steps = intArrayOf(64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800)
         return steps.minByOrNull { kotlin.math.abs(kotlin.math.ln(it / iso.toDouble())) } ?: iso.toInt()
+    }
+
+    private companion object {
+        /** EXIF orientations that mirror the picture. */
+        val MIRRORED = setOf(2, 4, 5, 7)
     }
 }

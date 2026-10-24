@@ -3,6 +3,7 @@ package com.verdictzero.darkhall.app.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,14 +97,32 @@ fun Modifier.cautionStripes(): Modifier = this
 
 /** A text action with a violet outline. */
 @Composable
-fun StrokedTextButton(text: String, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier) {
+fun StrokedTextButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    /** A mode that is switched on: filled, with the heavier selected ring. */
+    selected: Boolean = false,
+) {
     val s = LocalStrokes.current
     TextButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.padding(horizontal = 2.dp),
         shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(s.width, if (enabled) s.action else s.actionDisabled),
+        border = when {
+            selected -> BorderStroke(s.selectedWidth, s.selected)
+            else -> BorderStroke(s.width, if (enabled) s.action else s.actionDisabled)
+        },
+        colors = if (selected) {
+            ButtonDefaults.textButtonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            ButtonDefaults.textButtonColors()
+        },
     ) { Text(text) }
 }
 
@@ -168,6 +189,7 @@ fun ShadowedSlider(
     range: ClosedFloatingPointRange<Float>,
     anchor: Float,
     modifier: Modifier = Modifier,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
     val s = LocalStrokes.current
     val active = MaterialTheme.colorScheme.primary
@@ -179,6 +201,7 @@ fun ShadowedSlider(
         onValueChange = onValueChange,
         valueRange = range,
         modifier = modifier,
+        interactionSource = interactionSource,
         thumb = {
             Box(
                 Modifier

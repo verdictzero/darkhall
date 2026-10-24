@@ -11,6 +11,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.atan2
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,11 +104,12 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
+    val guides = remember { StraightenGuides() }
 
     LaunchedEffect(state.message) {
         val msg = state.message ?: return@LaunchedEffect
         // Show first, clear after: clearing changes the key and would cancel this effect.
-        if (msg.startsWith("Auto:") && state.beforeAuto != null) {
+        if ((msg.startsWith("Auto:") || msg.startsWith("Level:")) && state.beforeAuto != null) {
             val r = snackbar.showSnackbar(msg, actionLabel = "Undo", duration = SnackbarDuration.Long)
             vm.clearMessage()
             if (r == SnackbarResult.ActionPerformed) vm.undoAuto()
@@ -191,13 +201,13 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     val landscape = maxWidth > maxHeight
                     if (landscape) {
                         Row(Modifier.fillMaxSize()) {
-                            PreviewPane(state, vm, Modifier.weight(1f).fillMaxHeight())
-                            SliderPane(state, vm, Modifier.width(360.dp).fillMaxHeight())
+                            PreviewPane(state, vm, guides, Modifier.weight(1f).fillMaxHeight())
+                            SliderPane(state, vm, guides, Modifier.width(360.dp).fillMaxHeight())
                         }
                     } else {
                         Column(Modifier.fillMaxSize()) {
-                            PreviewPane(state, vm, Modifier.fillMaxWidth().weight(0.48f))
-                            SliderPane(state, vm, Modifier.fillMaxWidth().weight(0.52f))
+                            PreviewPane(state, vm, guides, Modifier.fillMaxWidth().weight(0.48f))
+                            SliderPane(state, vm, guides, Modifier.fillMaxWidth().weight(0.52f))
                         }
                     }
                 }
@@ -226,13 +236,38 @@ private fun ErrorPane(message: String, onBack: () -> Unit) {
     }
 }
 
+/** What the straighten tools are doing; shared by the slider panel and the preview. */
+@Stable
+class StraightenGuides {
+    /** A finger is on the Straighten slider. */
+    var adjusting by mutableStateOf(false)
+    /** Draw level: the next drag on the preview draws a line that is then made level. */
+    var leveling by mutableStateOf(false)
+}
+
 @Composable
-private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Modifier) {
+private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: StraightenGuides, modifier: Modifier) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var comparing by remember { mutableStateOf(false) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val shown = if (comparing) state.compare else state.preview
+
+    // The grid shows while straightening: slider held, Draw level on, or just after a change.
+    val straighten = state.params[Adjustment.STRAIGHTEN]
+    var lastStraighten by remember { mutableFloatStateOf(straighten) }
+    var recentlyStraightened by remember { mutableStateOf(false) }
+    LaunchedEffect(straighten) {
+        if (straighten == lastStraighten) return@LaunchedEffect
+        lastStraighten = straighten
+        recentlyStraightened = true
+        delay(1500)
+        recentlyStraightened = false
+    }
+    val showGrid = !comparing && (guides.adjusting || guides.leveling || recentlyStraightened)
+    // Draw level: the line being drawn, in preview-pane pixels.
+    var lineStart by remember { mutableStateOf<Offset?>(null) }
+    var lineEnd by remember { mutableStateOf<Offset?>(null) }
 
     // After the view settles, ask for a full-resolution render of what is on screen.
     val bmpW = state.preview?.width ?: 0
@@ -333,9 +368,62 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
                         filterQuality = FilterQuality.Medium,
                     )
                 }
+                if (showGrid) drawStraightenGrid(left, top, w, h, 1.dp.toPx() / scale)
             }
         }
-        state.histogram?.let { bins ->
+        if (guides.leveling) {
+            val accent = MaterialTheme.colorScheme.primary
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .semantics { contentDescription = "Draw a line to level" }
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { lineStart = it; lineEnd = it },
+                            onDrag = { change, _ -> lineEnd = change.position },
+                            onDragEnd = {
+                                val a = lineStart; val b = lineEnd
+                                if (a != null && b != null && (b - a).getDistance() > 32.dp.toPx()) {
+                                    vm.levelLine(b.x - a.x, b.y - a.y)
+                                    guides.leveling = false
+                                }
+                                lineStart = null; lineEnd = null
+                            },
+                            onDragCancel = { lineStart = null; lineEnd = null },
+                        )
+                    },
+            ) {
+                val a = lineStart ?: return@Canvas
+                val b = lineEnd ?: return@Canvas
+                drawLine(Color.Black.copy(alpha = 0.5f), a, b, strokeWidth = 5.dp.toPx(), cap = StrokeCap.Round)
+                drawLine(accent, a, b, strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                for (p in listOf(a, b)) {
+                    drawCircle(Color.Black.copy(alpha = 0.5f), radius = 7.dp.toPx(), center = p)
+                    drawCircle(accent, radius = 5.dp.toPx(), center = p)
+                }
+            }
+        }
+        if (showGrid || guides.leveling) {
+            val a = lineStart; val b = lineEnd
+            val label = when {
+                guides.leveling && a != null && b != null && (b - a).getDistance() > 1f -> lineLabel(b - a)
+                guides.leveling -> "Drag along the horizon or an upright edge"
+                else -> "Straighten ${Adjustment.STRAIGHTEN.format(straighten)}"
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp)
+                    .background(Color(0xD9141416), RoundedCornerShape(10.dp))
+                    .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+        // Out of the way of the guide label while straightening.
+        state.histogram?.takeIf { !showGrid && !guides.leveling }?.let { bins ->
             Histogram(
                 bins,
                 Modifier
@@ -394,9 +482,14 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, modifier: Mod
 }
 
 @Composable
-private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modifier) {
+private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: StraightenGuides, modifier: Modifier) {
     val context = LocalContext.current
     var browsing by remember { mutableStateOf(false) }
+    // Tells the preview when a finger is on the Straighten slider, so it can show the grid.
+    val straightenTouch = remember { MutableInteractionSource() }
+    val straightenDragged by straightenTouch.collectIsDraggedAsState()
+    val straightenPressed by straightenTouch.collectIsPressedAsState()
+    LaunchedEffect(straightenDragged, straightenPressed) { guides.adjusting = straightenDragged || straightenPressed }
     val lookName = remember(state.params.look) {
         state.params.look?.let { id -> LookLibrary.info(context, id)?.name ?: "Unknown look" } ?: "None"
     }
@@ -415,6 +508,14 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
                     trailing = {
                         if (group == AdjustmentGroup.LIGHT) {
                             StrokedTextButton(if (state.autoBusy) "Auto…" else "Auto", onClick = { vm.autoTone() }, enabled = !state.autoBusy)
+                        }
+                        if (group == AdjustmentGroup.LENS) {
+                            StrokedTextButton("Draw level", onClick = { guides.leveling = !guides.leveling }, selected = guides.leveling)
+                            StrokedTextButton(
+                                if (state.straightenBusy) "Straightening…" else "Auto straighten",
+                                onClick = { guides.leveling = false; vm.autoStraighten() },
+                                enabled = !state.straightenBusy && state.preview != null,
+                            )
                         }
                     },
                 ) {
@@ -455,7 +556,12 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, modifier: Modi
                         }
                     }
                     for (adj in adjustments) {
-                        SliderRow(adj, state.params, state.defaults, onChange = { vm.set(adj, it) }, onReset = { vm.resetOne(adj) })
+                        SliderRow(
+                            adj, state.params, state.defaults,
+                            onChange = { vm.set(adj, it) },
+                            onReset = { vm.resetOne(adj) },
+                            interactionSource = if (adj == Adjustment.STRAIGHTEN) straightenTouch else null,
+                        )
                     }
                 }
             }
@@ -471,6 +577,7 @@ private fun SliderRow(
     defaults: DevelopParams,
     onChange: (Float) -> Unit,
     onReset: () -> Unit,
+    interactionSource: MutableInteractionSource? = null,
 ) {
     val value = params[adj]
     val isDefault = params.isDefault(adj, defaults)
@@ -492,6 +599,54 @@ private fun SliderRow(
         }
         // Two-sided adjustments fill from zero outwards; one-sided ones from the left.
         val anchor = if (adj.min < 0f && adj.max > 0f) 0f else adj.min
-        ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor)
+        if (interactionSource != null) {
+            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, interactionSource = interactionSource)
+        } else {
+            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor)
+        }
+    }
+}
+
+/** How far a drawn line is from level or upright, whichever it is nearer. */
+private fun lineLabel(d: Offset): String {
+    var a = atan2(d.y, d.x) * 180f / PI.toFloat()
+    if (a > 90f) a -= 180f
+    if (a <= -90f) a += 180f
+    val upright = abs(a) > 45f
+    val off = if (upright) 90f - abs(a) else abs(a)
+    return "%.1f° off %s".format(off, if (upright) "upright" else "level")
+}
+
+/**
+ * Straighten guides over the photo at ([left], [top], [w] x [h]): a fine square grid from the
+ * centre, with the thirds drawn brighter. Each line is a light stroke on a dark one, so it
+ * reads on bright skies and dark water alike. [px] is one screen pixel in drawing units.
+ */
+private fun DrawScope.drawStraightenGrid(left: Float, top: Float, w: Float, h: Float, px: Float) {
+    val shade = Color.Black.copy(alpha = 0.35f)
+    fun line(a: Offset, b: Offset, alpha: Float, width: Float) {
+        drawLine(shade, a, b, strokeWidth = (width + 1.5f) * px)
+        drawLine(Color.White.copy(alpha = alpha), a, b, strokeWidth = width * px)
+    }
+    val cell = min(w, h) / 8f
+    val cx = left + w / 2f
+    val cy = top + h / 2f
+    var k = 0
+    while (k * cell < w / 2f) {
+        for (x in if (k == 0) listOf(cx) else listOf(cx - k * cell, cx + k * cell)) {
+            line(Offset(x, top), Offset(x, top + h), 0.28f, 0.8f)
+        }
+        k++
+    }
+    k = 0
+    while (k * cell < h / 2f) {
+        for (y in if (k == 0) listOf(cy) else listOf(cy - k * cell, cy + k * cell)) {
+            line(Offset(left, y), Offset(left + w, y), 0.28f, 0.8f)
+        }
+        k++
+    }
+    for (t in listOf(1f / 3f, 2f / 3f)) {
+        line(Offset(left + w * t, top), Offset(left + w * t, top + h), 0.75f, 1.2f)
+        line(Offset(left, top + h * t), Offset(left + w, top + h * t), 0.75f, 1.2f)
     }
 }

@@ -67,6 +67,25 @@ Pinch or double-tap to zoom: once the preview runs out of pixels, the visible ar
 re-rendered from the raw at up to full resolution, so sharpening and noise reduction can be
 judged properly. Edits are saved automatically per file and restored when you reopen it.
 
+### Straightening
+
+While you hold the **Straighten** slider (and for a moment after it changes) a grid lies
+over the photo: a fine square grid from the centre with the thirds drawn brighter, light on
+dark so it shows on skies and water alike, and the angle at the top. Two buttons on the Lens
+section do the measuring for you:
+
+* **Draw level** – drag along anything that should be level or upright (the horizon, a
+  door frame, a pole). Straighten turns the photo so that line becomes exactly horizontal,
+  or vertical if you drew it closer to vertical.
+* **Auto straighten** – finds the photo's longest clean straight line within ±11° of level
+  or upright and levels it, saying whether it went by the horizon or the upright lines.
+  Edges are found with the local structure tensor, so foliage, sand and water texture don't
+  count, and candidate lines are scored Hough-style by how long and continuous they are;
+  uprights near the middle of the frame count most, since perspective tilts those towards
+  the sides. Photos with no line that stands out (most underwater shots) are left alone with
+  a message rather than a guess. Like any automatic level it can be fooled by a strong line
+  that isn't meant to be level (a mat lying askew on a table), so both tools offer **Undo**.
+
 ## Other cameras and phones
 
 The TG-7 is still what the defaults are tuned for, but the same sliders work on raws from
@@ -258,6 +277,10 @@ What they cover:
 * auto tone: exposure tracks the scene (−2 EV in → +2 EV out), results are balanced
   (mean, clipping, crushing), hard scenes (underexposed, clipped, hazy) are rescued; batch
   auto through the library keeps other edits; the editor's Auto/Undo round-trip works;
+* auto straighten: tilted horizons and leaning poles (with ripples and grain) measured to
+  within 0.2° and levelled by the measured amount; texture without lines gets no answer;
+  on real photos, turning the picture by 3° moves the measurement by 3°; the editor's Draw
+  level, Undo and Auto straighten work end to end;
 * noise profiling: recovers known synthetic noise within a few percent, measures noise added
   to a real file, demosaic noise factors; the denoiser halves the error of simulated
   ISO 1600 noise against the clean original while keeping strong-edge detail;

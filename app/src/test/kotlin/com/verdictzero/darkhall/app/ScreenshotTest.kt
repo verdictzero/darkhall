@@ -13,7 +13,17 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import org.junit.Assert.assertTrue
+import kotlin.math.PI
+import kotlin.math.tan
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -107,6 +117,47 @@ class ScreenshotTest {
             waitFor { compose.onAllNodesWithText("Look strength").fetchSemanticsNodes().isNotEmpty() }
             repeat(40) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(50) }
             shot("editor_reef")
+        }
+    }
+
+    /**
+     * The straighten tools: Draw level shows the grid, a drawn line sets Straighten so that it
+     * becomes level, and Auto straighten either levels the photo or says it found nothing.
+     * Uses -Pdarkhall.otherSample when given (a photo with a horizon shows more), else the
+     * main sample.
+     */
+    @Test
+    fun straightenTools() {
+        val path = System.getProperty("darkhall.otherSample").orEmpty().ifEmpty { samplePath }
+        assumeTrue(path.isNotEmpty() && File(path).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(path))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(hasScrollAction()).performScrollToNode(hasText("Draw level"))
+            compose.onNodeWithText("Draw level").performClick()
+            waitFor { compose.onAllNodesWithText("Drag along the horizon", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            if (outDir.isNotEmpty()) shot("straighten_grid")
+
+            // A line rising 2 degrees to the right: Straighten must turn the picture back by 2.
+            compose.onNodeWithContentDescription("Draw a line to level").performTouchInput {
+                val y = centerY
+                val dx = width * 0.6f
+                swipe(Offset(centerX - dx / 2, y + dx / 2 * tan(2.0 * PI / 180).toFloat()), Offset(centerX + dx / 2, y - dx / 2 * tan(2.0 * PI / 180).toFloat()), 400)
+            }
+            waitFor { compose.onAllNodesWithText("Level: Straighten", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            val message = compose.onAllNodesWithText("Level: Straighten", substring = true).fetchSemanticsNodes()
+                .first().config[SemanticsProperties.Text].joinToString("")
+            assertTrue(message, message.contains("-2.0°") || message.contains("−2.0°"))
+            if (outDir.isNotEmpty()) shot("straighten_level")
+            compose.onNodeWithText("Undo").performClick()
+
+            compose.onNodeWithText("Auto straighten").performClick()
+            waitFor {
+                compose.onAllNodesWithText("Auto: Straighten", substring = true).fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithText("Auto: already level").fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithText("No clear horizon", substring = true).fetchSemanticsNodes().isNotEmpty()
+            }
+            if (outDir.isNotEmpty()) shot("straighten_auto")
         }
     }
 }
