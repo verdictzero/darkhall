@@ -48,6 +48,7 @@
                 <data android:mimeType="image/x-panasonic-raw" />
                 <data android:mimeType="image/x-pentax-pef" />
                 <data android:mimeType="image/x-fuji-raf" />
+                <data android:mimeType="image/x-canon-cr3" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -100,6 +101,10 @@
                 <data android:pathPattern=".*\\..*\\.raf" />
                 <data android:pathPattern=".*\\.RAF" />
                 <data android:pathPattern=".*\\..*\\.RAF" />
+                <data android:pathPattern=".*\\.cr3" />
+                <data android:pathPattern=".*\\..*\\.cr3" />
+                <data android:pathPattern=".*\\.CR3" />
+                <data android:pathPattern=".*\\..*\\.CR3" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -115,6 +120,7 @@
                 <data android:mimeType="image/x-panasonic-raw" />
                 <data android:mimeType="image/x-pentax-pef" />
                 <data android:mimeType="image/x-fuji-raf" />
+                <data android:mimeType="image/x-canon-cr3" />
             </intent-filter>
         </activity>
 

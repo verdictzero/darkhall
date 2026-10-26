@@ -2,7 +2,7 @@
 
 A sliders-only RAW developer for Android, built around the files an
 **Olympus Tough TG-7** writes, and opening the raws of most other cameras and phones too
-(DNG, Sony ARW, Nikon NEF, Canon CR2, Panasonic RW2, Pentax PEF, Fujifilm RAF, every
+(DNG, Sony ARW, Nikon NEF, Canon CR2 and CR3, Panasonic RW2, Pentax PEF, Fujifilm RAF, every
 Olympus/OM ORF; see
 [Other cameras and phones](#other-cameras-and-phones)).
 
@@ -188,6 +188,7 @@ other cameras. Each decoder is a Kotlin port of the dcraw/LibRaw algorithm and i
 | ARW | Sony Alpha, RX, ZV | compressed (ARW 2), uncompressed, lossless compressed (L size), SR2-encrypted levels on older bodies | A7 III (both), A7 IV (lossless, APS-C), A6400, ZV-E10, RX100 VA, NEX-6 |
 | NEF | Nikon D and Z | lossless and lossy compression (12/14-bit, with the split tables), uncompressed, Z-series packed 14-bit | D3500, D610, D750, D7000, D850, Z 6, Z 7, Z 50 |
 | CR2 | Canon EOS 2004–2018 | lossless JPEG with Canon's slicing, 2- and 4-component streams, US/Japanese model names | 5D III, 6D II, 80D, 200D, 450D, Rebel T7i |
+| CR3 | Canon EOS R and the later DSLRs/M bodies | CRX lossless (RAW) and wavelet (cRAW), both header versions, tiled streams, levels from the timed-metadata track | EOS R, RP, R5, R6, R10, 90D (both), M50 |
 | RW2 | Panasonic, Leica rebrands | all five encodings (original, GH5S/G9 high-res, S1/S5 generation, S1R high-res, and the GH6/G9 II/S5 II generation) | G9, GH5, GH5S, GH6, G85, GX7, LX100, S5 |
 | PEF | Pentax | Pentax Huffman, uncompressed | K-1, K-70 |
 | RAF | Fujifilm X and GFX (X-Trans and Bayer) | uncompressed, packed 14-bit, Fujifilm's compressed format (lossless and lossy) | X-T2 (both), X-T3, X-T4, X-T5, X-S10, X-A5, GFX 50S |
@@ -208,7 +209,7 @@ vignetting, and the distortion/colour-fringe warp, which drives the *Lens profil
 like the TG lens profile; DNG BaselineExposure is honoured.
 
 Not supported, with a clear message when opened: Fujifilm's older SuperCCD/EXR bodies (S, F
-and HS series), Canon CR3, Canon sRAW/mRAW, Sony
+and HS series), Canon sRAW/mRAW, Sony
 medium/small lossless ARWs, Nikon High Efficiency RAW and small/medium NEFs, lossy and JPEG XL
 DNGs, X-Trans DNGs. Very large sensors (45–60 MP) open and export, but need a phone with a
 generous memory allowance.
@@ -379,8 +380,8 @@ Requires JDK 17+ and the Android SDK (platform 36).
 ### Tests
 
 GitHub Actions runs all of the tests below and Android lint on every push
-(`.github/workflows/ci.yml`), against nine CC0 raws from raw.pixls.us (TG-6, TG-5, Pixel 6
-Pro, EOS 450D, NEX-6, Z 6, LX100, K-70, X-S10) with LibRaw references written by rawpy. To get the
+(`.github/workflows/ci.yml`), against ten CC0 raws from raw.pixls.us (TG-6, TG-5, Pixel 6
+Pro, EOS 450D, NEX-6, Z 6, LX100, K-70, X-S10, EOS R6) with LibRaw references written by rawpy. To get the
 same set locally: `tools/ci/fetch_samples.sh samples` (needs `pip install rawpy numpy`).
 
 The decoder, pipeline and app tests run against a real file. Two have been used:
@@ -465,7 +466,7 @@ What they cover:
 ## Layout
 
 * `core/` – pure Kotlin/JVM: raw format readers and decoders (`core/raw`: a TIFF reader,
-  lossless JPEG, DNG, ORF, ARW, NEF, CR2, RW2, PEF, RAF), the camera colour table, demosaic
+  lossless JPEG, DNG, ORF, ARW, NEF, CR2, CR3, RW2, PEF, RAF), the camera colour table, demosaic
   (superpixel for previews, Malvar-He-Cutler for export and zoom, and X-Trans variants of both), the slider pipeline and its shared
   `RenderPlan`, the GLSL ES port behind a small `Gl` interface, lens geometry, region
   rendering for zoom, banded 12 MP export, and the PNG/TIFF/TGA encoders (`core/export`).

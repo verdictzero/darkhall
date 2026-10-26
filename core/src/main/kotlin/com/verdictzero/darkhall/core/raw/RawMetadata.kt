@@ -25,6 +25,7 @@ enum class RawFormat(val label: String) {
     RW2("Panasonic RW2"),
     PEF("Pentax PEF"),
     RAF("Fujifilm RAF"),
+    CR3("Canon CR3"),
 }
 
 /**

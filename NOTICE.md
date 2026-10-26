@@ -9,7 +9,7 @@ Source code: <https://github.com/verdictzero/darkhall>
 ## Raw decoders: LibRaw and dcraw (CDDL 1.0)
 
 The raw decoders in `core/src/main/kotlin/com/verdictzero/darkhall/core/raw/` (`Bits.kt`,
-`Canon.kt`, `Dng.kt`, `Fuji.kt`, `Nikon.kt`, `OlympusDecoder.kt`, `Panasonic.kt`, `Pentax.kt`,
+`Canon.kt`, `Cr3.kt`, `Dng.kt`, `Fuji.kt`, `Nikon.kt`, `OlympusDecoder.kt`, `Panasonic.kt`, `Pentax.kt`,
 `Sony.kt`) follow LibRaw's and dcraw's decoding code, and the camera colour and Canon model
 tables (`core/src/main/resources/darkhall/camera_colors.tsv`, `canon_models.tsv`) are
 extracted from LibRaw 0.22.1 by `tools/colors/`.
@@ -19,6 +19,8 @@ extracted from LibRaw 0.22.1 by `tools/colors/`.
   **Common Development and Distribution License 1.0** (`LICENSES/CDDL-1.0.txt`).
 - LibRaw's Fujifilm compressed decoder (ported in `Fuji.kt`): Copyright (C) 2016-2019 Alexey
   Danilchenko, part of LibRaw under the same licences.
+- LibRaw's Canon CR3 decoder (ported in `Cr3.kt`): Copyright (C) 2018-2019 Alexey Danilchenko,
+  Copyright (C) 2019 Alex Tutubalin, LibRaw LLC, under the same licences.
 - dcraw.c: copyright 1997-2018 Dave Coffin. Only unrestricted dcraw code is used, as in
   LibRaw.
 - Portions of LibRaw come from the Adobe DNG SDK 1.4, Copyright (c) 2005 Adobe Systems

@@ -26,7 +26,7 @@ object OpenSourceLicenses {
         OpenSourceComponent(
             "LibRaw",
             R.string.licenses_use_libraw,
-            "Copyright (C) 2008-2025 LibRaw LLC. Fujifilm compressed decoder copyright (C) 2016-2019 Alexey Danilchenko. " +
+            "Copyright (C) 2008-2025 LibRaw LLC. Fujifilm compressed and Canon CR3 decoders copyright (C) 2016-2019 Alexey Danilchenko. " +
                 "Includes code from dcraw.c, copyright 1997-2018 Dave Coffin (no restricted dcraw code).",
             "Common Development and Distribution License 1.0",
             "https://www.libraw.org",

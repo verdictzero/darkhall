@@ -232,6 +232,9 @@ class ExifInfo(
             if (makerNote == null) makerNote = exif[0x927C]
         }
 
+        /** A GPS directory on its own (CR3 keeps it in a separate TIFF). */
+        fun gpsFrom(gps: Ifd): GpsInfo? = parseGps(gps)
+
         private fun parseGps(gps: Ifd): GpsInfo? {
             val lat = gps[0x0002]?.doubles(3) ?: return null
             val lon = gps[0x0004]?.doubles(3) ?: return null

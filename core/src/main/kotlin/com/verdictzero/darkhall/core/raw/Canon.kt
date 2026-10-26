@@ -24,6 +24,9 @@ data class Cr2Layout(
 /** Canon CR2 (EOS bodies 2004-2018 and PowerShots of that era). */
 object Cr2Parser {
 
+    /** The international model name for a Canon model ID (maker note tag 0x10), if known. */
+    internal fun modelName(id: Long): String? = canonModels[id]
+
     private val canonModels: Map<Long, String> by lazy {
         val s = Cr2Parser::class.java.getResourceAsStream("/darkhall/canon_models.tsv") ?: return@lazy emptyMap()
         s.bufferedReader().useLines { lines ->
@@ -98,10 +101,10 @@ object Cr2Parser {
         )
     }
 
-    private class ColorData(val wbRggb: DoubleArray?, val blackRggb: IntArray?, val specularWhite: Int?)
+    internal class ColorData(val wbRggb: DoubleArray?, val blackRggb: IntArray?, val specularWhite: Int?)
 
     /** ColorData (MakerNote 0x4001): as-shot levels and per-channel black, at offsets that depend on its length. */
-    private fun colorData(r: ByteReader, e: TiffEntry, bits: Int): ColorData {
+    internal fun colorData(r: ByteReader, e: TiffEntry, bits: Int): ColorData {
         val base = e.offset
         fun s(i: Int) = if (i < e.count) r.u16(base + 2 * i) else 0
         val sub = s(0)
