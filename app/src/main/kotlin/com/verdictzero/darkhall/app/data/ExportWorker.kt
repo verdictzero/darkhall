@@ -14,6 +14,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.verdictzero.darkhall.R
+import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.FullRender
@@ -101,14 +102,14 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     private fun exportOne(uri: Uri, progress: (Float) -> Unit) {
         val context = applicationContext
         val file = RawRepository.describe(context.contentResolver, uri)
-        val (raw, ctx, meta) = run {
-            val loaded = RawRepository.load(context.contentResolver, uri)
-            val raw = RawFormats.decode(loaded.bytes, loaded.meta)
-            val ctx = RenderContext.forFile(loaded.meta, Demosaic.preview(raw, 1280), raw, looks = LookLibrary.source(context))
-            Triple(raw, ctx, loaded.meta) // the file buffer is released here
-        }
+        val (raw, meta) = RawRepository.load(context.contentResolver, uri).let { RawFormats.decode(it.bytes, it.meta) to it.meta }
+        // (the file buffer is released here)
+        val pv = Demosaic.preview(raw, 1280)
+        val ctx = RenderContext.forFile(meta, pv, raw, looks = LookLibrary.source(context))
         val defaults = DevelopParams.defaultsFor(meta, ctx.noise)
         val params = EditsStore.load(context, file.key, defaults) ?: defaults
+        // Sky sliders need the photo's sky: remembered from the editor, or found now.
+        if (params.usesSky()) ctx.sky = SkyDetector.detect(context, file.key, pv, ctx, defaults.with(Adjustment.WATER, 0f), meta)
         val format = settings.format
         val info = PhotoInfo.from(meta)
         val renderProgress = { f: Float -> progress(f * 0.8f) }

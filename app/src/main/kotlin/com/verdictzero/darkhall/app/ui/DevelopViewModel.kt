@@ -9,11 +9,13 @@ import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
+import com.verdictzero.darkhall.app.data.SkyDetector
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
 import com.verdictzero.darkhall.core.gpu.ImageCompare
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AutoStraighten
+import com.verdictzero.darkhall.core.develop.AdjustmentGroup
 import com.verdictzero.darkhall.core.develop.AutoTone
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
@@ -94,7 +96,16 @@ data class DevelopState(
     val straightenBusy: Boolean = false,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
+    val sky: SkyStatus = SkyStatus.UNKNOWN,
+    /** Share of the picture that is sky, once found. */
+    val skyCoverage: Float = 0f,
+    val showSkyMask: Boolean = false,
+    /** The sky mask as a tinted overlay matching [preview], while [showSkyMask] is on. */
+    val skyOverlay: Bitmap? = null,
 )
+
+/** Where the photo's sky detection stands. */
+enum class SkyStatus { UNKNOWN, FINDING, FOUND, NONE }
 
 /**
  * One editing session at a time. The activity owns a single instance; [open] swaps files and
@@ -237,6 +248,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         if (loadedUri != uri) return // closed or switched while loading
         meta = m; raw = r; preview = pv; ctx = c; frame = f
         editsKey = file.key
+        val knownSky = SkyDetector.cached(app, file.key)?.also { c.sky = it }
         _state.update {
             it.copy(
                 fileName = file.name,
@@ -246,12 +258,15 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 params = saved ?: defaults,
                 compare = compare,
                 hasLensProfile = c.lens != null,
+                sky = knownSky?.let { k -> if (k.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND } ?: SkyStatus.UNKNOWN,
+                skyCoverage = knownSky?.coverage ?: 0f,
             )
         }
         setUpGpu(pv, c, f, defaults)
         if (loadedUri != uri) return
         startHistory(saved ?: defaults)
         paramsFlow.value = saved ?: defaults
+        if ((saved ?: defaults).usesSky()) ensureSky()
     }
 
     private class PreviewResult(val bitmap: Bitmap, val histogram: IntArray, val ms: Long, val engine: String)
@@ -263,7 +278,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val m = meta ?: return null
         val t0 = System.nanoTime()
         var engine = "CPU"
-        val px = if (useGpu) {
+        // The GPU shaders have no sky stage: photos using the Sky sliders render on the CPU.
+        val px = if (useGpu && !p.usesSky()) {
             try {
                 GpuRenderer.render(c, p, f).also { engine = "GPU" }
             } catch (e: Throwable) {
@@ -277,6 +293,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
         val hist = Developer.histogram(px)
         val bmp = toBitmap(px, pv.width, pv.height, m.orientation)
+        val overlay = if (_state.value.showSkyMask) skyOverlay(pv, c, p, f, m) else null
+        _state.update { it.copy(skyOverlay = overlay) }
         PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000, engine)
     }
 
@@ -482,7 +500,10 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- sliders ---------------------------------------------------------------------------
 
-    fun set(a: Adjustment, v: Float) = set(a, v, slider = a)
+    fun set(a: Adjustment, v: Float) {
+        if (a.group == AdjustmentGroup.SKY) ensureSky()
+        set(a, v, slider = a)
+    }
 
     private fun set(a: Adjustment, v: Float, slider: Adjustment?) {
         val next = _state.value.params.with(a, v)
@@ -530,6 +551,61 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(params = before, beforeAuto = null) }
         paramsFlow.value = before
         record(before)
+    }
+
+    // ---- sky ---------------------------------------------------------------------------------
+
+    /**
+     * Finds the photo's sky if that hasn't been done yet: a second or two on the CPU, once per
+     * photo (the result is cached on disk). The preview re-renders when it's in.
+     */
+    fun ensureSky() {
+        if (_state.value.sky != SkyStatus.UNKNOWN) return
+        val pv = preview ?: return
+        val c = ctx ?: return
+        val m = meta ?: return
+        val key = editsKey
+        val asShot = _state.value.defaults.with(Adjustment.WATER, 0f)
+        _state.update { it.copy(sky = SkyStatus.FINDING) }
+        viewModelScope.launch {
+            val mask = try {
+                withContext(Dispatchers.Default) { SkyDetector.detect(getApplication(), key, pv, c, asShot, m) }
+            } catch (e: Throwable) {
+                if (e is CancellationException) throw e
+                _state.update { it.copy(sky = SkyStatus.UNKNOWN, message = "Couldn't look for the sky: ${e.message ?: e.javaClass.simpleName}") }
+                return@launch
+            }
+            if (ctx !== c) return@launch // another photo by now
+            c.sky = mask
+            _state.update {
+                it.copy(sky = if (mask.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND, skyCoverage = mask.coverage)
+            }
+            rerender()
+        }
+    }
+
+    fun toggleSkyMask() {
+        _state.update { it.copy(showSkyMask = !it.showSkyMask, skyOverlay = null) }
+        ensureSky()
+        rerender()
+    }
+
+    private fun rerender() {
+        viewModelScope.launch {
+            val p = paramsFlow.value ?: return@launch
+            val r = withContext(Dispatchers.Default) { renderPreview(p) } ?: return@launch
+            _state.update { s -> s.copy(preview = r.bitmap, previewParams = p, histogram = r.histogram, renderMs = r.ms, engine = r.engine) }
+        }
+    }
+
+    /** The sky mask over the preview: magenta, see-through where there's no sky, upright and straightened like the picture. */
+    private fun skyOverlay(pv: LinearImage, c: RenderContext, p: DevelopParams, f: Frame, m: RawMetadata): Bitmap? {
+        val sky = c.sky ?: return null
+        val mask = sky.forFrame(pv, f, m.crop.width, m.crop.height)
+        val grey = IntArray(mask.size) { i -> val v = (mask[i] * 255f + 0.5f).toInt().coerceIn(0, 255); (0xFF shl 24) or (v shl 16) or (v shl 8) or v }
+        val placed = Geometry.apply(grey, pv.width, pv.height, p, c.lens)
+        val tinted = IntArray(placed.size) { i -> (((placed[i] and 0xFF) * 150 / 255) shl 24) or 0xFF28C8 }
+        return toBitmap(tinted, pv.width, pv.height, m.orientation)
     }
 
     // ---- straighten ---------------------------------------------------------------------------
@@ -714,5 +790,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         /** EXIF orientations that mirror the picture. */
         val MIRRORED = setOf(2, 4, 5, 7)
         const val MAX_HISTORY = 200
+        /** Less sky than this (share of the picture) counts as none. */
+        const val MIN_SKY = 0.005f
     }
 }

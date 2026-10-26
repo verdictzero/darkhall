@@ -380,24 +380,26 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 },
         ) {
             val divider = strokes.selected
+            val skyOverlay = state.skyOverlay?.takeIf { state.showSkyMask }
             when (mode) {
                 CompareMode.SINGLE -> PhotoView(
                     bitmap = if (original) state.compare else state.preview,
                     loupe = state.loupe?.takeIf { !original && it.params == state.params },
                     scale = scale, offset = offset,
                     showGrid = showGrid,
-                    label = if (original) "Original" else null,
+                    label = if (original) "Original" else if (skyOverlay != null) "Sky mask" else null,
                     modifier = Modifier.fillMaxSize().semantics { contentDescription = "Preview" },
+                    overlay = if (original) null else skyOverlay,
                 )
                 CompareMode.SIDE_BY_SIDE -> Row(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
                     PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxHeight())
                     Box(Modifier.width(2.dp).fillMaxHeight().background(divider))
-                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxHeight())
+                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxHeight(), skyOverlay)
                 }
                 CompareMode.TOP_BOTTOM -> Column(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
                     PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxWidth())
                     Box(Modifier.height(2.dp).fillMaxWidth().background(divider))
-                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxWidth())
+                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxWidth(), skyOverlay)
                 }
             }
         }
@@ -523,6 +525,8 @@ private fun PhotoView(
     showGrid: Boolean,
     label: String?,
     modifier: Modifier,
+    /** Drawn over the photo, same placement (the sky mask). */
+    overlay: Bitmap? = null,
 ) {
     val frameStroke = LocalStrokes.current.overlay
     Box(modifier.clipToBounds()) {
@@ -558,6 +562,14 @@ private fun PhotoView(
                     loupe.bitmap.asImageBitmap(),
                     dstOffset = IntOffset(lx.roundToInt(), ly.roundToInt()),
                     dstSize = IntSize(max(1, lw.roundToInt()), max(1, lh.roundToInt())),
+                    filterQuality = FilterQuality.Medium,
+                )
+            }
+            if (overlay != null) {
+                drawImage(
+                    overlay.asImageBitmap(),
+                    dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
+                    dstSize = IntSize(w.roundToInt(), h.roundToInt()),
                     filterQuality = FilterQuality.Medium,
                 )
             }
@@ -651,6 +663,9 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         if (group == AdjustmentGroup.LIGHT) {
                             StrokedTextButton(if (state.autoBusy) "Auto…" else "Auto", onClick = { vm.autoTone() }, enabled = !state.autoBusy)
                         }
+                        if (group == AdjustmentGroup.SKY) {
+                            StrokedTextButton("Show mask", onClick = { vm.toggleSkyMask() }, selected = state.showSkyMask)
+                        }
                         if (group == AdjustmentGroup.LENS) {
                             StrokedTextButton("Draw level", onClick = { guides.leveling = !guides.leveling }, selected = guides.leveling)
                             StrokedTextButton(
@@ -661,6 +676,20 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         }
                     },
                 ) {
+                    if (group == AdjustmentGroup.SKY) {
+                        // Scrolling the Sky section into view starts looking for the sky (once per photo).
+                        LaunchedEffect(Unit) { vm.ensureSky() }
+                        Text(
+                            when (state.sky) {
+                                SkyStatus.UNKNOWN, SkyStatus.FINDING -> "Finding the sky… (a second or two, once per photo)"
+                                SkyStatus.FOUND -> "Sky found: ${(state.skyCoverage * 100).roundToInt()}% of the picture. These sliders change only the sky."
+                                SkyStatus.NONE -> "No sky found in this photo."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
+                        )
+                    }
                     if (group == AdjustmentGroup.LOOK) {
                         val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
                         Row(
@@ -742,10 +771,11 @@ private fun SliderRow(
         }
         // Two-sided adjustments fill from zero outwards; one-sided ones from the left.
         val anchor = if (adj.min < 0f && adj.max > 0f) 0f else adj.min
+        val tag = Modifier.testTag("slider-${adj.name}")
         if (interactionSource != null) {
-            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, interactionSource = interactionSource)
+            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, modifier = tag, interactionSource = interactionSource)
         } else {
-            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor)
+            ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, modifier = tag)
         }
     }
 }

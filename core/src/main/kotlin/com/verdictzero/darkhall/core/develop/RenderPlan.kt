@@ -77,11 +77,20 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     val sharpen: Float = p[Adjustment.SHARPEN] / 100f
     val sharpenOn: Boolean = sharpen > 0.005f
     val clarityOn: Boolean = abs(clarity) > 0.005f
-    val detailOn: Boolean = sharpenOn || clarityOn
+    val detailOn: Boolean get() = sharpenOn || clarityOn || skyClarityOn
     val sharpenRadius: Int = max(1, (1.0f * frame.scale).roundToInt())
     val sharpenAmount: Float = sharpen * 1.6f
     val clarityRadius: Int = max(2, (0.015f * ctx.fullWidth * frame.scale).roundToInt())
     val clarityAmount: Float = clarity * 0.7f
+
+    // ---- sky (through ctx.sky's mask) ------------------------------------------------------------
+    val skyEv: Float = p[Adjustment.SKY_EXPOSURE]
+    val skySaturation: Float = p[Adjustment.SKY_SATURATION] / 100f
+    val skyWarmth: Float = p[Adjustment.SKY_WARMTH] / 100f
+    val skyClarity: Float = p[Adjustment.SKY_CLARITY] / 100f * 0.9f
+    val skyColourOn: Boolean = ctx.sky != null && (abs(skyEv) > 0.005f || abs(skySaturation) > 0.005f || abs(skyWarmth) > 0.005f)
+    val skyClarityOn: Boolean = ctx.sky != null && abs(skyClarity) > 0.005f
+    val skyOn: Boolean = skyColourOn || skyClarityOn
 
     init {
         val temp = p[Adjustment.TEMPERATURE] / 100f

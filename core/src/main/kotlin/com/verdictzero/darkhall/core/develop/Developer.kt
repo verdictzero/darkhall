@@ -45,6 +45,9 @@ class RenderContext(
     /** Exposure the file asks to be added before the Exposure slider (DNG BaselineExposure), in EV. */
     val baselineEv: Float = 0f,
 ) {
+    /** The photo's detected sky, once found (see [com.verdictzero.darkhall.core.sky.SkyMask]); the Sky sliders need it. */
+    @Volatile var sky: com.verdictzero.darkhall.core.sky.SkyMask? = null
+
     /** Noise variance of one rendered pixel relative to one raw sample, at render [scale]. */
     fun demosaicNoise(scale: Float): Float {
         val s = min(1f, scale)
@@ -115,6 +118,7 @@ class Developer {
         wr = FloatArray(0); wg = FloatArray(0); wb = FloatArray(0)
         t1 = FloatArray(0); t2 = FloatArray(0); t3 = FloatArray(0); t4 = FloatArray(0)
         t5 = FloatArray(0)
+        skyCache = null; skyCacheKey = null
     }
 
     /**
@@ -176,6 +180,8 @@ class Developer {
         }
 
         val plan = RenderPlan(ctx, p, frame)
+        // The sky mask for this frame, from the untouched input (before any in-place work).
+        val skyMask = if (plan.skyOn) skyMaskFor(img, ctx, frame, inPlace) else null
 
         // ---- 1. colour: WB, underwater, temperature/tint, matrix, exposure, vignette ----
         val gainR = plan.mulA[0]; val gainG = plan.mulA[1]; val gainB = plan.mulA[2]
@@ -207,6 +213,28 @@ class Developer {
                     }
                     r[i] = sr * k; g[i] = sg * k; b[i] = sb * k
                     i++
+                }
+            }
+        }
+
+        // ---- 1b. sky: exposure, warmth and saturation through the mask --------------------
+        if (skyMask != null && plan.skyColourOn) {
+            val ev = plan.skyEv; val warm = plan.skyWarmth * 0.25f; val sat = plan.skySaturation
+            Parallel.rows(h) { y0, y1 ->
+                for (i in y0 * w until y1 * w) {
+                    val mk = skyMask[i]
+                    if (mk < 1e-3f) continue
+                    val k = pow2(ev * mk)
+                    var cr = r[i] * k * (1f + warm * mk)
+                    val cg = g[i] * k
+                    var cb = b[i] * k * (1f - warm * mk)
+                    var cg2 = cg
+                    if (sat != 0f) {
+                        val y = LUM_R * cr + LUM_G * cg + LUM_B * cb
+                        val f = max(0f, 1f + sat * mk)
+                        cr = y + (cr - y) * f; cg2 = y + (cg - y) * f; cb = y + (cb - y) * f
+                    }
+                    r[i] = max(0f, cr); g[i] = max(0f, cg2); b[i] = max(0f, cb)
                 }
             }
         }
@@ -315,6 +343,18 @@ class Developer {
                     }
                 }
             }
+            if (skyMask != null && plan.skyClarityOn) {
+                // The same local contrast as Clarity (same blur, already in t4 when Clarity is on),
+                // only in the sky: clouds gain shape.
+                if (!plan.clarityOn) Filters.blur(t1, t4, t3, w, h, plan.clarityRadius, passes = 3)
+                val a = plan.skyClarity
+                Parallel.rows(h) { y0, y1 ->
+                    for (i in y0 * w until y1 * w) {
+                        val d = t1[i] - t4[i]
+                        t2[i] += a * skyMask[i] * d / (1f + 3f * abs(d))
+                    }
+                }
+            }
             Parallel.rows(h) { y0, y1 ->
                 for (i in y0 * w until y1 * w) {
                     val yy = t1[i]
@@ -330,6 +370,19 @@ class Developer {
         }
 
         return pack(r, g, b, n, w, h)
+    }
+
+    // The preview renders the same image at the same frame over and over: keep its mask.
+    private var skyCache: FloatArray? = null
+    private var skyCacheKey: List<Any>? = null
+
+    private fun skyMaskFor(img: LinearImage, ctx: RenderContext, frame: Frame, inPlace: Boolean): FloatArray {
+        val sky = ctx.sky!!
+        val key = listOf(System.identityHashCode(img), img.width, img.height, sky, frame.x0, frame.y0, frame.scale)
+        if (!inPlace && key == skyCacheKey) skyCache?.let { return it }
+        val m = sky.forFrame(img, frame, ctx.fullWidth, ctx.fullHeight)
+        if (!inPlace) { skyCache = m; skyCacheKey = key }
+        return m
     }
 
     /**

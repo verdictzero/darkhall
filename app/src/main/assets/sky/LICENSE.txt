@@ -1,0 +1,11 @@
+Sky detection model: deeplab_mnv2_ade20k.bin
+
+DeepLab v3+ with a MobileNetV2 backbone, trained on the ADE20K scene parsing dataset, from
+the TensorFlow Models repository (deeplabv3_mnv2_ade20k_train_2018_12_03):
+  https://github.com/tensorflow/models/tree/master/research/deeplab
+Converted by Darkhall's tools/sky/export_deeplab.py (batch norm folded into the
+convolutions, weights stored as 16-bit floats). Licensed under the Apache License 2.0:
+  https://www.apache.org/licenses/LICENSE-2.0
+
+The training images (ADE20K, MIT CSAIL) are released for research and education; the
+model weights themselves are distributed by Google under Apache 2.0.

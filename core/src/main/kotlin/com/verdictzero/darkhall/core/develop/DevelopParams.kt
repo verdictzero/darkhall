@@ -5,7 +5,7 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 
 enum class AdjustmentGroup(val title: String) {
-    LOOK("Look"), LIGHT("Light"), COLOR("Color"), DETAIL("Detail"), LENS("Lens")
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"), SKY("Sky"), DETAIL("Detail"), LENS("Lens")
 }
 
 /**
@@ -48,6 +48,12 @@ enum class Adjustment(
     VIGNETTE("Vignette", AdjustmentGroup.LENS, -100f, 100f, 0f),
     DISTORTION("Distortion", AdjustmentGroup.LENS, -100f, 100f, 0f),
     STRAIGHTEN("Straighten", AdjustmentGroup.LENS, -10f, 10f, 0f, 1, "°"),
+
+    // Applied through the sky mask (the photo's detected sky only); see SkyMask.
+    SKY_EXPOSURE("Sky exposure", AdjustmentGroup.SKY, -2f, 2f, 0f, 2, " EV"),
+    SKY_SATURATION("Sky saturation", AdjustmentGroup.SKY, -100f, 100f, 0f),
+    SKY_CLARITY("Sky clarity", AdjustmentGroup.SKY, -100f, 100f, 0f),
+    SKY_WARMTH("Sky warmth", AdjustmentGroup.SKY, -100f, 100f, 0f),
     ;
 
     fun format(v: Float): String {
@@ -71,6 +77,9 @@ class DevelopParams private constructor(private val values: FloatArray, val look
     fun withLook(id: String?): DevelopParams = DevelopParams(values.copyOf(), id)
 
     fun reset(a: Adjustment, defaults: DevelopParams) = with(a, defaults[a])
+
+    /** True when any Sky slider is in use, so the photo's sky mask is needed. */
+    fun usesSky(): Boolean = Adjustment.entries.any { it.group == AdjustmentGroup.SKY && kotlin.math.abs(values[it.ordinal]) > 1e-4f }
 
     fun isDefault(a: Adjustment, defaults: DevelopParams) = kotlin.math.abs(values[a.ordinal] - defaults[a]) < 1e-4f
 

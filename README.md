@@ -92,6 +92,37 @@ section do the measuring for you:
   a message rather than a guess. Like any automatic level it can be fooled by a strong line
   that isn't meant to be level (a mat lying askew on a table), so both tools offer **Undo**.
 
+### Sky
+
+The **Sky** sliders (Sky exposure, Sky saturation, Sky clarity, Sky warmth) change only the
+photo's sky. **Show mask** paints what counts as sky over the preview.
+
+How the sky is found, on the phone, with nothing sent anywhere:
+
+1. **A neural network marks the sky.** DeepLab v3+ with a MobileNetV2 backbone, trained on
+   the ADE20K scene dataset (150 kinds of things, "sky" among them), runs on the photo turned
+   upright and scaled to fit 513 px. It gives a probability of sky for every 4 × 4 px cell.
+   The network is implemented in plain Kotlin in `core/sky/SkyNet.kt` (no native libraries);
+   its 2.3 million weights ship as a 4.6 MB file of 16-bit floats. It runs once per photo,
+   the first time the Sky section comes into view, in a second or two, and the result is kept
+   on disk.
+2. **The edge is snapped to the picture.** For whatever is being drawn (the preview, a zoomed
+   area, a band of the full-size export) the coarse probabilities are scaled up and an
+   edge-aware (guided) filter pulls the mask's edge onto the photo's own brightness edges, so
+   roof lines and ridges stay crisp at full resolution.
+3. **Gaps in trees are filled in.** Where the network is unsure, each pixel is compared with
+   the sky colour expected at that spot (the average of nearby certain sky): blue between
+   leaves joins the sky, branches stay out.
+
+The sliders are then blended through the mask: exposure, warmth and saturation in linear
+light before the tone curve, clarity as local contrast in the detail stage, so the change
+fades out smoothly at the sky's edge. While a Sky slider is in use the preview renders on the
+CPU (the GPU shaders have no sky stage yet).
+
+Limits: a still lake mirroring the sky can be partly marked, dense canopies give a patchy
+mask, and a dim, plain room can pass for a night sky; Show mask makes all of these plain.
+Underwater shots have no sky, so the section says so and does nothing.
+
 ## Other cameras and phones
 
 The TG-7 is still what the defaults are tuned for, but the same sliders work on raws from
@@ -309,6 +340,10 @@ What they cover:
   within 0.2° and levelled by the measured amount; texture without lines gets no answer;
   on real photos, turning the picture by 3° moves the measurement by 3°; the editor's Draw
   level, Undo and Auto straighten work end to end;
+* sky: the Kotlin network matches a NumPy reference (itself matching TensorFlow to 0.0005) to
+  0.00002 in sky probability; skies found in landscape, city and seascape samples and not in
+  indoor ones; the Sky sliders change the sky and leave the ground alone, in the preview and
+  in the full-size export; the editor finds, shows and edits the sky end to end;
 * noise profiling: recovers known synthetic noise within a few percent, measures noise added
   to a real file, demosaic noise factors; the denoiser halves the error of simulated
   ISO 1600 noise against the clean original while keeping strong-edge detail;
@@ -365,3 +400,8 @@ Coffin and [LibRaw](https://www.libraw.org) (LibRaw LLC). The camera colour tabl
 (`core/src/main/resources/darkhall/camera_colors.tsv`, Adobe DNG Converter matrices) and
 the Canon model table are extracted from LibRaw 0.22.1 by `tools/colors/`; LibRaw is
 available under LGPL 2.1 or CDDL 1.0.
+
+Sky detection: DeepLab v3+ with a MobileNetV2 backbone trained on ADE20K, from the TensorFlow
+Models repository (Apache 2.0), converted by `tools/sky/export_deeplab.py`
+(`app/src/main/assets/sky/LICENSE.txt`). The ADE20K images it was trained on (MIT CSAIL) are
+released for research and education.
