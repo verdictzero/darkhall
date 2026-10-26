@@ -15,13 +15,13 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.core.develop.Adjustment
-import com.verdictzero.darkhall.core.develop.Crop
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.FullRender
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.export.ArgbRows
 import com.verdictzero.darkhall.core.export.CroppedRows
+import com.verdictzero.darkhall.core.export.ResizedRows
 import com.verdictzero.darkhall.core.export.ExportFormat
 import com.verdictzero.darkhall.core.export.GeometryRows16
 import com.verdictzero.darkhall.core.export.PhotoInfo
@@ -50,6 +50,8 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     private val stack = inputData.getBoolean(ExportQueue.KEY_STACK, false)
     private val settings = ExportQueue.settingsOf(inputData)
     private var folder: String? = null
+    /** Where each exported file went, for sharing. */
+    private val published = ArrayList<Uri>()
 
     override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(0, 0f, null)
 
@@ -92,6 +94,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 ExportQueue.KEY_FAILED to failedNames.size,
                 ExportQueue.KEY_FAILED_NAMES to failedNames.joinToString(", ").take(2000),
                 ExportQueue.KEY_FOLDER to folder,
+                ExportQueue.KEY_URIS to ExportQueue.joinUris(published),
             )
         )
     }
@@ -134,50 +137,22 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val encodeProgress = { f: Float -> progress(0.8f + f * 0.18f) }
         val temp = File.createTempFile("export", ".${format.extension}", context.cacheDir)
         try {
-            if (settings.bits == 16) {
+            // Every path ends in rows of the upright, cropped, resized picture.
+            val rows: RowSource = if (settings.bits == 16) {
                 val r = FullRender.render16(raw, ctx, params, renderProgress, isCancelled = { isStopped })
                     ?: throw IllegalStateException("cancelled")
-                val rows = CroppedRows.of(GeometryRows16(r.rgb, r.width, r.height, r.geometry, meta.orientation), params)
-                when (format) {
-                    ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
-                    ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)
-                    else -> error("$format has no 16-bit form")
-                }
+                GeometryRows16(r.rgb, r.width, r.height, r.geometry, meta.orientation)
             } else {
                 val r = FullRender.render(raw, ctx, params, renderProgress, isCancelled = { isStopped })
                     ?: throw IllegalStateException("cancelled")
-                when (format) {
-                    ExportFormat.JPEG, ExportFormat.WEBP -> {
-                        var bmp = Bitmap.createBitmap(r.argb, r.width, r.height, Bitmap.Config.ARGB_8888)
-                        bmp = RawRepository.applyOrientation(bmp, meta.orientation)
-                        val crop = Crop.of(params)
-                        if (!crop.isFull) {
-                            val c = crop.pixels(bmp.width, bmp.height)
-                            val cut = Bitmap.createBitmap(bmp, c.x, c.y, c.width, c.height)
-                            if (cut !== bmp) bmp.recycle()
-                            bmp = cut
-                        }
-                        FileOutputStream(temp).use { out ->
-                            if (format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
-                            else bmp.compress(webpLossless(), 100, out)
-                        }
-                        bmp.recycle()
-                    }
-                    else -> {
-                        val rows = CroppedRows.of(ArgbRows(r.argb, r.width, r.height, meta.orientation), params)
-                        when (format) {
-                            ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
-                            ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)
-                            else -> TgaWriter.write(rows, temp, encodeProgress)
-                        }
-                    }
-                }
+                ArgbRows(r.argb, r.width, r.height, meta.orientation)
             }
+            write(ResizedRows.of(CroppedRows.of(rows, params), settings.longEdge), temp, info, encodeProgress)
             if (format == ExportFormat.JPEG || format == ExportFormat.PNG || format == ExportFormat.WEBP) {
                 ExportService.writeExif(temp, info)
             }
             progress(0.98f)
-            folder = ExportService.publish(context, temp, format, file.baseName).folder
+            ExportService.publish(context, temp, format, file.baseName).also { folder = it.folder; published += it.uri }
         } finally {
             temp.delete()
         }
@@ -238,23 +213,30 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val format = settings.format
         val temp = File.createTempFile("stack", ".${format.extension}", context.cacheDir)
         try {
-            when (format) {
-                ExportFormat.PNG -> PngWriter.write(if (settings.bits == 16) rows else EightBit(rows), temp, mapOf("Software" to info.software))
-                ExportFormat.TIFF -> TiffWriter.write(if (settings.bits == 16) rows else EightBit(rows), temp, settings.tiffCompressed, info)
-                ExportFormat.TGA -> TgaWriter.write(EightBit(rows), temp)
-                ExportFormat.JPEG, ExportFormat.WEBP -> {
-                    val bmp = toBitmap(EightBit(rows))
-                    FileOutputStream(temp).use { out ->
-                        if (format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
-                        else bmp.compress(webpLossless(), 100, out)
-                    }
-                    bmp.recycle()
-                }
-            }
+            write(ResizedRows.of(rows, settings.longEdge), temp, info, null)
             if (format == ExportFormat.JPEG || format == ExportFormat.PNG || format == ExportFormat.WEBP) ExportService.writeExif(temp, info)
-            folder = ExportService.publish(context, temp, format, first.baseName + "_stack").folder
+            ExportService.publish(context, temp, format, first.baseName + "_stack").also { folder = it.folder; published += it.uri }
         } finally {
             temp.delete()
+        }
+    }
+
+    /** Writes [rows] to [file] in the chosen format, at the chosen depth (8-bit formats get 8 bits). */
+    private fun write(rows: RowSource, file: File, info: PhotoInfo, progress: ((Float) -> Unit)?) {
+        val wanted = if (settings.bits == 16) rows else EightBit(rows)
+        when (settings.format) {
+            ExportFormat.PNG -> PngWriter.write(wanted, file, mapOf("Software" to info.software), progress)
+            ExportFormat.TIFF -> TiffWriter.write(wanted, file, settings.tiffCompressed, info, progress)
+            ExportFormat.TGA -> TgaWriter.write(EightBit(rows), file, progress)
+            ExportFormat.JPEG, ExportFormat.WEBP -> {
+                val bmp = toBitmap(EightBit(rows))
+                FileOutputStream(file).use { out ->
+                    if (settings.format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
+                    else bmp.compress(webpLossless(), 100, out)
+                }
+                bmp.recycle()
+                progress?.invoke(1f)
+            }
         }
     }
 

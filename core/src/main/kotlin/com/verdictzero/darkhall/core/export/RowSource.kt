@@ -115,3 +115,56 @@ class CroppedRows(private val src: RowSource, private val rect: PixelRect) : Row
         }
     }
 }
+
+/**
+ * [src] scaled down so its long edge is [longEdge] pixels, by area averaging: each output
+ * pixel is the mean of the source pixels it covers (fractions at the edges counted by area),
+ * which keeps fine detail from aliasing. Rows are computed on demand from the source's rows.
+ */
+class ResizedRows(private val src: RowSource, longEdge: Int) : RowSource {
+    private val k = maxOf(src.width, src.height).toDouble() / longEdge
+    override val width = maxOf(1, Math.round(src.width / k).toInt())
+    override val height = maxOf(1, Math.round(src.height / k).toInt())
+    override val bits = src.bits
+    private val sx = src.width.toDouble() / width
+    private val sy = src.height.toDouble() / height
+    private val line = IntArray(3 * src.width)
+    private val narrow = DoubleArray(3 * width)
+    private val acc = DoubleArray(3 * width)
+
+    override fun row(y: Int, out: IntArray) {
+        acc.fill(0.0)
+        val y0 = y * sy; val y1 = (y + 1) * sy
+        var j = y0.toInt()
+        while (j < y1 && j < src.height) {
+            val wy = minOf(y1, j + 1.0) - maxOf(y0, j.toDouble())
+            src.row(j, line)
+            shrink(line, narrow)
+            for (i in acc.indices) acc[i] += narrow[i] * wy
+            j++
+        }
+        val max = if (bits == 16) 65535 else 255
+        for (i in acc.indices) out[i] = (acc[i] / sy + 0.5).toInt().coerceIn(0, max)
+    }
+
+    /** One source row averaged down to [width] pixels. */
+    private fun shrink(row: IntArray, dst: DoubleArray) {
+        for (x in 0 until width) {
+            val x0 = x * sx; val x1 = (x + 1) * sx
+            var r = 0.0; var g = 0.0; var b = 0.0
+            var i = x0.toInt()
+            while (i < x1 && i < src.width) {
+                val w = minOf(x1, i + 1.0) - maxOf(x0, i.toDouble())
+                r += row[3 * i] * w; g += row[3 * i + 1] * w; b += row[3 * i + 2] * w
+                i++
+            }
+            dst[3 * x] = r / sx; dst[3 * x + 1] = g / sx; dst[3 * x + 2] = b / sx
+        }
+    }
+
+    companion object {
+        /** [src] with its long edge brought down to [longEdge] (0 or larger than the picture: unchanged). */
+        fun of(src: RowSource, longEdge: Int): RowSource =
+            if (longEdge <= 0 || longEdge >= maxOf(src.width, src.height)) src else ResizedRows(src, longEdge)
+    }
+}

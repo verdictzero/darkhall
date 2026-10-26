@@ -26,11 +26,14 @@ data class ExportSettings(
     val sixteenBit: Boolean = false,
     /** TIFF: Deflate (ZIP) compression with a horizontal predictor; off writes it uncompressed. */
     val tiffCompressed: Boolean = true,
+    /** Long edge of the exported picture in pixels; 0 for the full size. Never enlarges. */
+    val longEdge: Int = 0,
 ) {
     val bits: Int get() = if (sixteenBit && format.supports16Bit) 16 else 8
 
     /** One line for the UI, e.g. "TIFF · 16-bit · ZIP". */
     fun describe(): String = buildList {
+        if (longEdge > 0) add("$longEdge px")
         add(format.label)
         when (format) {
             ExportFormat.JPEG -> add("quality $jpegQuality")
@@ -41,3 +44,6 @@ data class ExportSettings(
         }
     }.joinToString(" · ")
 }
+
+/** Long edges offered for export, 0 being the full size. */
+val EXPORT_SIZES = listOf(0, 4096, 3000, 2048, 1600, 1080)

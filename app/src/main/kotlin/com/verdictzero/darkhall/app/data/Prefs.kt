@@ -54,10 +54,12 @@ class Prefs(context: Context) {
             jpegQuality = sp.getInt("exportQuality", 95),
             sixteenBit = sp.getBoolean("export16", false),
             tiffCompressed = sp.getBoolean("exportTiffZip", true),
+            longEdge = sp.getInt("exportLongEdge", 0),
         )
         set(v) {
             sp.edit().putString("exportFormat", v.format.name).putInt("exportQuality", v.jpegQuality)
-                .putBoolean("export16", v.sixteenBit).putBoolean("exportTiffZip", v.tiffCompressed).apply()
+                .putBoolean("export16", v.sixteenBit).putBoolean("exportTiffZip", v.tiffCompressed)
+                .putInt("exportLongEdge", v.longEdge).apply()
         }
 
     var previewLongEdge: Int

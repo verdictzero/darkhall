@@ -382,7 +382,9 @@ class ScreenshotTest {
         ActivityScenario.launch<MainActivity>(intent).use {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("crop-R5_4"))
-            compose.onNodeWithTag("crop-R5_4").performClick()
+            // (Scrolling to a node stops once its section shows; bring the chips fully into view.)
+            compose.onNodeWithTag(SLIDERS_TAG).performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 400f) }
+            compose.onNodeWithTag("crop-R5_4").performScrollTo().performClick()
             if (compose.onAllNodesWithContentDescription("Make the crop portrait").fetchSemanticsNodes().isNotEmpty()) {
                 compose.onNodeWithContentDescription("Make the crop portrait").performScrollTo().performClick()
             }

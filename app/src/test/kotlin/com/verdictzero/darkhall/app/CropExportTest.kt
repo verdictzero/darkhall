@@ -14,6 +14,9 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import android.graphics.BitmapFactory
@@ -83,7 +86,7 @@ class CropExportTest {
         val known = wm.getWorkInfosForUniqueWork(ExportQueue.UNIQUE_NAME).get().map { it.id }.toSet()
         val before = FakeMediaStore.inserted.size
         compose.onNodeWithText("Export").performClick()
-        for (c in chips) compose.onNodeWithText(c).performClick()
+        for (c in chips) compose.onNodeWithText(c).also { n -> runCatching { n.performScrollTo() } }.performClick()
         compose.onNodeWithText("Start export").performClick()
         // The new request (it may already have run: the executor is synchronous).
         waitFor(30_000) { wm.getWorkInfosForUniqueWork(ExportQueue.UNIQUE_NAME).get().any { it.id !in known } }
@@ -108,7 +111,9 @@ class CropExportTest {
         ActivityScenario.launch<MainActivity>(intent).use {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("crop-SQUARE"))
-            compose.onNodeWithTag("crop-SQUARE").performClick()
+            // (Scrolling to a node stops once its section shows; bring the chips fully into view.)
+            compose.onNodeWithTag(SLIDERS_TAG).performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 400f) }
+            compose.onNodeWithTag("crop-SQUARE").performScrollTo().performClick()
             waitFor { compose.onAllNodesWithText("Cropped to 1:1", substring = true).fetchSemanticsNodes().isNotEmpty() }
             // Slide the square sideways; it keeps its shape and size.
             compose.onNodeWithContentDescription("Crop").performTouchInput { swipe(center, center - Offset(width * 0.3f, 0f), 300) }
@@ -126,7 +131,21 @@ class CropExportTest {
             val tw = (g[12].toInt() and 0xFF) or ((g[13].toInt() and 0xFF) shl 8)
             val th = (g[14].toInt() and 0xFF) or ((g[15].toInt() and 0xFF) shl 8)
             assertTrue("TGA ${tw}x$th, expected $side", abs(tw - side) <= 1 && abs(th - side) <= 1)
-            export("JPEG")
+            // A smaller copy: the long edge as picked (the crop is square, so both sides).
+            val (small, _) = export("JPEG", "1080 px")
+            val so = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(small.path, so)
+            assertEquals(1080, so.outWidth); assertEquals(1080, so.outHeight)
+            export("JPEG", "Full")
+
+            // The banner offers the files to share.
+            waitFor(30_000) { compose.onAllNodesWithText("Share").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Share").performClick()
+            val started = shadowOf(app).nextStartedActivity
+            assertEquals(Intent.ACTION_CHOOSER, started.action)
+            @Suppress("DEPRECATION")
+            val inner = started.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            assertEquals(Intent.ACTION_SEND, inner.action)
         }
     }
 }

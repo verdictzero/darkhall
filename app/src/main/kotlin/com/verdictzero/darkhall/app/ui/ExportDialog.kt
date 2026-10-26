@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.core.export.ExportFormat
+import com.verdictzero.darkhall.core.export.EXPORT_SIZES
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import com.verdictzero.darkhall.core.export.ExportSettings
 import kotlin.math.roundToInt
 
@@ -92,6 +95,13 @@ fun ExportDialog(count: Int, onDismiss: () -> Unit, title: String? = null, onExp
                         }
                     }
                     else -> {}
+                }
+                Spacer(Modifier.height(12.dp))
+                Label("Size (long edge)")
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (edge in EXPORT_SIZES) {
+                        Choice(if (edge == 0) "Full" else "$edge px", s.longEdge == edge) { s = s.copy(longEdge = edge) }
+                    }
                 }
             }
         },

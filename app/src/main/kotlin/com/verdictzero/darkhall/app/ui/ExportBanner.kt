@@ -6,6 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -39,6 +44,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
     val status by flow.collectAsState(initial = null)
     var reported by remember { mutableStateOf<Set<UUID>?>(null) }
     var summary by remember { mutableStateOf<String?>(null) }
+    var shareable by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     LaunchedEffect(status) {
         val s = status ?: return@LaunchedEffect
@@ -54,6 +60,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
             val ok = fresh.sumOf { it.ok }
             val failed = fresh.sumOf { it.failed }
             val names = fresh.map { it.failedNames }.filter { it.isNotEmpty() }.joinToString(", ")
+            shareable = fresh.flatMap { it.uris }
             summary = when {
                 failed == 0 -> "Saved $ok ${if (ok == 1) "photo" else "photos"} to ${fresh.last().folder}"
                 ok == 0 -> "Export failed" + if (names.isNotEmpty()) ": $names" else ""
@@ -62,7 +69,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
         }
     }
     LaunchedEffect(summary) {
-        if (summary != null) { delay(5000); summary = null }
+        if (summary != null) { delay(if (shareable.isNotEmpty()) 9000 else 5000); summary = null; shareable = emptyList() }
     }
 
     val s = status
@@ -87,11 +94,31 @@ fun ExportBanner(modifier: Modifier = Modifier) {
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text.orEmpty(), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text.orEmpty(), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
+                    if (summary != null && shareable.isNotEmpty() && !(s?.running ?: false)) {
+                        Spacer(Modifier.width(10.dp))
+                        StrokedTextButton("Share", onClick = { share(context, shareable) })
+                    }
+                }
                 if (s != null && s.running) {
                     LinearProgressIndicator(progress = { s.fraction }, modifier = Modifier.padding(top = 6.dp).width(180.dp))
                 }
             }
         }
+    }
+}
+
+/** Opens the share sheet for exported files. */
+private fun share(context: Context, uris: List<Uri>) {
+    val send = if (uris.size == 1) {
+        Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris[0])
+    } else {
+        Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+    }
+    send.type = context.contentResolver.getType(uris[0]) ?: "image/*"
+    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    runCatching {
+        context.startActivity(Intent.createChooser(send, if (uris.size == 1) "Share photo" else "Share ${uris.size} photos").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

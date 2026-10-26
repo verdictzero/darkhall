@@ -246,6 +246,11 @@ folded into the result: every pixel leans towards the frame where it is sharpest
 Laplacian's strength, pooled locally, to the fourth power), so edges come from the frame
 that has them and flat areas average out. Only one raw is in memory at a time.
 
+**Size**: every format can be exported at full size or with its long edge brought down to
+4096, 3000, 2048, 1600 or 1080 px (area averaging, so fine detail doesn't alias; never
+enlarged). When an export finishes, the banner's **Share** button hands the files to any
+app.
+
 Exports run in a background job with a progress notification, so they finish even if you
 leave the app; several exports queue up and run one after another.
 

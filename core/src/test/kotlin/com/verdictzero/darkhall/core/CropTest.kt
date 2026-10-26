@@ -7,6 +7,8 @@ import com.verdictzero.darkhall.core.develop.CropRect
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.export.ArgbRows
 import com.verdictzero.darkhall.core.export.CroppedRows
+import com.verdictzero.darkhall.core.export.ResizedRows
+import com.verdictzero.darkhall.core.export.RowSource
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.random.Random
@@ -98,5 +100,31 @@ class CropTest {
         assertEquals(1f, merged[Adjustment.EXPOSURE])
         assertEquals(Crop.of(cropped), Crop.of(merged))
         assertEquals(CropAspect.R3_2, Crop.aspect(merged))
+    }
+
+    /** Resizing: the long edge as asked, flat areas unchanged, fine detail averaged rather than aliased. */
+    @Test
+    fun resizingAveragesArea() {
+        val w = 300; val h = 200
+        // Left half a one-pixel checkerboard of black and white, right half flat 0.4 grey.
+        val px = IntArray(w * h) { i ->
+            val x = i % w; val y = i / w
+            val v = if (x < w / 2) (if ((x + y) % 2 == 0) 255 else 0) else 102
+            (0xFF shl 24) or (v shl 16) or (v shl 8) or v
+        }
+        val small = ResizedRows.of(ArgbRows(px, w, h, 1), 100)
+        assertEquals(100, small.width); assertEquals(67, small.height)
+        val row = IntArray(3 * small.width)
+        for (y in 0 until small.height) {
+            small.row(y, row)
+            // The checkerboard becomes mid grey, give or take the partly covered pixels.
+            for (x in 2 until 48) assertTrue(abs(row[3 * x] - 128) <= 25, "x $x y $y: ${row[3 * x]}")
+            for (x in 52 until 100) assertEquals(102, row[3 * x], "x $x y $y")
+        }
+        // Not larger than asked, and never enlarged.
+        assertTrue(ResizedRows.of(ArgbRows(px, w, h, 1), 0) is ArgbRows)
+        assertTrue(ResizedRows.of(ArgbRows(px, w, h, 1), 4000) is ArgbRows)
+        val upright: RowSource = ResizedRows.of(ArgbRows(px, w, h, 6), 150)
+        assertEquals(100, upright.width); assertEquals(150, upright.height)
     }
 }

@@ -32,6 +32,9 @@ object ExportQueue {
     const val KEY_FAILED = "failed"
     const val KEY_FAILED_NAMES = "failedNames"
     const val KEY_FOLDER = "folder"
+    /** The exported files' content URIs, newline-separated, for sharing. */
+    const val KEY_URIS = "uris"
+    private const val KEY_LONG_EDGE = "longEdge"
     private const val KEY_FORMAT = "format"
     private const val KEY_QUALITY = "quality"
     private const val KEY_16 = "sixteenBit"
@@ -44,7 +47,20 @@ object ExportQueue {
         jpegQuality = data.getInt(KEY_QUALITY, 95),
         sixteenBit = data.getBoolean(KEY_16, false),
         tiffCompressed = data.getBoolean(KEY_ZIP, true),
+        longEdge = data.getInt(KEY_LONG_EDGE, 0),
     )
+
+    /** URIs for [KEY_URIS], as many as fit in WorkManager's output limit; only shareable (content) ones. */
+    fun joinUris(uris: List<Uri>): String {
+        val sb = StringBuilder()
+        for (u in uris.filter { it.scheme == "content" }) {
+            val s = u.toString()
+            if (sb.length + s.length + 1 > 8000) break
+            if (sb.isNotEmpty()) sb.append('\n')
+            sb.append(s)
+        }
+        return sb.toString()
+    }
 
     private fun jobDir(context: Context) = File(context.filesDir, "export-jobs").apply { mkdirs() }
 
@@ -57,7 +73,7 @@ object ExportQueue {
                     KEY_JOB to jobId, KEY_TOTAL to uris.size,
                     KEY_FORMAT to settings.format.name, KEY_QUALITY to settings.jpegQuality,
                     KEY_16 to settings.sixteenBit, KEY_ZIP to settings.tiffCompressed,
-                    KEY_STACK to stack,
+                    KEY_STACK to stack, KEY_LONG_EDGE to settings.longEdge,
                 )
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
@@ -88,8 +104,8 @@ object ExportQueue {
         val finished: List<Finished> = emptyList(),
     )
 
-    /** [folder] is where the files went, e.g. "Pictures/Darkhall". */
-    data class Finished(val id: UUID, val ok: Int, val failed: Int, val failedNames: String, val folder: String)
+    /** [folder] is where the files went, e.g. "Pictures/Darkhall"; [uris] the files themselves, for sharing. */
+    data class Finished(val id: UUID, val ok: Int, val failed: Int, val failedNames: String, val folder: String, val uris: List<Uri> = emptyList())
 
     fun status(context: Context): Flow<Status> =
         WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(UNIQUE_NAME).map { infos ->
@@ -104,6 +120,7 @@ object ExportQueue {
                     if (info.state == WorkInfo.State.SUCCEEDED) out.getInt(KEY_FAILED, 0) else maxOf(1, total),
                     out.getString(KEY_FAILED_NAMES).orEmpty(),
                     out.getString(KEY_FOLDER) ?: "Pictures/${ExportService.ALBUM}",
+                    out.getString(KEY_URIS).orEmpty().split('\n').filter { it.isNotBlank() }.map { Uri.parse(it) },
                 )
             }
             Status(

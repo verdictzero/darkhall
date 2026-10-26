@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -76,7 +77,7 @@ class ExportFormatsAppTest {
         val known = wm.getWorkInfosForUniqueWork(ExportQueue.UNIQUE_NAME).get().map { it.id }.toSet()
         val before = FakeMediaStore.inserted.size
         compose.onNodeWithText("Export").performClick()
-        for (c in chips) compose.onNodeWithText(c).performClick()
+        for (c in chips) compose.onNodeWithText(c).also { n -> runCatching { n.performScrollTo() } }.performClick()
         compose.onNodeWithText("Start export").performClick()
         // The new request (it may already have run: the executor is synchronous).
         waitFor(30_000) { wm.getWorkInfosForUniqueWork(ExportQueue.UNIQUE_NAME).get().any { it.id !in known } }
