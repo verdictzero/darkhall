@@ -1,5 +1,7 @@
 package com.verdictzero.darkhall.app.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,25 +45,32 @@ fun MixerControls(state: DevelopState, vm: DevelopViewModel) {
     Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             for (band in MixBand.entries) {
                 val selected = band == picked
                 val changed = Adjustment.mixer(band).any { !state.params.isDefault(it, state.defaults) }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .border(if (selected) strokes.selectedWidth else strokes.width, if (selected) strokes.selected else strokes.container, CircleShape)
-                            .padding(if (selected) 5.dp else 4.dp)
-                            .clip(CircleShape)
-                            .background(Color(band.swatch))
-                            .semantics { contentDescription = band.label; this.selected = selected }
-                            .testTag("mix-${band.name}")
-                            .clickable { picked = band },
-                    )
+                // The whole column width and 48 dp of height take the tap, not just the swatch.
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) { contentDescription = band.label; this.selected = selected }
+                        .testTag("mix-${band.name}")
+                        .clickable(role = Role.Tab) { picked = band },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(Modifier.height(40.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .border(if (selected) strokes.selectedWidth else strokes.width, if (selected) strokes.selected else strokes.container, CircleShape)
+                                .padding(if (selected) 5.dp else 4.dp)
+                                .clip(CircleShape)
+                                .background(Color(band.swatch)),
+                        )
+                    }
                     Box(
                         Modifier
                             .padding(top = 3.dp)

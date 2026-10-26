@@ -1,5 +1,8 @@
 package com.verdictzero.darkhall.app.ui
 
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -89,8 +92,10 @@ fun StarRow(rating: Int, onRate: (Int) -> Unit, modifier: Modifier = Modifier) {
                 if (n <= rating) "★" else "☆",
                 fontSize = 26.sp,
                 color = if (n <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .semantics { contentDescription = "$n ${if (n == 1) "star" else "stars"}" }
+                    .minimumInteractiveComponentSize()
+                    .semantics { contentDescription = "$n ${if (n == 1) "star" else "stars"}"; selected = n == rating }
                     .testTag("star-$n")
                     // Tapping the current rating again clears it.
                     .clickable { onRate(if (n == rating) 0 else n) }

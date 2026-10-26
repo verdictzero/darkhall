@@ -407,6 +407,23 @@ class ScreenshotTest {
         com.verdictzero.darkhall.app.data.Prefs(app).libraryByDate = false
     }
 
+    /** A landscape tablet: the photo beside a wider slider panel. */
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-xhdpi")
+    fun tabletLandscape() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            val sliders = compose.onNodeWithTag(SLIDERS_TAG).fetchSemanticsNode().boundsInRoot
+            val preview = compose.onAllNodesWithContentDescription("Preview")[0].fetchSemanticsNode().boundsInRoot
+            assertTrue("sliders $sliders should be right of the preview $preview", sliders.left >= preview.right - 1f)
+            val density = app.resources.displayMetrics.density
+            assertTrue("slider panel ${sliders.width / density} dp", sliders.width / density > 400f)
+            shot("tablet_landscape")
+        }
+    }
+
     /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */
     @Test
     fun cropTool() {

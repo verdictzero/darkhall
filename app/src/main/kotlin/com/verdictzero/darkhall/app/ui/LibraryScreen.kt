@@ -248,6 +248,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                                 selected = file.key in state.selected,
                                 edited = file.key in state.edited,
                                 rating = state.ratings[file.key] ?: 0,
+                                selecting = state.selecting,
                                 onClick = { if (state.selecting) vm.toggle(file) else onOpen(file.uri) },
                                 onLongClick = { vm.toggle(file) },
                             )
@@ -284,7 +285,15 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, rating: Int, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun RawCell(
+    file: RawFile,
+    selected: Boolean,
+    edited: Boolean,
+    rating: Int,
+    selecting: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val context = LocalContext.current
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = file.key) {
         value = withContext(Dispatchers.IO) { RawRepository.thumbnail(context, file) }
@@ -294,7 +303,22 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, rating: I
     }
     val accent = MaterialTheme.colorScheme.primary
     val strokes = LocalStrokes.current
-    Column(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
+    val summary = listOfNotNull(
+        file.name,
+        if (selected) "selected" else null,
+        if (rating > 0) "$rating ${if (rating == 1) "star" else "stars"}" else null,
+        if (edited) "edited" else null,
+        facts?.badge,
+    ).joinToString(", ")
+    Column(
+        Modifier
+            .combinedClickable(
+                onClick = onClick, onLongClick = onLongClick,
+                onClickLabel = if (selecting) (if (selected) "Deselect" else "Select") else "Open",
+                onLongClickLabel = "Select",
+            )
+            .semantics(mergeDescendants = true) { contentDescription = summary },
+    ) {
         Box(
             Modifier
                 .fillMaxWidth()
@@ -312,7 +336,7 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, rating: I
             if (b != null) {
                 Image(
                     bitmap = b.asImageBitmap(),
-                    contentDescription = file.name,
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )

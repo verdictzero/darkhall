@@ -88,7 +88,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -249,11 +252,13 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                 state.error != null -> ErrorPane(state.error!!, onBack)
                 state.loading -> LoadingPane()
                 else -> BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val landscape = maxWidth > maxHeight
-                    if (landscape) {
+                    // Landscape: photo beside the sliders, with a roomier panel on tablets. (Upright,
+                    // even a tablet gives a landscape photo more room above the sliders.)
+                    if (maxWidth > maxHeight) {
+                        val panel = if (maxWidth >= 1200.dp) 440.dp else if (maxWidth >= 840.dp) 400.dp else 360.dp
                         Row(Modifier.fillMaxSize()) {
                             PreviewPane(state, vm, guides, Modifier.weight(1f).fillMaxHeight())
-                            SliderPane(state, vm, guides, Modifier.width(360.dp).fillMaxHeight())
+                            SliderPane(state, vm, guides, Modifier.width(panel).fillMaxHeight())
                         }
                     } else {
                         Column(Modifier.fillMaxSize()) {
@@ -843,7 +848,13 @@ internal fun SliderRow(
         }
         // Two-sided adjustments fill from zero outwards; one-sided ones from the left.
         val anchor = if (adj.min < 0f && adj.max > 0f) 0f else adj.min
-        val tag = Modifier.testTag("slider-${adj.name}")
+        // Screen readers hear the slider's name and value, and can reset it (double-tapping
+        // the label does that for everyone else).
+        val tag = Modifier.testTag("slider-${adj.name}").semantics {
+            contentDescription = adj.label
+            stateDescription = adj.format(value)
+            if (!isDefault) customActions = listOf(CustomAccessibilityAction("Reset ${adj.label}") { onReset(); true })
+        }
         if (interactionSource != null) {
             ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, modifier = tag, interactionSource = interactionSource)
         } else {

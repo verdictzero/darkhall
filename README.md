@@ -234,6 +234,12 @@ generous memory allowance.
    **Apply preset…**. Presets, like pasting, leave each photo's Straighten and crop alone.
    **Export** on a selection renders the batch.
 
+Turned sideways (or on a tablet held in landscape) the editor puts the sliders beside the
+photo, in a wider panel on bigger screens. With TalkBack every slider reads out its name and
+value, can be stepped with volume keys or swipes, and offers a *Reset* action (the double-tap
+on its name); thumbnails read their name, rating, edit and depth in one go, and everything
+tappable has a label and a full-size touch area (checked by `AccessibilityTest`).
+
 ### Export formats
 
 | Format | Depth | Notes |

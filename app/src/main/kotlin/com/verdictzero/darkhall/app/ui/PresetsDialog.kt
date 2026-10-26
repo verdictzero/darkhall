@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -53,7 +54,7 @@ fun PresetsDialog(
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth().border(strokes.width, strokes.container, RoundedCornerShape(24.dp)),
+            modifier = Modifier.padding(horizontal = 20.dp).widthIn(max = 560.dp).fillMaxWidth().border(strokes.width, strokes.container, RoundedCornerShape(24.dp)),
         ) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(title, style = MaterialTheme.typography.headlineSmall)
