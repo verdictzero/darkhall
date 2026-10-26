@@ -10,6 +10,8 @@ import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.SceneDetector
+import com.verdictzero.darkhall.app.data.FactsStore
+import com.verdictzero.darkhall.core.raw.ShotFacts
 import com.verdictzero.darkhall.core.sky.MaskRegion
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
@@ -110,6 +112,8 @@ data class DevelopState(
     val maskOverlay: Bitmap? = null,
     /** The crop tool is open: the preview shows the whole picture with the crop drawn over it. */
     val cropping: Boolean = false,
+    /** Camera, time, exposure and field-sensor readings for the info panel. */
+    val facts: ShotFacts? = null,
     /** Upright size of the full-resolution picture, for crop ratios and sizes. */
     val fullWidth: Int = 0,
     val fullHeight: Int = 0,
@@ -280,6 +284,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 defaults = defaults,
                 params = saved ?: defaults,
                 compare = cutCompare(saved ?: defaults, cropping = false),
+                // (The library's cached facts stay as they are, so its names and groups stay consistent.)
+                facts = ShotFacts.from(m).also { if (FactsStore.load(app, file.key) == null) FactsStore.save(app, file.key, it) },
                 hasLensProfile = c.lens != null,
                 fullWidth = if (Orientation.swapsAxes(m.orientation)) m.crop.height else m.crop.width,
                 fullHeight = if (Orientation.swapsAxes(m.orientation)) m.crop.width else m.crop.height,

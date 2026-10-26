@@ -39,8 +39,12 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 * **Highlight recovery.** Blown channels are rebuilt from the colour of their surroundings
   instead of turning magenta, and a soft shoulder keeps bright skies and surf from clipping
   hard; pull *Highlights* down to bring the recovered detail into range.
-* **Field data kept.** Exported JPEGs carry the camera's GPS position and altitude, and the
-  depth, temperature and pressure readings go into the image description.
+* **Field data shown and kept.** Underwater shots carry their depth and water temperature on
+  their library thumbnails ("8.2 m · 24 °C"), and tapping the file name in the editor shows
+  the full shooting info: camera, time, exposure, size, depth, temperature, pressure,
+  altitude and position (with a map link). Exported files carry the GPS position and
+  altitude, and the depth, temperature and pressure readings go into the image description.
+  The library reads these from the start of each file only (its EXIF), and caches them.
 * **370 looks (3D LUTs).** The full RawTherapee Film Simulation Collection — slide, colour
   negative, instant and black & white film emulations, under descriptive names — plus 77
   Darkhall originals, including underwater looks for TG-7 dive shots. See [Looks](#looks).

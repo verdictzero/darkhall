@@ -81,6 +81,26 @@ object RawFormats {
         }
     }
 
+    /**
+     * The shot's facts from the first part of a file alone, by reading only its EXIF, for
+     * files whose full parse needs the raw data (the picture's size is then left at 0).
+     */
+    fun factsFromHeader(head: ByteArray): ShotFacts? = runCatching {
+        if (!looksLikeRaw(head)) return@runCatching null
+        val r = ByteReader(head, bigEndian = head[0] == 'M'.code.toByte())
+        val roots = Tiff.chain(r, r.u32(4))
+        val ifd0 = roots.firstOrNull() ?: return@runCatching null
+        val exif = ExifInfo.read(r, ifd0, Tiff.tree(r, roots))
+        ShotFacts(
+            make = ifd0.string(0x010F), model = ifd0.string(0x0110), dateTime = exif.dateTime,
+            iso = exif.iso, exposureTime = exif.exposureTime, fNumber = exif.fNumber, focalLength = exif.focalLength,
+            width = 0, height = 0,
+            depth = RawMetadata.depthFrom(exif.waterDepth, exif.pressureHpa)?.takeIf { it >= 0.3 },
+            temperature = exif.ambientTemperature, pressureHpa = exif.pressureHpa,
+            altitude = exif.gps?.altitude, latitude = exif.gps?.latitude, longitude = exif.gps?.longitude,
+        ).takeIf { it.make.isNotBlank() || it.model.isNotBlank() }
+    }.getOrNull()
+
     /** Where an embedded JPEG preview sits, possibly beyond the bytes read so far. */
     class PreviewLocation(val offset: Long, val length: Int, val orientation: Int)
 

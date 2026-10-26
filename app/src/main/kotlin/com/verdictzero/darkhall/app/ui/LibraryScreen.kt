@@ -68,6 +68,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.RawFile
+import com.verdictzero.darkhall.core.raw.ShotFacts
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -236,6 +238,9 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = file.key) {
         value = withContext(Dispatchers.IO) { RawRepository.thumbnail(context, file) }
     }
+    val facts by produceState<ShotFacts?>(initialValue = null, key1 = file.key) {
+        value = withContext(Dispatchers.IO) { RawRepository.facts(context, file) }
+    }
     val accent = MaterialTheme.colorScheme.primary
     val strokes = LocalStrokes.current
     Column(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
@@ -271,6 +276,22 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
                 ) {
                     Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                 }
+            }
+            facts?.badge?.let { badge ->
+                // Depth and water temperature from the TG series' field sensors.
+                Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xCC0B2A3A))
+                        .border(strokes.width, strokes.overlay, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                )
             }
             if (edited) {
                 Text(

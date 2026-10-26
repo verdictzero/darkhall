@@ -15,6 +15,7 @@ import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.raw.RawMetadata
 import com.verdictzero.darkhall.core.raw.RawFormats
+import com.verdictzero.darkhall.core.raw.ShotFacts
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -122,6 +123,27 @@ object RawRepository {
         val bytes = readBytes(resolver, uri)
         // The parser names unsupported formats (RAF, CR3, ...) instead of a generic error.
         return Loaded(bytes, RawFormats.parse(bytes))
+    }
+
+    /**
+     * The shot's facts (camera, time, exposure, depth, temperature...), cached on disk. Parsed
+     * from the start of the file; the whole file is read only if its header runs past that.
+     */
+    fun facts(context: Context, file: RawFile): ShotFacts? {
+        FactsStore.load(context, file.key)?.let { return it }
+        return try {
+            val resolver = context.contentResolver
+            val head = readHead(resolver, file.uri, HEAD_BYTES)
+            if (!RawFormats.looksLikeRaw(head)) return null
+            // A full parse of the header gives everything; failing that its EXIF gives all but the
+            // size; only a file whose header runs past the first part is read whole.
+            val facts = runCatching { ShotFacts.from(RawFormats.parse(head)) }.getOrNull()
+                ?: RawFormats.factsFromHeader(head)
+                ?: ShotFacts.from(RawFormats.parse(readBytes(resolver, file.uri)))
+            facts.also { FactsStore.save(context, file.key, it) }
+        } catch (e: Throwable) {
+            null
+        }
     }
 
     /** Only one full raw decode at a time for thumbnails; a grid of them would exhaust the heap. */

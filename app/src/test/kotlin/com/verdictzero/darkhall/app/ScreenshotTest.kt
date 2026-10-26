@@ -323,6 +323,21 @@ class ScreenshotTest {
         }
     }
 
+    /** Tapping the title shows the shooting info. */
+    @Test
+    fun shotInfo() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Shooting info").performClick()
+            waitFor { compose.onAllNodesWithText("Exposure").fetchSemanticsNodes().isNotEmpty() }
+            assertTrue(compose.onAllNodesWithText("Camera").fetchSemanticsNodes().isNotEmpty())
+            if (outDir.isNotEmpty()) shot("shot_info")
+            compose.onNodeWithText("Close").performClick()
+        }
+    }
+
     /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */
     @Test
     fun cropTool() {

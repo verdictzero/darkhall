@@ -117,6 +117,8 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
+    state.facts?.takeIf { showInfo }?.let { ShotInfoDialog(state.fileName, it, onDismiss = { showInfo = false }) }
     BackHandler(enabled = state.cropping) { vm.setCropping(false) }
     if (licenses) LicensesScreen(onDismiss = { licenses = false })
     val guides = remember { StraightenGuides() }
@@ -151,7 +153,11 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Column(
+                        Modifier
+                            .clickable(enabled = state.facts != null) { showInfo = true }
+                            .semantics { contentDescription = "Shooting info" },
+                    ) {
                         Text(state.fileName.ifEmpty { "Develop" }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
                         if (state.info.isNotEmpty()) {
                             Text(state.info, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -203,6 +209,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                                 trailingIcon = { Checkbox(checked = state.gpuEnabled, onCheckedChange = null) },
                                 onClick = { menuOpen = false; vm.setGpuEnabled(!state.gpuEnabled) },
                             )
+                            DropdownMenuItem(text = { Text("Shooting info") }, enabled = state.facts != null, onClick = { menuOpen = false; showInfo = true })
                             DropdownMenuItem(text = { Text("Open-source licences") }, onClick = { menuOpen = false; licenses = true })
                         }
                     }

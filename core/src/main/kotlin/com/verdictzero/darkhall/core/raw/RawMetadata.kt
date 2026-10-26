@@ -82,12 +82,16 @@ data class RawMetadata(
      * otherwise derives it from the pressure sensor (about 100 hPa per metre of sea water)
      * when the reading is well above anything possible in air.
      */
-    val estimatedDepth: Double?
-        get() {
+    val estimatedDepth: Double? get() = depthFrom(waterDepth, pressureHpa)
+
+    companion object {
+        /** [estimatedDepth] from a recorded water depth or, failing that, a pressure reading. */
+        fun depthFrom(waterDepth: Double?, pressureHpa: Double?): Double? {
             waterDepth?.let { return it.coerceAtLeast(0.0) }
             val p = pressureHpa ?: return null
             return if (p > 1100.0) ((p - 1013.25) / 100.5).coerceAtLeast(0.0) else null
         }
+    }
 
     val isLinear: Boolean get() = samplesPerPixel == 3
 
