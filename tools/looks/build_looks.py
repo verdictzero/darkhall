@@ -86,6 +86,101 @@ def pretty(name):
     return name.strip()
 
 
+# Film looks get descriptive names instead of the film stocks' trademarks: first match wins,
+# the variant suffixes ("3 +", "Cold 2 -") carry over. Group, rule, new name, category.
+FILM_NAMES = [
+    ("Film color", r"^Agfa Precisa 100$", "Crisp Slide 100", "Slide"),
+    ("Film color", r"^Agfa Ultra Color 100$", "Punchy Color 100", "Color negative"),
+    ("Film color", r"^Agfa Vista 200$", "Street Color 200", "Color negative"),
+    ("Film color", r"^Fuji 160C(.*)$", r"Pro Contrast 160\1", "Color negative"),
+    ("Film color", r"^Fuji 400H(.*)$", r"Pro Soft 400\1", "Color negative"),
+    ("Film color", r"^Fuji 800Z(.*)$", r"Pro Night 800\1", "Color negative"),
+    ("Film color", r"^Fuji Astia 100 Generic$", "Soft Slide 100", "Slide"),
+    ("Film color", r"^Fuji Astia 100F$", "Soft Slide 100 F", "Slide"),
+    ("Film color", r"^Fuji FP-100c(.*)$", r"Peel-Apart Color\1", "Instant"),
+    ("Film color", r"^Fuji Provia (\d+) Generic$", r"Natural Slide \1", "Slide"),
+    ("Film color", r"^Fuji Provia (\d+)([FX])$", r"Natural Slide \1 \2", "Slide"),
+    ("Film color", r"^Fuji Sensia 100$", "Consumer Slide 100", "Slide"),
+    ("Film color", r"^Fuji Superia 200 XPRO$", "Everyday Color 200 Cross", "Cross process"),
+    ("Film color", r"^Fuji Superia HG 1600$", "Everyday Color 1600 HG", "Color negative"),
+    ("Film color", r"^Fuji Superia Reala 100$", "True Color 100", "Color negative"),
+    ("Film color", r"^Fuji Superia X-Tra 800$", "Everyday Color 800 Extra", "Color negative"),
+    ("Film color", r"^Fuji Superia (.*)$", r"Everyday Color \1", "Color negative"),
+    ("Film color", r"^Fuji Velvia 100 Generic$", "Vivid Slide 100", "Slide"),
+    ("Film color", r"^Fuji Velvia 50$", "Vivid Slide 50", "Slide"),
+    ("Film color", r"^Kodak E-100 GX Ektachrome 100$", "Cool Slide 100 GX", "Slide"),
+    ("Film color", r"^Kodak Ektachrome 100 VS Generic$", "Saturated Slide 100", "Slide"),
+    ("Film color", r"^Kodak Ektachrome 100 VS$", "Saturated Slide 100 VS", "Slide"),
+    ("Film color", r"^Kodak Ektar 100$", "Fine Grain Color 100", "Color negative"),
+    ("Film color", r"^Kodak Elite 100 XPRO$", "Bright Slide 100 Cross", "Cross process"),
+    ("Film color", r"^Kodak Elite Chrome (\d+)$", r"Consumer Slide \1", "Slide"),
+    ("Film color", r"^Kodak Elite Color (\d+)$", r"Bright Slide \1", "Slide"),
+    ("Film color", r"^Kodak Elite Extra Color 100$", "Extra Color Slide 100", "Slide"),
+    ("Film color", r"^Kodak Kodachrome (\d+)( Generic)?$", r"Classic Slide \1\2", "Slide"),
+    ("Film color", r"^Kodak Portra (.*)$", r"Portrait \1", "Color negative"),
+    ("Film color", r"^Lomography Redscale 100$", "Redscale 100", "Cross process"),
+    ("Film color", r"^Lomography X-Pro Slide 200$", "Cross Slide 200", "Cross process"),
+    ("Film color", r"^Polaroid 669(.*)$", r"Instant Classic\1", "Instant"),
+    ("Film color", r"^Polaroid 690(.*)$", r"Instant Bright\1", "Instant"),
+    ("Film color", r"^Polaroid PX-100UV\+(.*)$", r"Instant Pale\1", "Instant"),
+    ("Film color", r"^Polaroid PX-680(.*)$", r"Instant Square\1", "Instant"),
+    ("Film color", r"^Polaroid PX-70(.*)$", r"Instant Pastel\1", "Instant"),
+    ("Film color", r"^Polaroid Polachrome$", "Instant Slide", "Instant"),
+    ("Film color", r"^Polaroid Time Zero \(Expired\)(.*)$", r"Instant Expired\1", "Instant"),
+    ("Film B&W", r"^Agfa APX (\d+)$", r"Classic Pan \1", "Classic"),
+    ("Film B&W", r"^Fuji FP-3000b(.*)$", r"Peel-Apart Mono\1", "Instant"),
+    ("Film B&W", r"^Fuji Neopan 1600(.*)$", r"Fast Pan 1600\1", "Modern"),
+    ("Film B&W", r"^Fuji Neopan Acros 100$", "Fine Pan 100", "Modern"),
+    ("Film B&W", r"^Ilford Delta (\d+)(.*)$", r"Modern Pan \1\2", "Modern"),
+    ("Film B&W", r"^Ilford FP4 Plus 125$", "Classic Pan 125", "Classic"),
+    ("Film B&W", r"^Ilford HP5 Plus 400$", "Street Pan 400", "Classic"),
+    ("Film B&W", r"^Ilford HP5 (.*)$", r"Street Pan 400 \1", "Classic"),
+    ("Film B&W", r"^Ilford HPS 800$", "Street Pan 800", "Classic"),
+    ("Film B&W", r"^Ilford Pan F Plus 50$", "Slow Pan 50", "Classic"),
+    ("Film B&W", r"^Ilford XP2$", "Chromogenic Mono 400", "Special"),
+    ("Film B&W", r"^Kodak BW 400 CN$", "Chromogenic Mono 400 CN", "Special"),
+    ("Film B&W", r"^Kodak HIE \(HS Infra\)$", "Infrared Mono", "Special"),
+    ("Film B&W", r"^Kodak T-Max (\d+)$", r"Sharp Pan \1", "Modern"),
+    ("Film B&W", r"^Kodak TMAX 3200(.*)$", r"Sharp Pan 3200\1", "Modern"),
+    ("Film B&W", r"^Kodak TRI-X 400(.*)$", r"Gritty Pan 400\1", "Classic"),
+    ("Film B&W", r"^Polaroid 664$", "Instant Mono 100", "Instant"),
+    ("Film B&W", r"^Polaroid 665 Negative(.*)$", r"Instant Mono Fine Negative\1", "Instant"),
+    ("Film B&W", r"^Polaroid 665(.*)$", r"Instant Mono Fine\1", "Instant"),
+    ("Film B&W", r"^Polaroid 667$", "Instant Mono Fast", "Instant"),
+    ("Film B&W", r"^Polaroid 672$", "Instant Mono Fast II", "Instant"),
+    ("Film B&W", r"^Rollei IR 400$", "Infrared Pan 400", "Special"),
+    ("Film B&W", r"^Rollei Ortho 25$", "Ortho 25", "Special"),
+    ("Film B&W", r"^Rollei Retro 100 Tonal$", "Tonal Pan 100", "Special"),
+    ("Film B&W", r"^Rollei Retro 80s$", "Vintage Pan 80", "Special"),
+]
+CATEGORY_ORDER = {
+    "Film color": ["Slide", "Color negative", "Cross process", "Instant"],
+    "Film B&W": ["Classic", "Modern", "Special", "Instant"],
+}
+
+
+SHELVES = ["Darkhall", "Film color", "Film B&W", "Creative"]  # as LookLibrary.GROUPS
+
+
+def shelf_order(lk):
+    """Sort key: shelves in the browser's order, then categories in their shelf's order."""
+    order = CATEGORY_ORDER.get(lk["group"], [])
+    return SHELVES.index(lk["group"]), order.index(lk["category"]) if lk["category"] in order else -1
+
+
+BRANDS = re.compile(r"\b(Agfa|Fuji|Kodak|Ilford|Polaroid|Rollei|Lomography|Velvia|Provia|Astia|Portra|Ektar|Kodachrome|Ektachrome|Superia|Neopan|Acros|Delta|Tri-?X|T-?Max)\b", re.I)
+
+
+def neutral_name(group, name):
+    """Descriptive name and category for a film look's original (trademarked) name."""
+    for g, rule, new, category in FILM_NAMES:
+        if g == group and re.match(rule, name):
+            out = re.sub(r"\s+", " ", re.sub(rule, new, name)).strip()
+            assert not BRANDS.search(out), (name, out)
+            return out, category
+    raise ValueError(f"no descriptive name for {group}: {name}")
+
+
 def film_looks(hald_dir):
     looks = []
     for path in sorted(glob.glob(os.path.join(hald_dir, "**", "*.png"), recursive=True)):
@@ -101,9 +196,13 @@ def film_looks(hald_dir):
             group, category = "Film B&W", brand
         else:
             group, category = "Film color", brand
+        shown = pretty(name)
+        if group != "Creative":
+            shown, category = neutral_name(group, shown)
         looks.append({
+            # The id keeps the original name, so edits saved before the renaming still find it.
             "id": "rt-" + slug(kind + "-" + brand + "-" + name),
-            "name": pretty(name),
+            "name": shown,
             "group": group,
             "category": category,
             "source": "rawtherapee",
@@ -187,9 +286,10 @@ def channel_curves(c, r=1.0, g=1.0, b=1.0):
 def original_looks():
     L = []
 
-    def add(group, category, name, fn):
+    def add(group, category, name, fn, id_name=None):
         L.append({
-            "id": "dh-" + slug(category + "-" + name),
+            # id_name: the look's earlier name, so saved edits still find it after a rename.
+            "id": "dh-" + slug(category + "-" + (id_name or name)),
             "name": name,
             "group": group,
             "category": category,
@@ -223,7 +323,7 @@ def original_looks():
     add("Darkhall", C, "Neo Noir", lambda c: saturate(split_tone(s_curve(c, 0.6), "#1B1035", "#FF4FA3", 0.16), 0.8))
     add("Darkhall", C, "Moonlit", lambda c: saturate(split_tone(tone(c, 0.0, 0.85, 1.15), "#0B1A3A", "#B9C9FF", 0.25), 0.55))
     add("Darkhall", C, "Summer Blockbuster", lambda c: saturate(opponent_push(s_curve(c, 0.4), "#FF9F45", 1.3, 0.8), 1.15))
-    add("Darkhall", C, "Matrix", lambda c: saturate(split_tone(s_curve(c, 0.35), "#0A2A12", "#B8FFB0", 0.22), 0.7))
+    add("Darkhall", C, "Code Green", id_name="Matrix", fn=lambda c: saturate(split_tone(s_curve(c, 0.35), "#0A2A12", "#B8FFB0", 0.22), 0.7))
     add("Darkhall", C, "Vaulted Violet", lambda c: saturate(split_tone(s_curve(c, 0.3), "#1A0F33", "#C9B2FF", 0.2), 0.9))
 
     # Split toning
@@ -251,8 +351,8 @@ def original_looks():
 
     # Cross processing
     X = "Cross process"
-    add("Darkhall", X, "E-6 in C-41", lambda c: saturate(channel_curves(s_curve(c, 0.3), 0.92, 0.98, 1.16), 1.1))
-    add("Darkhall", X, "C-41 in E-6", lambda c: saturate(channel_curves(tone(c, 0.04, 1.0), 1.08, 0.97, 0.9), 0.92))
+    add("Darkhall", X, "Slide as Negative", id_name="E-6 in C-41", fn=lambda c: saturate(channel_curves(s_curve(c, 0.3), 0.92, 0.98, 1.16), 1.1))
+    add("Darkhall", X, "Negative as Slide", id_name="C-41 in E-6", fn=lambda c: saturate(channel_curves(tone(c, 0.04, 1.0), 1.08, 0.97, 0.9), 0.92))
     add("Darkhall", X, "Acid Green", lambda c: saturate(channel_curves(s_curve(c, 0.3), 1.1, 0.93, 1.1), 1.06))
     add("Darkhall", X, "Magenta Shift", lambda c: saturate(channel_curves(s_curve(c, 0.25), 0.95, 1.1, 0.95), 1.03))
 
@@ -294,10 +394,9 @@ LICENSES = """Darkhall looks
    Changes: resampled from Hald CLUTs (level 12 or 16) to 33x33x33 tables with trilinear
    interpolation and stored in the .dlut format. These adapted tables are likewise
    licensed CC BY-SA 4.0.
-   Disclaimer from the original collection: the trademarked names which may appear in the
-   look names are there for informational purposes only. They serve only to inform the user
-   which film stock the look is designed to approximate. Neither the publisher nor the authors
-   are affiliated with or endorsed by the companies that own the trademarks.
+   Darkhall shows these looks under its own descriptive names (e.g. "Vivid Slide 50") rather
+   than the film-stock names the collection uses; neither the collection's authors nor
+   Darkhall are affiliated with or endorsed by the makers of those films.
 
 2. Darkhall originals ("Darkhall" group)
    Generated by tools/looks/build_looks.py from colour formulas.
@@ -315,6 +414,8 @@ def main():
     for f in glob.glob(os.path.join(args.out, "*.dlut")):
         os.remove(f)
     looks = original_looks() + film_looks(args.hald)
+    # Shelves in order, categories in order within them, then by name.
+    looks.sort(key=shelf_order)
     ids = set()
     index = []
     for lk in looks:

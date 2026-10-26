@@ -56,6 +56,18 @@ class LookTest {
     }
 
     @Test
+    fun lookNamesCarryNoFilmTrademarks() {
+        assumeTrue(File(looksDir, "index.json").exists())
+        val brands = Regex(
+            "\\b(agfa|fuji\\w*|kodak|ilford|polaroid|rollei|lomo\\w*|konica|cinestill|impossible|foma\\w*|adox|velvia|provia|astia|" +
+                "sensia|portra|ektar|kodachrome|ektachrome|superia|neopan|acros|tri-?x|t-?max|hp5|fp-?\\d+|px[- ]?\\d+|precisa|ultramax|xp2|delta)\\b",
+            RegexOption.IGNORE_CASE,
+        )
+        val shown = index().filter { brands.containsMatchIn(it["name"] + " " + it["category"]) }
+        assertTrue(shown.isEmpty(), "trademarked film names shown: ${shown.map { it["name"] }}")
+    }
+
+    @Test
     fun identityLutChangesNothing() {
         val lut = Lut.identity(33)
         val out = FloatArray(3)

@@ -1,0 +1,25 @@
+Darkhall
+Copyright (c) 2026 verdictzero. All rights reserved.
+
+The source code is published so it can be read and audited. Unless a file says otherwise,
+no licence is granted to copy, modify, distribute or sell Darkhall or any part of it without
+the copyright holder's written permission.
+
+Exceptions. The following are not covered by the paragraph above; each is under its own
+licence, listed with its copyright holders in NOTICE.md, with the licence texts in LICENSES/:
+
+  - Source files that carry a Common Development and Distribution License 1.0 header (the raw
+    decoders in core/src/main/kotlin/com/verdictzero/darkhall/core/raw/ derived from LibRaw
+    and dcraw), and the tables generated from LibRaw (core/src/main/resources/darkhall/*.tsv):
+    CDDL 1.0, LICENSES/CDDL-1.0.txt.
+  - The film-simulation looks from the RawTherapee Film Simulation Collection
+    (app/src/main/assets/looks/, other than the dh-*.dlut files): CC BY-SA 4.0.
+  - Darkhall's own looks (app/src/main/assets/looks/dh-*.dlut): CC0 1.0.
+  - The sky detection model (app/src/main/assets/sky/): Apache License 2.0.
+  - Third-party libraries fetched at build time, under their own licences.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

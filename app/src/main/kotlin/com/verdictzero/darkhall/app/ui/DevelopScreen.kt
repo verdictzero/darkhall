@@ -112,6 +112,8 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
+    var licenses by remember { mutableStateOf(false) }
+    if (licenses) LicensesScreen(onDismiss = { licenses = false })
     val guides = remember { StraightenGuides() }
 
     LaunchedEffect(state.message) {
@@ -196,6 +198,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                                 trailingIcon = { Checkbox(checked = state.gpuEnabled, onCheckedChange = null) },
                                 onClick = { menuOpen = false; vm.setGpuEnabled(!state.gpuEnabled) },
                             )
+                            DropdownMenuItem(text = { Text("Open-source licences") }, onClick = { menuOpen = false; licenses = true })
                         }
                     }
                 },

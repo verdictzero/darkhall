@@ -247,6 +247,18 @@ class ScreenshotTest {
 
     /** The export dialog with TIFF and 16-bit picked. */
     @Test
+    fun licenses() {
+        assumeTrue(outDir.isNotEmpty())
+        ActivityScenario.launch(MainActivity::class.java).use {
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Open-source licences").performClick()
+            shot("licenses")
+            compose.onNodeWithText("LibRaw").performClick()
+            shot("licenses_libraw")
+        }
+    }
+
+    @Test
     fun exportDialog() {
         assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
         val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)

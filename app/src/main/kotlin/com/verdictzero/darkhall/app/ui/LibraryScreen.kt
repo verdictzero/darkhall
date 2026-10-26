@@ -94,6 +94,9 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         }
     }
     var selectionMenu by remember { mutableStateOf(false) }
+    var libraryMenu by remember { mutableStateOf(false) }
+    var licenses by remember { mutableStateOf(false) }
+    if (licenses) LicensesScreen(onDismiss = { licenses = false })
 
     LaunchedEffect(Unit) { vm.refreshEditMarks() } // returning from the develop screen
     LaunchedEffect(state.message) {
@@ -143,6 +146,17 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                         ) {
                             StrokedTextButton("Folder", onClick = { pickFolder.launch(null) })
                             StrokedTextButton("Files", onClick = { pickFiles.launch(arrayOf("*/*")) })
+                            Box {
+                                StrokedIconButton(onClick = { libraryMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
+                                DropdownMenu(
+                                    expanded = libraryMenu,
+                                    onDismissRequest = { libraryMenu = false },
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(strokes.width, strokes.container),
+                                ) {
+                                    DropdownMenuItem(text = { Text("Open-source licences") }, onClick = { libraryMenu = false; licenses = true })
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.bottomStroke(strokes.container),

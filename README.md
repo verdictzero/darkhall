@@ -41,10 +41,9 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
   hard; pull *Highlights* down to bring the recovered detail into range.
 * **Field data kept.** Exported JPEGs carry the camera's GPS position and altitude, and the
   depth, temperature and pressure readings go into the image description.
-* **370 looks (3D LUTs).** The full RawTherapee Film Simulation Collection — Fuji Velvia,
-  Provia, Superia and Pro 400H, Kodak Portra, Ektar, Kodachrome and Tri-X, Ilford, Polaroid,
-  Agfa, Rollei and more — plus 77 Darkhall originals, including underwater looks for TG-7
-  dive shots. See [Looks](#looks).
+* **370 looks (3D LUTs).** The full RawTherapee Film Simulation Collection — slide, colour
+  negative, instant and black & white film emulations, under descriptive names — plus 77
+  Darkhall originals, including underwater looks for TG-7 dive shots. See [Looks](#looks).
 * **GPU preview rendering, tuned for Adreno.** Slider changes render on the phone's GPU
   (OpenGL ES 3.0 fragment shaders); see [GPU rendering](#gpu-rendering).
 * **Thumbnails from the embedded preview.** The library reads only the start of each file
@@ -231,9 +230,15 @@ under the Look row in the editor: one tap applies a favorite, a second tap takes
 The Darkhall shelf covers underwater (Reef, Blue Water, Kelp Forest, …), cinematic grades,
 split-tones, faded/matte, cross-processing, black & white with colour filters, and duotones.
 
+The film looks go by what they look like ("Vivid Slide 50", "Portrait 400 NC 2", "Gritty Pan
+400", "Instant Pastel Warm 3"), sorted by kind of film (slide, colour negative, cross process,
+instant; classic, modern and special black & white) rather than by the film stocks the
+collection imitates, whose names are their makers' trademarks. `tools/looks/build_looks.py`
+holds the renaming rules; each look keeps its internal id, so older edits still find it.
+
 A look is applied to display-encoded colour after the tone curve and saturation, before
 clarity and sharpening, with trilinear interpolation on a 33³ table. The film tables are
-resampled from the 144³ Hald CLUTs; on exact grid points Velvia 50 matches its source within
+resampled from the 144³ Hald CLUTs; on exact grid points Vivid Slide 50 matches its source within
 0.3 of an 8-bit level. Each table is stored as 8-bit values with a 3D neighbour predictor and
 zlib (about 28 KB per look, 10 MB for the library).
 
@@ -384,22 +389,38 @@ What they cover:
 * GPU performance on real Adreno hardware has not been measured here; the shaders have been
   verified for correctness on two software implementations only.
 
+## Licence
+
+Darkhall is Copyright (c) 2026 verdictzero, all rights reserved (`LICENSE`). The source is
+public so it can be read and audited; that is not a licence to redistribute it. Third-party
+parts keep their own licences, listed in [`NOTICE.md`](NOTICE.md) with the texts in
+`LICENSES/`, and in the app under ⋮ → Open-source licences (library or editor):
+
+- The raw decoders derived from LibRaw and dcraw (each file carries a CDDL header) and the
+  tables extracted from LibRaw: CDDL 1.0. Those files' source must stay available, which
+  this public repository does.
+- Film looks: CC BY-SA 4.0. Darkhall's own looks: CC0 1.0.
+- Lens coefficients from lensfun: CC BY-SA 3.0.
+- Sky model: Apache 2.0. Libraries (AndroidX, Compose, Kotlin, coroutines): Apache 2.0.
+
 ## Credits
 
 Film simulation looks: RawTherapee Film Simulation Collection (2015-09-20) by Pat David,
 Pavlov Dmitry and Michael Ezra, CC BY-SA 4.0; resampled to 33³ tables, which are likewise
-CC BY-SA 4.0. Film stock names are used only to describe what a look approximates; neither
-the collection's authors nor Darkhall are affiliated with the trademark owners. Full notice
-in `app/src/main/assets/looks/LICENSES.txt` and in the app (Looks → Credits).
+CC BY-SA 4.0. Darkhall shows them under its own descriptive names (the internal look ids
+keep the collection's file names) and is not affiliated with or endorsed by any film maker.
+Full notice in `app/src/main/assets/looks/LICENSES.txt` and in the app (Looks → Credits).
 
 Lens distortion and TCA coefficients for the TG-5/6/7 lens come from the
 [lensfun](https://lensfun.github.io) database (CC BY-SA 3.0).
 
-The raw decoders follow the algorithms of [dcraw](https://www.dechifro.org/dcraw/) by Dave
-Coffin and [LibRaw](https://www.libraw.org) (LibRaw LLC). The camera colour table
-(`core/src/main/resources/darkhall/camera_colors.tsv`, Adobe DNG Converter matrices) and
-the Canon model table are extracted from LibRaw 0.22.1 by `tools/colors/`; LibRaw is
-available under LGPL 2.1 or CDDL 1.0.
+The raw decoders follow the algorithms and code of [dcraw](https://www.dechifro.org/dcraw/)
+by Dave Coffin and [LibRaw](https://www.libraw.org) (LibRaw LLC), used under the CDDL 1.0
+(LibRaw is offered under LGPL 2.1 or CDDL 1.0); no restricted dcraw code is used, and parts
+of the floating-point DNG path come from the Adobe DNG SDK by way of LibRaw (MIT). The
+camera colour table (`core/src/main/resources/darkhall/camera_colors.tsv`, Adobe DNG
+Converter matrices) and the Canon model table are extracted from LibRaw 0.22.1 by
+`tools/colors/`.
 
 Sky detection: DeepLab v3+ with a MobileNetV2 backbone trained on ADE20K, from the TensorFlow
 Models repository (Apache 2.0), converted by `tools/sky/export_deeplab.py`

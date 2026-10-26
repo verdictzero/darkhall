@@ -1,0 +1,12 @@
+Lens profile: lensfun database
+
+The distortion and lateral chromatic aberration coefficients Darkhall uses for the lens of the
+Olympus Tough TG-5, TG-6 and TG-7 come from the lensfun database ("Olympus Tough TG-5" in
+compact-olympus.xml), measured on a TG-5:
+  https://lensfun.github.io
+
+The lensfun database is licensed under the Creative Commons Attribution-ShareAlike 3.0
+Unported licence:
+  https://creativecommons.org/licenses/by-sa/3.0/
+
+Darkhall uses the coefficients unchanged.

@@ -1,3 +1,17 @@
+/*
+ * Copyright 2026 verdictzero
+ * Portions Copyright 2008-2025 LibRaw LLC (info@libraw.org)
+ * Portions Copyright 1997-2018 Dave Coffin (dcraw.c); no RESTRICTED dcraw code is used.
+ *
+ * The contents of this file are subject to the terms of the Common Development and
+ * Distribution License, Version 1.0 only (the "License"). You may not use this file except
+ * in compliance with the License. A copy is in LICENSES/CDDL-1.0.txt; see it for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Source code: https://github.com/verdictzero/darkhall. Only the files that carry this
+ * header are covered by the CDDL; see NOTICE.md.
+ */
+
 package com.verdictzero.darkhall.core.raw
 
 data class SonyLayout(
