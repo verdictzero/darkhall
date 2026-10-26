@@ -85,6 +85,8 @@ data class DevelopState(
     val gpuLabel: String = "",
     val gpuEnabled: Boolean = true,
     val autoToneOnOpen: Boolean = false,
+    /** Favorite looks by id, in the order they were added. */
+    val favoriteLooks: List<String> = emptyList(),
     /** Sliders before the last Auto, for Undo. */
     val beforeAuto: DevelopParams? = null,
     val autoBusy: Boolean = false,
@@ -154,7 +156,10 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         if (loadedUri == uri && _state.value.error == null) return
         close()
         loadedUri = uri
-        _state.value = DevelopState(canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled, autoToneOnOpen = prefs.autoToneOnOpen)
+        _state.value = DevelopState(
+            canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled,
+            autoToneOnOpen = prefs.autoToneOnOpen, favoriteLooks = prefs.favoriteLooks,
+        )
         loadJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { loadFile(uri) }
@@ -611,6 +616,13 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(params = next) }
         paramsFlow.value = next
         record(next)
+    }
+
+    /** Adds look [id] to the favorites, or takes it off. */
+    fun toggleFavoriteLook(id: String) {
+        val now = prefs.favoriteLooks.let { if (id in it) it - id else it + id }
+        prefs.favoriteLooks = now
+        _state.update { it.copy(favoriteLooks = now) }
     }
 
     private class ThumbBase(val key: DevelopParams, val argb: IntArray, val width: Int, val height: Int, val orientation: Int)

@@ -40,6 +40,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("autoToneOnOpen", false)
         set(v) { sp.edit().putBoolean("autoToneOnOpen", v).apply() }
 
+    /** Favorite looks by id, in the order they were added. */
+    var favoriteLooks: List<String>
+        get() = sp.getString("favoriteLooks", null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
+        set(v) { sp.edit().putString("favoriteLooks", v.joinToString("\n")).apply() }
+
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)
         set(v) { sp.edit().putInt("previewLongEdge", v).apply() }

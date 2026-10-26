@@ -18,7 +18,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.onNodeWithTag
+import com.verdictzero.darkhall.app.ui.SLIDERS_TAG
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
@@ -137,7 +138,7 @@ class ScreenshotTest {
         val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(path))).setClass(app, MainActivity::class.java)
         ActivityScenario.launch<MainActivity>(intent).use {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
-            compose.onNode(hasScrollAction()).performScrollToNode(hasText("Draw level"))
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasText("Draw level"))
             compose.onNodeWithText("Draw level").performClick()
             waitFor { compose.onAllNodesWithText("Drag along the horizon", substring = true).fetchSemanticsNodes().isNotEmpty() }
             if (outDir.isNotEmpty()) shot("straighten_grid")
@@ -204,6 +205,39 @@ class ScreenshotTest {
             waitFor { compose.onAllNodes(hasContentDescription("Undo") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Redo").assertIsNotEnabled()
             if (outDir.isNotEmpty()) shot("history")
+        }
+    }
+
+    /** Favorite looks: the heart adds them, they get a shelf and a chip, and a strip in the editor. */
+    @Test
+    fun favoriteLooks() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Browse looks").performClick()
+            waitFor { compose.onAllNodesWithContentDescription("Add Reef to favorites").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Add Reef to favorites").performClick()
+            waitFor { compose.onAllNodesWithContentDescription("Remove Reef from favorites").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("♥ Favorites").performClick()
+            waitFor { compose.onAllNodesWithContentDescription("Look Reef").fetchSemanticsNodes().size == 1 }
+            repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+            if (outDir.isNotEmpty()) shot("favorites_shelf")
+            compose.onNodeWithContentDescription("Close looks").performClick()
+
+            // The editor's strip applies a favorite in one tap, and a second tap takes it off.
+            waitFor { compose.onAllNodesWithContentDescription("Favorite look Reef").fetchSemanticsNodes().isNotEmpty() }
+            // (The photo may already wear Reef from an earlier test, so check that each tap flips it.)
+            fun lookOn() = compose.onAllNodesWithText("Look strength").fetchSemanticsNodes().isNotEmpty()
+            val before = lookOn()
+            compose.onNodeWithContentDescription("Favorite look Reef").performClick()
+            waitFor { lookOn() != before }
+            if (!before) {
+                repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+                if (outDir.isNotEmpty()) shot("favorites_strip")
+            }
+            compose.onNodeWithContentDescription("Favorite look Reef").performClick()
+            waitFor { lookOn() == before }
         }
     }
 }

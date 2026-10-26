@@ -168,6 +168,10 @@ you are editing, on four shelves (Darkhall, Film color, Film B&W, Creative) with
 **Look strength** slider blends it in. Looks are saved with each photo's edits and travel with
 copy/paste.
 
+Tap the heart on any thumbnail to make it a favorite. Favorites get their own shelf at the
+top of the browser and a **♥ Favorites** filter, and appear as a strip of small thumbnails
+under the Look row in the editor: one tap applies a favorite, a second tap takes it off.
+
 | Shelf | Looks | Source | License |
 |---|---|---|---|
 | Film color | 194 | RawTherapee Film Simulation Collection | CC BY-SA 4.0 |

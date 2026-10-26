@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.testTag
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
@@ -247,6 +248,9 @@ private fun ErrorPane(message: String, onBack: () -> Unit) {
         Button(onClick = onBack, border = BorderStroke(LocalStrokes.current.width, LocalStrokes.current.selected)) { Text("Back to library") }
     }
 }
+
+/** Test tag of the editor's slider list. */
+const val SLIDERS_TAG = "sliders"
 
 /** What the straighten tools are doing; shared by the slider panel and the preview. */
 @Stable
@@ -622,7 +626,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
     }
     if (browsing) LookBrowser(vm, state.params.look, onDismiss = { browsing = false })
     LazyColumn(
-        modifier.background(MaterialTheme.colorScheme.surface),
+        modifier.background(MaterialTheme.colorScheme.surface).testTag(SLIDERS_TAG),
         contentPadding = PaddingValues(top = 6.dp, bottom = 96.dp),
     ) {
         for (group in AdjustmentGroup.entries) {
@@ -681,6 +685,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Browse looks", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
+                        if (state.favoriteLooks.isNotEmpty()) FavoriteLookStrip(vm, state.favoriteLooks, state.params.look)
                     }
                     for (adj in adjustments) {
                         SliderRow(

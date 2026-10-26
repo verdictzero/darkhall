@@ -10,7 +10,8 @@ import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.onNodeWithTag
+import com.verdictzero.darkhall.app.ui.SLIDERS_TAG
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.performScrollToIndex
@@ -114,7 +115,7 @@ class AppSmokeTest {
             // GPU path backs off cleanly and the CPU takes over.
             waitForText(" ms · CPU", substring = true)
             // The slider list scrolls; bring the TG-specific sliders into view.
-            val list = compose.onNode(hasScrollToIndexAction())
+            val list = compose.onNodeWithTag(SLIDERS_TAG)
             list.performScrollToNode(hasText("Underwater"))
             compose.onNodeWithText("Underwater").assertExistsCompat()
             list.performScrollToNode(hasText("Lens profile"))
