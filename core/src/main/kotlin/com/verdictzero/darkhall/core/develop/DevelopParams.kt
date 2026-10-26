@@ -4,8 +4,9 @@ import com.verdictzero.darkhall.core.raw.RawMetadata
 import kotlin.math.ln
 import kotlin.math.roundToInt
 
-enum class AdjustmentGroup(val title: String) {
-    LOOK("Look"), LIGHT("Light"), COLOR("Color"), SKY("Sky"), DETAIL("Detail"), LENS("Lens")
+/** Editor sections, in order. [sliders] is false for a section with its own controls instead. */
+enum class AdjustmentGroup(val title: String, val sliders: Boolean = true) {
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"), SKY("Sky"), DETAIL("Detail"), LENS("Lens"), CROP("Crop", sliders = false)
 }
 
 /**
@@ -54,6 +55,14 @@ enum class Adjustment(
     SKY_SATURATION("Sky saturation", AdjustmentGroup.SKY, -100f, 100f, 0f),
     SKY_CLARITY("Sky clarity", AdjustmentGroup.SKY, -100f, 100f, 0f),
     SKY_WARMTH("Sky warmth", AdjustmentGroup.SKY, -100f, 100f, 0f),
+
+    // The crop rectangle in the upright, straightened picture (0..1 of its width and height)
+    // and the ratio picked for it (a CropAspect); set with the crop tool, see Crop.
+    CROP_LEFT("Crop left", AdjustmentGroup.CROP, 0f, 1f, 0f, 4),
+    CROP_TOP("Crop top", AdjustmentGroup.CROP, 0f, 1f, 0f, 4),
+    CROP_RIGHT("Crop right", AdjustmentGroup.CROP, 0f, 1f, 1f, 4),
+    CROP_BOTTOM("Crop bottom", AdjustmentGroup.CROP, 0f, 1f, 1f, 4),
+    CROP_ASPECT("Crop ratio", AdjustmentGroup.CROP, 0f, 5f, 0f),
     ;
 
     fun format(v: Float): String {

@@ -22,6 +22,10 @@ import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
+import com.verdictzero.darkhall.core.develop.Crop
+import com.verdictzero.darkhall.core.develop.CropAspect
+import com.verdictzero.darkhall.core.develop.CropRect
+import com.verdictzero.darkhall.core.develop.PixelRect
 import com.verdictzero.darkhall.core.develop.LinearImage
 import com.verdictzero.darkhall.core.develop.Region
 import com.verdictzero.darkhall.core.export.ExportSettings
@@ -102,6 +106,11 @@ data class DevelopState(
     val showSkyMask: Boolean = false,
     /** The sky mask as a tinted overlay matching [preview], while [showSkyMask] is on. */
     val skyOverlay: Bitmap? = null,
+    /** The crop tool is open: the preview shows the whole picture with the crop drawn over it. */
+    val cropping: Boolean = false,
+    /** Upright size of the full-resolution picture, for crop ratios and sizes. */
+    val fullWidth: Int = 0,
+    val fullHeight: Int = 0,
 )
 
 /** Where the photo's sky detection stands. */
@@ -126,6 +135,10 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private var ctx: RenderContext? = null
     private var frame: Frame? = null
     private var editsKey = ""
+    /** The original, uncropped, upright; [DevelopState.compare] is it cut to the crop. */
+    private var fullCompare: Bitmap? = null
+    /** The last preview before cropping, so moving the crop only cuts it again. */
+    private var lastFull: Pair<DevelopParams, IntArray>? = null
     /** True while the GPU holds this file's preview and passed verification. */
     @Volatile private var useGpu = false
     private val developer = Developer()
@@ -198,6 +211,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         paramsFlow.value = null
         loupeRequests.value = null
         meta = null; raw = null; preview = null; ctx = null; frame = null
+        fullCompare = null; lastFull = null
         editsKey = ""
         history.clear()
         historyIndex = -1
@@ -247,6 +261,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
         if (loadedUri != uri) return // closed or switched while loading
         meta = m; raw = r; preview = pv; ctx = c; frame = f
+        fullCompare = compare
         editsKey = file.key
         val knownSky = SkyDetector.cached(app, file.key)?.also { c.sky = it }
         _state.update {
@@ -256,8 +271,10 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 loading = false,
                 defaults = defaults,
                 params = saved ?: defaults,
-                compare = compare,
+                compare = cutCompare(saved ?: defaults, cropping = false),
                 hasLensProfile = c.lens != null,
+                fullWidth = if (Orientation.swapsAxes(m.orientation)) m.crop.height else m.crop.width,
+                fullHeight = if (Orientation.swapsAxes(m.orientation)) m.crop.width else m.crop.height,
                 sky = knownSky?.let { k -> if (k.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND } ?: SkyStatus.UNKNOWN,
                 skyCoverage = knownSky?.coverage ?: 0f,
             )
@@ -277,25 +294,52 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val f = frame ?: return null
         val m = meta ?: return null
         val t0 = System.nanoTime()
-        var engine = "CPU"
-        // The GPU shaders have no sky stage: photos using the Sky sliders render on the CPU.
-        val px = if (useGpu && !p.usesSky()) {
-            try {
-                GpuRenderer.render(c, p, f).also { engine = "GPU" }
-            } catch (e: Throwable) {
-                // The renderer has already switched itself off; finish this frame on the CPU.
-                useGpu = false
-                _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason.orEmpty(), message = "GPU rendering stopped; using the CPU") }
+        var engine = lastEngine
+        // The crop only cuts the finished picture: a change to the crop alone reuses the last render.
+        val uncropped = Crop.copy(p, DevelopParams.NEUTRAL)
+        val full = lastFull?.takeIf { it.first == uncropped }?.second ?: run {
+            engine = "CPU"
+            // The GPU shaders have no sky stage: photos using the Sky sliders render on the CPU.
+            val px = if (useGpu && !p.usesSky()) {
+                try {
+                    GpuRenderer.render(c, p, f).also { engine = "GPU" }
+                } catch (e: Throwable) {
+                    // The renderer has already switched itself off; finish this frame on the CPU.
+                    useGpu = false
+                    _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason.orEmpty(), message = "GPU rendering stopped; using the CPU") }
+                    Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+                }
+            } else {
                 Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
             }
-        } else {
-            Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
+            lastFull = uncropped to px
+            lastEngine = engine
+            px
         }
+        val cropping = _state.value.cropping
+        val rect = if (cropping) null else Crop.of(p).takeIf { !it.isFull }?.let { Crop.sensorPixels(it, m.orientation, pv.width, pv.height) }
+        val px = if (rect == null) full else Crop.cut(full, pv.width, pv.height, rect)
+        val w = rect?.width ?: pv.width
+        val h = rect?.height ?: pv.height
         val hist = Developer.histogram(px)
-        val bmp = toBitmap(px, pv.width, pv.height, m.orientation)
-        val overlay = if (_state.value.showSkyMask) skyOverlay(pv, c, p, f, m) else null
-        _state.update { it.copy(skyOverlay = overlay) }
+        val bmp = toBitmap(px, w, h, m.orientation)
+        val overlay = if (_state.value.showSkyMask) skyOverlay(pv, c, p, f, m, rect) else null
+        val compare = cutCompare(p, cropping)
+        _state.update { it.copy(skyOverlay = overlay, compare = compare) }
         PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000, engine)
+    }
+
+    private var lastEngine = "CPU"
+    private var lastCompare: Pair<CropRect, Bitmap>? = null
+
+    /** The original, cut to [p]'s crop (whole while [cropping]). */
+    private fun cutCompare(p: DevelopParams, cropping: Boolean): Bitmap? {
+        val full = fullCompare ?: return null
+        val crop = Crop.of(p)
+        if (cropping || crop.isFull) return full
+        lastCompare?.takeIf { it.first == crop }?.let { return it.second }
+        val r = crop.pixels(full.width, full.height)
+        return Bitmap.createBitmap(full, r.x, r.y, r.width, r.height).also { lastCompare = crop to it }
     }
 
     /**
@@ -362,6 +406,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 _state.update { it.copy(gpuEnabled = enabled, gpuLabel = "Off") }
             }
             _state.update { it.copy(gpuEnabled = enabled) }
+            lastFull = null // the other engine draws it next
             val p = paramsFlow.value ?: return@launch
             val r = withContext(Dispatchers.Default) { renderPreview(p) } ?: return@launch
             _state.update { s -> s.copy(preview = r.bitmap, previewParams = p, histogram = r.histogram, renderMs = r.ms, engine = r.engine) }
@@ -391,8 +436,11 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
         val w = m.crop.width
         val h = m.crop.height
+        // The request is in the cropped picture; the region render works on the whole frame.
+        val crop = if (_state.value.cropping) CropRect.FULL else Crop.of(p)
         // Displayed rect -> sensor-oriented pixel rect.
         val corners = listOf(req.left to req.top, req.right to req.top, req.left to req.bottom, req.right to req.bottom)
+            .map { (u, v) -> crop.toFull(u, v) }
             .map { (u, v) -> Orientation.toSensor(m.orientation, u, v) }
         val nx0 = corners.minOf { it.first }.coerceIn(0f, 1f)
         val nx1 = corners.maxOf { it.first }.coerceIn(0f, 1f)
@@ -432,7 +480,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val dc = listOf(
             Orientation.toDisplayed(m.orientation, x0.toFloat() / w, y0.toFloat() / h),
             Orientation.toDisplayed(m.orientation, (x0 + rw).toFloat() / w, (y0 + rh).toFloat() / h),
-        )
+        ).map { (u, v) -> crop.fromFull(u, v) }
         _state.update {
             it.copy(
                 loupe = Loupe(
@@ -577,6 +625,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (ctx !== c) return@launch // another photo by now
             c.sky = mask
+            lastFull = null // the sky sliders now have a mask to work through
             _state.update {
                 it.copy(sky = if (mask.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND, skyCoverage = mask.coverage)
             }
@@ -599,13 +648,14 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The sky mask over the preview: magenta, see-through where there's no sky, upright and straightened like the picture. */
-    private fun skyOverlay(pv: LinearImage, c: RenderContext, p: DevelopParams, f: Frame, m: RawMetadata): Bitmap? {
+    private fun skyOverlay(pv: LinearImage, c: RenderContext, p: DevelopParams, f: Frame, m: RawMetadata, crop: PixelRect?): Bitmap? {
         val sky = c.sky ?: return null
         val mask = sky.forFrame(pv, f, m.crop.width, m.crop.height)
         val grey = IntArray(mask.size) { i -> val v = (mask[i] * 255f + 0.5f).toInt().coerceIn(0, 255); (0xFF shl 24) or (v shl 16) or (v shl 8) or v }
-        val placed = Geometry.apply(grey, pv.width, pv.height, p, c.lens)
+        var placed = Geometry.apply(grey, pv.width, pv.height, p, c.lens)
+        if (crop != null) placed = Crop.cut(placed, pv.width, pv.height, crop)
         val tinted = IntArray(placed.size) { i -> (((placed[i] and 0xFF) * 150 / 255) shl 24) or 0xFF28C8 }
-        return toBitmap(tinted, pv.width, pv.height, m.orientation)
+        return toBitmap(tinted, crop?.width ?: pv.width, crop?.height ?: pv.height, m.orientation)
     }
 
     // ---- straighten ---------------------------------------------------------------------------
@@ -671,6 +721,56 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(params = p, beforeAuto = before, message = msg) }
         paramsFlow.value = p
         record(p)
+    }
+
+    // ---- crop ----------------------------------------------------------------------------------
+
+    /** Opens or closes the crop tool. While open, the preview shows the whole picture. */
+    fun setCropping(on: Boolean) {
+        if (_state.value.cropping == on) return
+        _state.update { it.copy(cropping = on, loupe = null) }
+        dragging = null
+        rerender()
+    }
+
+    /** Sets the crop rectangle; successive calls during one drag make one undo step. */
+    fun setCrop(r: CropRect) {
+        val next = Crop.with(_state.value.params, r)
+        if (next == _state.value.params) return
+        _state.update { it.copy(params = next) }
+        paramsFlow.value = next
+        record(next, slider = Adjustment.CROP_LEFT)
+    }
+
+    /** Picks a crop ratio, fitting the largest crop of that shape around the current one. */
+    fun setCropAspect(aspect: CropAspect) {
+        val s = _state.value
+        val now = Crop.of(s.params)
+        val portrait = isPortrait(now, s)
+        val ratio = Crop.ratio(aspect, s.fullWidth, s.fullHeight, portrait)
+        val rect = if (ratio == null) now else Crop.fit(ratio, now, s.fullWidth, s.fullHeight)
+        applyCrop(Crop.with(s.params, rect, aspect))
+    }
+
+    /** Turns the crop between landscape and portrait, keeping its ratio. */
+    fun rotateCrop() {
+        val s = _state.value
+        val now = Crop.of(s.params)
+        val aspect = Crop.aspect(s.params)
+        val pw = now.width * s.fullWidth
+        val ph = now.height * s.fullHeight
+        val ratio = Crop.ratio(aspect, s.fullWidth, s.fullHeight, !isPortrait(now, s)) ?: (ph / pw)
+        applyCrop(Crop.with(s.params, Crop.fit(ratio, now, s.fullWidth, s.fullHeight), aspect))
+    }
+
+    fun resetCrop() = applyCrop(Crop.copy(_state.value.params, DevelopParams.NEUTRAL))
+
+    private fun isPortrait(r: CropRect, s: DevelopState) = r.height * s.fullHeight > r.width * s.fullWidth
+
+    private fun applyCrop(next: DevelopParams) {
+        _state.update { it.copy(params = next) }
+        paramsFlow.value = next
+        record(next)
     }
 
     fun setAutoToneOnOpen(on: Boolean) {
@@ -761,7 +861,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     fun pasteSettings() {
         val json = prefs.copiedSettings ?: return
         val copied = EditsStore.fromJson(json, _state.value.defaults) ?: return
-        val next = copied.with(Adjustment.STRAIGHTEN, _state.value.params[Adjustment.STRAIGHTEN])
+        val next = EditsStore.keepPerShot(copied, _state.value.params)
         _state.update { it.copy(params = next, message = "Settings pasted") }
         paramsFlow.value = next
         record(next)

@@ -98,6 +98,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AdjustmentGroup
+import com.verdictzero.darkhall.core.develop.Crop
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.rememberUpdatedState
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.export.ExportSettings
 import kotlin.math.abs
@@ -113,6 +116,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
+    BackHandler(enabled = state.cropping) { vm.setCropping(false) }
     if (licenses) LicensesScreen(onDismiss = { licenses = false })
     val guides = remember { StraightenGuides() }
 
@@ -282,15 +286,22 @@ enum class CompareMode { SINGLE, SIDE_BY_SIDE, TOP_BOTTOM }
 private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: StraightenGuides, modifier: Modifier) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var mode by rememberSaveable { mutableStateOf(CompareMode.SINGLE) }
+    var pickedMode by rememberSaveable { mutableStateOf(CompareMode.SINGLE) }
+    val cropping = state.cropping
+    // The crop tool works on the single, unzoomed view.
+    val mode = if (cropping) CompareMode.SINGLE else pickedMode
     val split = mode != CompareMode.SINGLE
+    val croppingNow by rememberUpdatedState(cropping)
     // The original shows while the button or the photo itself is held (single view only).
     var holdingButton by remember { mutableStateOf(false) }
     var holdingPhoto by remember { mutableStateOf(false) }
-    val original = !split && (holdingButton || holdingPhoto)
+    val original = !split && !cropping && (holdingButton || holdingPhoto)
     var holdJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
+    LaunchedEffect(cropping) {
+        if (cropping) { scale = 1f; offset = Offset.Zero }
+    }
 
     // The grid shows while straightening: slider held, Draw level on, or just after a change.
     val straighten = state.params[Adjustment.STRAIGHTEN]
@@ -351,6 +362,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
+                        if (croppingNow) return@detectTransformGestures
                         // Moving the picture is not holding it.
                         holdJob?.cancel(); holdingPhoto = false
                         val newScale = (scale * zoom).coerceIn(1f, 12f)
@@ -361,7 +373,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 .pointerInput(split) {
                     detectTapGestures(
                         onPress = {
-                            if (split) return@detectTapGestures
+                            if (split || croppingNow) return@detectTapGestures
                             // Held still for a moment: show the original until released.
                             holdJob = scope.launch { delay(HOLD_MS); holdingPhoto = true }
                             tryAwaitRelease()
@@ -369,6 +381,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                             holdingPhoto = false
                         },
                         onDoubleTap = { tap ->
+                            if (croppingNow) return@detectTapGestures
                             if (scale > 1.01f) {
                                 scale = 1f; offset = Offset.Zero
                             } else {
@@ -405,6 +418,19 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                     PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxWidth(), skyOverlay)
                 }
             }
+        }
+        val bmp = state.preview
+        if (cropping && bmp != null) {
+            val aspect = Crop.aspect(state.params)
+            val crop = Crop.of(state.params)
+            CropOverlay(
+                crop = crop,
+                ratio = Crop.ratio(aspect, state.fullWidth, state.fullHeight, crop.height * state.fullHeight > crop.width * state.fullWidth),
+                fullWidth = state.fullWidth, fullHeight = state.fullHeight,
+                imageWidth = bmp.width, imageHeight = bmp.height,
+                onChange = { vm.setCrop(it) },
+            )
+            OverlayLabel(cropLabel(crop, aspect, state.fullWidth, state.fullHeight), Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
         }
         if (guides.leveling) {
             val accent = MaterialTheme.colorScheme.primary
@@ -448,7 +474,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             OverlayLabel(label, Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
         }
         // Out of the way of the guide label while straightening, and of the split view's labels.
-        state.histogram?.takeIf { !showGrid && !guides.leveling && !split }?.let { bins ->
+        state.histogram?.takeIf { !showGrid && !guides.leveling && !split && !cropping }?.let { bins ->
             Histogram(
                 bins,
                 Modifier
@@ -463,7 +489,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (!split) {
+            if (!split && !cropping) {
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(16.dp))
@@ -507,7 +533,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 )
             }
             Spacer(Modifier.weight(1f))
-            CompareModePicker(mode, onPick = { mode = it })
+            if (!cropping) CompareModePicker(mode, onPick = { pickedMode = it })
         }
     }
 }
@@ -656,7 +682,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
         contentPadding = PaddingValues(top = 6.dp, bottom = 96.dp),
     ) {
         for (group in AdjustmentGroup.entries) {
-            val adjustments = Adjustment.entries.filter { it.group == group }
+            val adjustments = Adjustment.entries.filter { it.group == group && group.sliders }
                 .filter { it != Adjustment.LENS_PROFILE || state.hasLensProfile }
                 .filter { it != Adjustment.LOOK_AMOUNT || state.params.look != null }
             item(key = "g-${group.name}") {
@@ -668,6 +694,10 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         }
                         if (group == AdjustmentGroup.SKY) {
                             StrokedTextButton("Show mask", onClick = { vm.toggleSkyMask() }, selected = state.showSkyMask)
+                        }
+                        if (group == AdjustmentGroup.CROP) {
+                            StrokedTextButton("Reset", onClick = { vm.resetCrop() }, enabled = !Crop.of(state.params).isFull)
+                            StrokedTextButton(if (state.cropping) "Done" else "Crop", onClick = { vm.setCropping(!state.cropping) }, selected = state.cropping)
                         }
                         if (group == AdjustmentGroup.LENS) {
                             StrokedTextButton("Draw level", onClick = { guides.leveling = !guides.leveling }, selected = guides.leveling)
@@ -693,6 +723,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
                         )
                     }
+                    if (group == AdjustmentGroup.CROP) CropControls(state, vm)
                     if (group == AdjustmentGroup.LOOK) {
                         val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
                         Row(

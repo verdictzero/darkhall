@@ -1,6 +1,9 @@
 package com.verdictzero.darkhall.core.export
 
+import com.verdictzero.darkhall.core.develop.Crop
+import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Geometry
+import com.verdictzero.darkhall.core.develop.PixelRect
 
 /**
  * A finished picture handed to an encoder one row at a time, already turned upright, so a
@@ -89,5 +92,26 @@ class GeometryRows16(
         fun v(px: Int, py: Int) = (rgb[3 * (py * srcWidth + px) + c].toInt() and 0xFFFF).toFloat()
         val s = v(x0, y0) * (1 - fx) * (1 - fy) + v(x1, y0) * fx * (1 - fy) + v(x0, y1) * (1 - fx) * fy + v(x1, y1) * fx * fy
         return (s + 0.5f).toInt().coerceIn(0, 65535)
+    }
+}
+
+/** The [rect] part of [src] (upright pixels), for the crop. */
+class CroppedRows(private val src: RowSource, private val rect: PixelRect) : RowSource {
+    override val width = rect.width
+    override val height = rect.height
+    override val bits = src.bits
+    private val full = IntArray(3 * src.width)
+
+    override fun row(y: Int, out: IntArray) {
+        src.row(rect.y + y, full)
+        System.arraycopy(full, 3 * rect.x, out, 0, 3 * rect.width)
+    }
+
+    companion object {
+        /** [src] cropped as [p] says; [src] itself when there is no crop. */
+        fun of(src: RowSource, p: DevelopParams): RowSource {
+            val crop = Crop.of(p)
+            return if (crop.isFull) src else CroppedRows(src, crop.pixels(src.width, src.height))
+        }
     }
 }

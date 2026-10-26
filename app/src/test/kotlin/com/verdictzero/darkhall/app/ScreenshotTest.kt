@@ -245,7 +245,6 @@ class ScreenshotTest {
         }
     }
 
-    /** The export dialog with TIFF and 16-bit picked. */
     @Test
     fun licenses() {
         assumeTrue(outDir.isNotEmpty())
@@ -258,6 +257,7 @@ class ScreenshotTest {
         }
     }
 
+    /** The export dialog with TIFF and 16-bit picked. */
     @Test
     fun exportDialog() {
         assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
@@ -271,6 +271,29 @@ class ScreenshotTest {
             compose.onNodeWithText("JPEG").performClick()
             shot("export_jpeg")
             compose.onNodeWithText("Cancel").performClick()
+        }
+    }
+
+    /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */
+    @Test
+    fun cropTool() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("crop-R5_4"))
+            compose.onNodeWithTag("crop-R5_4").performClick()
+            if (compose.onAllNodesWithContentDescription("Make the crop portrait").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithContentDescription("Make the crop portrait").performClick()
+            }
+            waitFor { compose.onAllNodesWithText("Cropped to 4:5", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            // Slide it a little to the right.
+            compose.onNodeWithContentDescription("Crop").performTouchInput { swipe(center, center + Offset(width * 0.08f, 0f), 300) }
+            shot("crop_tool")
+            compose.onNodeWithText("Done").performClick()
+            waitFor { compose.onAllNodesWithText("Done").fetchSemanticsNodes().isEmpty() }
+            shot("crop_done")
+            compose.onNodeWithText("Reset").performClick()
         }
     }
 

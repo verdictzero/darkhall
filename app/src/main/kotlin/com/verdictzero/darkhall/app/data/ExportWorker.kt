@@ -15,11 +15,13 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.core.develop.Adjustment
+import com.verdictzero.darkhall.core.develop.Crop
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.FullRender
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.export.ArgbRows
+import com.verdictzero.darkhall.core.export.CroppedRows
 import com.verdictzero.darkhall.core.export.ExportFormat
 import com.verdictzero.darkhall.core.export.GeometryRows16
 import com.verdictzero.darkhall.core.export.PhotoInfo
@@ -119,7 +121,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             if (settings.bits == 16) {
                 val r = FullRender.render16(raw, ctx, params, renderProgress, isCancelled = { isStopped })
                     ?: throw IllegalStateException("cancelled")
-                val rows = GeometryRows16(r.rgb, r.width, r.height, r.geometry, meta.orientation)
+                val rows = CroppedRows.of(GeometryRows16(r.rgb, r.width, r.height, r.geometry, meta.orientation), params)
                 when (format) {
                     ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
                     ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)
@@ -132,6 +134,13 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                     ExportFormat.JPEG, ExportFormat.WEBP -> {
                         var bmp = Bitmap.createBitmap(r.argb, r.width, r.height, Bitmap.Config.ARGB_8888)
                         bmp = RawRepository.applyOrientation(bmp, meta.orientation)
+                        val crop = Crop.of(params)
+                        if (!crop.isFull) {
+                            val c = crop.pixels(bmp.width, bmp.height)
+                            val cut = Bitmap.createBitmap(bmp, c.x, c.y, c.width, c.height)
+                            if (cut !== bmp) bmp.recycle()
+                            bmp = cut
+                        }
                         FileOutputStream(temp).use { out ->
                             if (format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
                             else bmp.compress(webpLossless(), 100, out)
@@ -139,7 +148,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                         bmp.recycle()
                     }
                     else -> {
-                        val rows = ArgbRows(r.argb, r.width, r.height, meta.orientation)
+                        val rows = CroppedRows.of(ArgbRows(r.argb, r.width, r.height, meta.orientation), params)
                         when (format) {
                             ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
                             ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)

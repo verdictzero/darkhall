@@ -57,7 +57,7 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 | Look strength | Contrast | Tint | Dehaze | Vignette |
 | | Highlights | Underwater | Sharpening | Distortion |
 | | Shadows | Vibrance | Luminance NR | Straighten |
-| | Whites | Saturation | Color NR | |
+| | Whites | Saturation | Color NR | Crop |
 | | Blacks | | | |
 
 Double-tap a slider's label to reset it; the ⋮ menu resets everything. **Undo** and
@@ -90,6 +90,20 @@ section do the measuring for you:
   the sides. Photos with no line that stands out (most underwater shots) are left alone with
   a message rather than a guess. Like any automatic level it can be fooled by a strong line
   that isn't meant to be level (a mat lying askew on a table), so both tools offer **Undo**.
+
+### Crop
+
+The **Crop** section picks a shape (Free, Original, 1:1, 5:4, 3:2, 16:9) and the button
+beside them turns it between landscape and portrait (4:5, 2:3, 9:16). Tapping a shape or
+**Crop** shows the whole picture with the crop drawn over it: drag a corner or an edge to
+resize it, the middle to move it; a fixed shape keeps its proportions, and the label gives
+the size the export will have. **Done** (or Back) shows the cropped photo; **Reset** removes
+the crop.
+
+The crop is taken from the straightened, lens-corrected picture, so it stays put when
+Straighten changes. It is one undo step per drag, applies to every export format, and like
+Straighten it belongs to its photo: pasting settings onto other photos leaves their crops
+alone. Moving the crop doesn't re-render anything; the last render is simply cut again.
 
 ### Sky
 
@@ -161,7 +175,7 @@ generous memory allowance.
 3. Tap a thumbnail, adjust, then **Export** and pick a format (see below). Files (full
    resolution, with the shooting data) land in `Pictures/Darkhall`.
 4. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
-   long-press to select others and tap **Paste** (each photo keeps its own Straighten).
+   long-press to select others and tap **Paste** (each photo keeps its own Straighten and crop).
    **Export** on a selection renders the batch.
 
 ### Export formats

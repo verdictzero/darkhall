@@ -58,6 +58,8 @@ class ExportFormatsAppTest {
         Robolectric.setupContentProvider(FakeMediaStore::class.java, "media")
         FakeMediaStore.inserted.clear()
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        // Methods share the app's files: start each from unedited photos.
+        File(app.filesDir, "edits").deleteRecursively()
     }
 
     private fun waitFor(timeoutMs: Long = 120_000, condition: () -> Boolean) {

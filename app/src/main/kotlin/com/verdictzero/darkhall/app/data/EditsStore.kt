@@ -2,6 +2,7 @@ package com.verdictzero.darkhall.app.data
 
 import android.content.Context
 import com.verdictzero.darkhall.core.develop.Adjustment
+import com.verdictzero.darkhall.core.develop.Crop
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import org.json.JSONObject
 import java.io.File
@@ -55,12 +56,15 @@ object EditsStore {
     }
 
     /**
-     * Applies copied sliders to another file. Straighten is per-shot, so the target keeps
-     * its own value; everything else is taken from the copy.
+     * Applies copied sliders to another file. Straighten and the crop are per-shot, so the
+     * target keeps its own; everything else is taken from the copy.
      */
     fun paste(context: Context, key: String, copied: DevelopParams) {
         val existing = load(context, key, DevelopParams.NEUTRAL)
-        val straighten = existing?.get(Adjustment.STRAIGHTEN) ?: Adjustment.STRAIGHTEN.default
-        save(context, key, copied.with(Adjustment.STRAIGHTEN, straighten))
+        save(context, key, keepPerShot(copied, existing ?: DevelopParams.NEUTRAL))
     }
+
+    /** [copied] with the per-shot settings (Straighten, the crop) of [target]. */
+    fun keepPerShot(copied: DevelopParams, target: DevelopParams): DevelopParams =
+        Crop.copy(copied.with(Adjustment.STRAIGHTEN, target[Adjustment.STRAIGHTEN]), target)
 }
