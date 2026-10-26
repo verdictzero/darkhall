@@ -1,5 +1,6 @@
 package com.verdictzero.darkhall.app.ui
 
+import com.verdictzero.darkhall.core.export.ExportSettings
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
@@ -99,10 +100,10 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun exportSelection() {
+    fun exportSelection(settings: ExportSettings) {
         val targets = _state.value.files.filter { it.key in _state.value.selected }
         if (targets.isEmpty()) return
-        ExportQueue.enqueue(getApplication(), targets.map { it.uri })
+        ExportQueue.enqueue(getApplication(), targets.map { it.uri }, settings)
         _state.update { it.copy(selected = emptySet()) }
     }
 

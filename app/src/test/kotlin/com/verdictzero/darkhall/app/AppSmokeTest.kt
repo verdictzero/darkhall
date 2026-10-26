@@ -171,6 +171,7 @@ class AppSmokeTest {
 
             // Export: queued through WorkManager.
             compose.onNodeWithText("Export").performClick()
+            compose.onNodeWithText("Start export").performClick() // the dialog keeps the default, JPEG
             waitFor(30_000) {
                 WorkManager.getInstance(app).getWorkInfosForUniqueWork(ExportQueue.UNIQUE_NAME).get().isNotEmpty()
             }

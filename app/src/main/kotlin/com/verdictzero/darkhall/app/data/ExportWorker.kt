@@ -18,21 +18,36 @@ import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.FullRender
 import com.verdictzero.darkhall.core.develop.RenderContext
+import com.verdictzero.darkhall.core.export.ArgbRows
+import com.verdictzero.darkhall.core.export.ExportFormat
+import com.verdictzero.darkhall.core.export.GeometryRows16
+import com.verdictzero.darkhall.core.export.PhotoInfo
+import com.verdictzero.darkhall.core.export.PngWriter
+import com.verdictzero.darkhall.core.export.TgaWriter
+import com.verdictzero.darkhall.core.export.TiffWriter
 import com.verdictzero.darkhall.core.raw.RawFormats
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Renders each queued raw at full resolution with its saved sliders and writes a JPEG. */
+/**
+ * Renders each queued raw at full resolution with its saved sliders and writes it in the
+ * chosen format: JPEG and WebP through Android's encoders, PNG, TIFF and TGA through
+ * Darkhall's own, which also take the 16-bit render.
+ */
 class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     private val total = inputData.getInt(ExportQueue.KEY_TOTAL, 1)
+    private val settings = ExportQueue.settingsOf(inputData)
+    private var folder: String? = null
 
     override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(0, 0f, null)
 
     override suspend fun doWork(): Result {
         val jobId = inputData.getString(ExportQueue.KEY_JOB) ?: return Result.failure()
         val uris = ExportQueue.readJob(applicationContext, jobId)
-        if (uris.isEmpty()) return Result.failure()
+        if (uris.isEmpty()) return Result.failure(workDataOf(ExportQueue.KEY_FAILED_NAMES to "the export's file list is missing"))
         // Promote to a foreground service; if the platform refuses (rare background-start
         // restrictions) the work still runs, just without the guarantee.
         runCatching { setForeground(foregroundInfo(0, 0f, null)) }
@@ -57,6 +72,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 ExportQueue.KEY_OK to ok,
                 ExportQueue.KEY_FAILED to failedNames.size,
                 ExportQueue.KEY_FAILED_NAMES to failedNames.joinToString(", ").take(2000),
+                ExportQueue.KEY_FOLDER to folder,
             )
         )
     }
@@ -93,15 +109,59 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         }
         val defaults = DevelopParams.defaultsFor(meta, ctx.noise)
         val params = EditsStore.load(context, file.key, defaults) ?: defaults
-        val rendered = FullRender.render(raw, ctx, params, progress = { progress(it * 0.85f) }, isCancelled = { isStopped })
-            ?: throw IllegalStateException("cancelled")
-        var bmp = Bitmap.createBitmap(rendered.argb, rendered.width, rendered.height, Bitmap.Config.ARGB_8888)
-        bmp = RawRepository.applyOrientation(bmp, meta.orientation)
-        progress(0.92f)
-        ExportService.saveJpeg(context, bmp, meta, file.baseName)
-        bmp.recycle()
+        val format = settings.format
+        val info = PhotoInfo.from(meta)
+        val renderProgress = { f: Float -> progress(f * 0.8f) }
+        val encodeProgress = { f: Float -> progress(0.8f + f * 0.18f) }
+        val temp = File.createTempFile("export", ".${format.extension}", context.cacheDir)
+        try {
+            if (settings.bits == 16) {
+                val r = FullRender.render16(raw, ctx, params, renderProgress, isCancelled = { isStopped })
+                    ?: throw IllegalStateException("cancelled")
+                val rows = GeometryRows16(r.rgb, r.width, r.height, r.geometry, meta.orientation)
+                when (format) {
+                    ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
+                    ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)
+                    else -> error("$format has no 16-bit form")
+                }
+            } else {
+                val r = FullRender.render(raw, ctx, params, renderProgress, isCancelled = { isStopped })
+                    ?: throw IllegalStateException("cancelled")
+                when (format) {
+                    ExportFormat.JPEG, ExportFormat.WEBP -> {
+                        var bmp = Bitmap.createBitmap(r.argb, r.width, r.height, Bitmap.Config.ARGB_8888)
+                        bmp = RawRepository.applyOrientation(bmp, meta.orientation)
+                        FileOutputStream(temp).use { out ->
+                            if (format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
+                            else bmp.compress(webpLossless(), 100, out)
+                        }
+                        bmp.recycle()
+                    }
+                    else -> {
+                        val rows = ArgbRows(r.argb, r.width, r.height, meta.orientation)
+                        when (format) {
+                            ExportFormat.PNG -> PngWriter.write(rows, temp, mapOf("Software" to info.software), encodeProgress)
+                            ExportFormat.TIFF -> TiffWriter.write(rows, temp, settings.tiffCompressed, info, encodeProgress)
+                            else -> TgaWriter.write(rows, temp, encodeProgress)
+                        }
+                    }
+                }
+            }
+            if (format == ExportFormat.JPEG || format == ExportFormat.PNG || format == ExportFormat.WEBP) {
+                ExportService.writeExif(temp, info)
+            }
+            progress(0.98f)
+            folder = ExportService.publish(context, temp, format, file.baseName).folder
+        } finally {
+            temp.delete()
+        }
         progress(1f)
     }
+
+    @Suppress("DEPRECATION")
+    private fun webpLossless() =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSLESS
+        else Bitmap.CompressFormat.WEBP // quality 100 is lossless before Android 11
 
     private fun foregroundInfo(index: Int, fraction: Float, name: String?): ForegroundInfo {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

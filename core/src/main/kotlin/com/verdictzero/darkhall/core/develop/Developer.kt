@@ -121,7 +121,42 @@ class Developer {
      * Renders [img] to packed 0xAARRGGBB pixels (before geometry). With [inPlace] the
      * image's own planes are used as the working buffers and are destroyed.
      */
-    fun render(img: LinearImage, ctx: RenderContext, p: DevelopParams, frame: Frame, inPlace: Boolean = false): IntArray {
+    fun render(img: LinearImage, ctx: RenderContext, p: DevelopParams, frame: Frame, inPlace: Boolean = false): IntArray =
+        develop(img, ctx, p, frame, inPlace) { r, g, b, n, w, h ->
+            val out = IntArray(n)
+            Parallel.rows(h) { y0, y1 ->
+                for (i in y0 * w until y1 * w) {
+                    val ri = (r[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
+                    val gi = (g[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
+                    val bi = (b[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
+                    out[i] = (0xFF shl 24) or (ri shl 16) or (gi shl 8) or bi
+                }
+            }
+            out
+        }
+
+    /**
+     * Like [render], but keeps 16 bits per channel: RGB triplets (3 shorts per pixel, read
+     * them unsigned), for 16-bit TIFF and PNG export.
+     */
+    fun render16(img: LinearImage, ctx: RenderContext, p: DevelopParams, frame: Frame, inPlace: Boolean = false): ShortArray =
+        develop(img, ctx, p, frame, inPlace) { r, g, b, n, w, h ->
+            val out = ShortArray(3 * n)
+            Parallel.rows(h) { y0, y1 ->
+                for (i in y0 * w until y1 * w) {
+                    out[3 * i] = (r[i] * 65535f + 0.5f).toInt().coerceIn(0, 65535).toShort()
+                    out[3 * i + 1] = (g[i] * 65535f + 0.5f).toInt().coerceIn(0, 65535).toShort()
+                    out[3 * i + 2] = (b[i] * 65535f + 0.5f).toInt().coerceIn(0, 65535).toShort()
+                }
+            }
+            out
+        }
+
+    /** The whole pipeline up to display values in 0..1; [pack] turns the planes into pixels. */
+    private fun <T> develop(
+        img: LinearImage, ctx: RenderContext, p: DevelopParams, frame: Frame, inPlace: Boolean,
+        pack: (r: FloatArray, g: FloatArray, b: FloatArray, n: Int, w: Int, h: Int) -> T,
+    ): T {
         val w = img.width
         val h = img.height
         val n = w * h
@@ -294,17 +329,7 @@ class Developer {
             }
         }
 
-        // ---- pack ------------------------------------------------------------------------
-        val out = IntArray(n)
-        Parallel.rows(h) { y0, y1 ->
-            for (i in y0 * w until y1 * w) {
-                val ri = (r[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
-                val gi = (g[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
-                val bi = (b[i] * 255f + 0.5f).toInt().coerceIn(0, 255)
-                out[i] = (0xFF shl 24) or (ri shl 16) or (gi shl 8) or bi
-            }
-        }
-        return out
+        return pack(r, g, b, n, w, h)
     }
 
     /**

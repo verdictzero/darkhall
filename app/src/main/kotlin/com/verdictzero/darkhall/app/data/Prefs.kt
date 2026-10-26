@@ -2,6 +2,8 @@ package com.verdictzero.darkhall.app.data
 
 import android.content.Context
 import android.net.Uri
+import com.verdictzero.darkhall.core.export.ExportFormat
+import com.verdictzero.darkhall.core.export.ExportSettings
 
 /** Small persisted settings: the library folder and individually opened files. */
 class Prefs(context: Context) {
@@ -44,6 +46,19 @@ class Prefs(context: Context) {
     var favoriteLooks: List<String>
         get() = sp.getString("favoriteLooks", null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
         set(v) { sp.edit().putString("favoriteLooks", v.joinToString("\n")).apply() }
+
+    /** The last export settings used, offered again next time. */
+    var exportSettings: ExportSettings
+        get() = ExportSettings(
+            format = ExportFormat.entries.firstOrNull { it.name == sp.getString("exportFormat", null) } ?: ExportFormat.JPEG,
+            jpegQuality = sp.getInt("exportQuality", 95),
+            sixteenBit = sp.getBoolean("export16", false),
+            tiffCompressed = sp.getBoolean("exportTiffZip", true),
+        )
+        set(v) {
+            sp.edit().putString("exportFormat", v.format.name).putInt("exportQuality", v.jpegQuality)
+                .putBoolean("export16", v.sixteenBit).putBoolean("exportTiffZip", v.tiffCompressed).apply()
+        }
 
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)

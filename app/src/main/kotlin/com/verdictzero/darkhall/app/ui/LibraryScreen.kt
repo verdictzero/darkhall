@@ -1,5 +1,6 @@
 package com.verdictzero.darkhall.app.ui
 
+import com.verdictzero.darkhall.core.export.ExportSettings
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -82,7 +83,16 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
     val pickFiles = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         vm.addFiles(uris)
     }
-    val exportSelection = rememberExportStarter { vm.exportSelection() }
+    var exportDialog by remember { mutableStateOf(false) }
+    var exportSettings by remember { mutableStateOf(ExportSettings()) }
+    val exportSelection = rememberExportStarter { vm.exportSelection(exportSettings) }
+    if (exportDialog) {
+        ExportDialog(state.selected.size, onDismiss = { exportDialog = false }) { s ->
+            exportDialog = false
+            exportSettings = s
+            exportSelection()
+        }
+    }
     var selectionMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.refreshEditMarks() } // returning from the develop screen
@@ -104,7 +114,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                             StrokedTextButton("Paste", onClick = { vm.pasteToSelection() }, enabled = state.canPaste)
                             StrokedTextButton("Auto", onClick = { vm.autoToneSelection() }, enabled = state.autoProgress == null)
-                            StrokedTextButton("Export", onClick = exportSelection)
+                            StrokedTextButton("Export", onClick = { exportDialog = true })
                         }
                         Box(Modifier.padding(horizontal = 6.dp)) {
                             StrokedIconButton(onClick = { selectionMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }

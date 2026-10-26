@@ -99,6 +99,7 @@ import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AdjustmentGroup
 import com.verdictzero.darkhall.core.develop.DevelopParams
+import com.verdictzero.darkhall.core.export.ExportSettings
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -125,7 +126,17 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
             vm.clearMessage()
         }
     }
-    val startExport = rememberExportStarter { vm.export() }
+    // The dialog picks the format; the starter then asks for any permissions and queues it.
+    var exportDialog by remember { mutableStateOf(false) }
+    var exportSettings by remember { mutableStateOf(ExportSettings()) }
+    val startExport = rememberExportStarter { vm.export(exportSettings) }
+    if (exportDialog) {
+        ExportDialog(1, onDismiss = { exportDialog = false }) { s ->
+            exportDialog = false
+            exportSettings = s
+            startExport()
+        }
+    }
     val ready = !state.loading && state.error == null
     val strokes = LocalStrokes.current
 
@@ -150,7 +161,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     StrokedIconButton(onClick = { vm.redo() }, enabled = ready && state.canRedo) {
                         Icon(Glyphs.Redo, contentDescription = "Redo")
                     }
-                    StrokedTextButton("Export", onClick = startExport, enabled = ready)
+                    StrokedTextButton("Export", onClick = { exportDialog = true }, enabled = ready)
                     Box {
                         StrokedIconButton(onClick = { menuOpen = true }, enabled = ready) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "More")

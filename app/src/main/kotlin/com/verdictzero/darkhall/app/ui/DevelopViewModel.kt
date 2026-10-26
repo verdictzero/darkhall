@@ -22,6 +22,7 @@ import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.LinearImage
 import com.verdictzero.darkhall.core.develop.Region
+import com.verdictzero.darkhall.core.export.ExportSettings
 import com.verdictzero.darkhall.core.develop.RegionRender
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.raw.RawFormats
@@ -692,13 +693,13 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
-    fun export() {
+    fun export(settings: ExportSettings) {
         val uri = loadedUri ?: return
         val p = _state.value.params
         val key = editsKey
         viewModelScope.launch {
             withContext(Dispatchers.IO) { runCatching { EditsStore.save(getApplication(), key, p) } }
-            ExportQueue.enqueue(getApplication(), listOf(uri))
+            ExportQueue.enqueue(getApplication(), listOf(uri), settings)
             _state.update { it.copy(message = "Export started. It keeps running if you leave the app.") }
         }
     }

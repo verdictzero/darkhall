@@ -50,6 +50,10 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             it.maxHeapSize = "3g"
+            // One JVM per test class: an Android process has one Application, but Robolectric
+            // makes a new one per test, and static caches (the view-model factory's, notably)
+            // would otherwise hand later tests the first test's.
+            it.forkEvery = 1
             // Lets captureToImage() work under Robolectric (screenshot test).
             it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
             // End-to-end test input: -Pdarkhall.sample=/path/to/file.orf (skipped when absent).

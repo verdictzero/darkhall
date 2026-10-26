@@ -128,11 +128,29 @@ generous memory allowance.
    the card in with an OTG reader. Other cameras' raws and phone DNGs work the same way.
 2. **Folder** picks a directory to browse; **Files** opens individual raws. Opening a
    raw from a file manager also works.
-3. Tap a thumbnail, adjust, then **Export**. JPEGs (quality 95, full 12 MP, with the
-   shooting data copied into EXIF) land in `Pictures/Darkhall`.
+3. Tap a thumbnail, adjust, then **Export** and pick a format (see below). Files (full
+   resolution, with the shooting data) land in `Pictures/Darkhall`.
 4. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
    long-press to select others and tap **Paste** (each photo keeps its own Straighten).
    **Export** on a selection renders the batch.
+
+### Export formats
+
+| Format | Depth | Notes |
+|---|---|---|
+| JPEG | 8-bit | quality 60–100 (95 by default); EXIF and GPS |
+| PNG | 8 or 16-bit | lossless; EXIF and GPS |
+| TIFF | 8 or 16-bit | uncompressed or ZIP (Deflate with the horizontal predictor); EXIF and GPS in their own TIFF directories, so Photoshop, Lightroom, GIMP and darktable read them |
+| WebP | 8-bit | lossless; EXIF and GPS |
+| TGA | 8-bit | run-length encoded, top-left origin; the format has no room for camera data |
+
+The 16-bit exports come from the same pipeline as the 8-bit ones, packed to 16 bits at the
+very end instead of 8 (they match to within rounding), so smooth skies and shadows survive
+heavy editing in other software. PNG, TIFF and TGA are written by Darkhall's own encoders,
+row by row, so a 16-bit export never holds more than one full-size copy of the picture; JPEG
+and WebP use Android's. The dialog remembers the last choice, and a library selection
+exports with the same dialog. Formats the gallery doesn't take as pictures on a given device
+go to `Download/Darkhall` instead.
 
 Exports run in a background job with a progress notification, so they finish even if you
 leave the app; several exports queue up and run one after another.
@@ -313,7 +331,7 @@ What they cover:
   lossless JPEG, DNG, ORF, ARW, NEF, CR2, RW2, PEF), the camera colour table, demosaic (superpixel for
   previews, Malvar-He-Cutler for export and zoom), the slider pipeline and its shared
   `RenderPlan`, the GLSL ES port behind a small `Gl` interface, lens geometry, region
-  rendering for zoom, banded 12 MP export.
+  rendering for zoom, banded 12 MP export, and the PNG/TIFF/TGA encoders (`core/export`).
 * `app/` – Jetpack Compose UI, Storage Access Framework browsing, WorkManager export to
   MediaStore.
 

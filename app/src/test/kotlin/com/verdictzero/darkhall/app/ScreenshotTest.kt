@@ -240,4 +240,21 @@ class ScreenshotTest {
             waitFor { lookOn() == before }
         }
     }
+
+    /** The export dialog with TIFF and 16-bit picked. */
+    @Test
+    fun exportDialog() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Export").performClick()
+            compose.onNodeWithText("TIFF").performClick()
+            compose.onNodeWithText("16-bit").performClick()
+            shot("export_tiff")
+            compose.onNodeWithText("JPEG").performClick()
+            shot("export_jpeg")
+            compose.onNodeWithText("Cancel").performClick()
+        }
+    }
 }

@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.verdictzero.darkhall.app.data.ExportService
 import com.verdictzero.darkhall.app.data.ExportQueue
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -56,7 +55,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
             val failed = fresh.sumOf { it.failed }
             val names = fresh.map { it.failedNames }.filter { it.isNotEmpty() }.joinToString(", ")
             summary = when {
-                failed == 0 -> "Saved $ok ${if (ok == 1) "photo" else "photos"} to Pictures/${ExportService.ALBUM}"
+                failed == 0 -> "Saved $ok ${if (ok == 1) "photo" else "photos"} to ${fresh.last().folder}"
                 ok == 0 -> "Export failed" + if (names.isNotEmpty()) ": $names" else ""
                 else -> "Saved $ok, failed $failed" + if (names.isNotEmpty()) ": $names" else ""
             }
