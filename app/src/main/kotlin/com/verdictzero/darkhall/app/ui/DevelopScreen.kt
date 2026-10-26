@@ -78,6 +78,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.FilterQuality
@@ -803,6 +804,17 @@ internal fun SliderRow(
                     .weight(1f)
                     .pointerInput(adj) { detectTapGestures(onDoubleTap = { onReset() }) },
             )
+            if (adj in HUE_SLIDERS) {
+                // The hue a grading slider picks, at full strength.
+                Box(
+                    Modifier
+                        .padding(end = 8.dp)
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(Color.hsv(value.coerceIn(0f, 359.99f), 0.75f, 0.95f))
+                        .border(1.dp, LocalStrokes.current.overlay, CircleShape),
+                )
+            }
             Text(
                 adj.format(value),
                 style = MaterialTheme.typography.bodyMedium,
@@ -820,6 +832,9 @@ internal fun SliderRow(
         }
     }
 }
+
+/** Sliders that pick a hue, shown with a swatch of it. */
+private val HUE_SLIDERS = setOf(Adjustment.GRADE_SHADOW_HUE, Adjustment.GRADE_MIDTONE_HUE, Adjustment.GRADE_HIGHLIGHT_HUE)
 
 /** How far a drawn line is from level or upright, whichever it is nearer. */
 private fun lineLabel(d: Offset): String {

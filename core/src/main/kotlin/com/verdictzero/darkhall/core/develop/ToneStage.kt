@@ -64,6 +64,17 @@ object ToneStage {
             mix(plan.mix, dr, dg, db, scratch)
             dr = scratch[0]; dg = scratch[1]; db = scratch[2]
         }
+        if (plan.gradeOn) {
+            // Split by (balance-shifted) luminance into shadows, midtones and highlights, which
+            // always add up to one, and add each one's tint in proportion.
+            val y = (LUM_R * dr + LUM_G * dg + LUM_B * db).coerceIn(0f, 1f)
+            val t = exp(plan.gradeExponent * ln(max(y, 1e-6f)))
+            val ws = (1f - t) * (1f - t); val wh = t * t; val wm = 2f * t * (1f - t)
+            val s = plan.gradeShadow; val m = plan.gradeMidtone; val h = plan.gradeHighlight
+            dr = clamp01(dr + ws * s[0] + wm * m[0] + wh * h[0])
+            dg = clamp01(dg + ws * s[1] + wm * m[1] + wh * h[1])
+            db = clamp01(db + ws * s[2] + wm * m[2] + wh * h[2])
+        }
         val look = plan.look
         if (plan.lookOn && look != null) {
             look.sample(dr, dg, db, scratch)

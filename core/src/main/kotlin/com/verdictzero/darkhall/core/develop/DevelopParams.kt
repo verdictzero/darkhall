@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
  * [region] is set for the sections that act on one part of the picture through its mask.
  */
 enum class AdjustmentGroup(val title: String, val sliders: Boolean = true, val region: MaskRegion? = null) {
-    LOOK("Look"), LIGHT("Light"), COLOR("Color"), MIXER("Color mixer", sliders = false),
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"), MIXER("Color mixer", sliders = false), GRADING("Color grading"),
     SKY("Sky", region = MaskRegion.SKY), WATER("Water", region = MaskRegion.WATER),
     SUBJECT("Subject", region = MaskRegion.SUBJECT), FOLIAGE("Foliage", region = MaskRegion.FOLIAGE),
     DETAIL("Detail"), LENS("Lens"), CROP("Crop", sliders = false)
@@ -83,11 +83,24 @@ enum class Adjustment(
     MIX_MAGENTA_SAT("Magenta saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
     MIX_MAGENTA_LUM("Magenta luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
 
+    // Colour grading: a tint for the shadows, the midtones and the highlights (see ToneStage).
+    GRADE_SHADOW_HUE("Shadow hue", AdjustmentGroup.GRADING, 0f, 360f, 220f, unit = "°"),
+    GRADE_SHADOW("Shadow tint", AdjustmentGroup.GRADING, 0f, 100f, 0f),
+    GRADE_MIDTONE_HUE("Midtone hue", AdjustmentGroup.GRADING, 0f, 360f, 30f, unit = "°"),
+    GRADE_MIDTONE("Midtone tint", AdjustmentGroup.GRADING, 0f, 100f, 0f),
+    GRADE_HIGHLIGHT_HUE("Highlight hue", AdjustmentGroup.GRADING, 0f, 360f, 45f, unit = "°"),
+    GRADE_HIGHLIGHT("Highlight tint", AdjustmentGroup.GRADING, 0f, 100f, 0f),
+    /** Moves the split between shadows and highlights: positive gives the highlight tint more room. */
+    GRADE_BALANCE("Balance", AdjustmentGroup.GRADING, -100f, 100f, 0f),
+
     CLARITY("Clarity", AdjustmentGroup.DETAIL, -100f, 100f, 0f),
     DEHAZE("Dehaze", AdjustmentGroup.DETAIL, -100f, 100f, 0f),
     SHARPEN("Sharpening", AdjustmentGroup.DETAIL, 0f, 100f, 30f),
     LUMA_NR("Luminance NR", AdjustmentGroup.DETAIL, 0f, 100f, 0f),
     CHROMA_NR("Color NR", AdjustmentGroup.DETAIL, 0f, 100f, 25f),
+    /** Film grain, the same at any size the photo is shown or exported (see Grain). */
+    GRAIN("Grain", AdjustmentGroup.DETAIL, 0f, 100f, 0f),
+    GRAIN_SIZE("Grain size", AdjustmentGroup.DETAIL, 0f, 100f, 25f),
 
     /** Strength of the built-in TG lens profile (distortion + colour fringing). */
     LENS_PROFILE("Lens profile", AdjustmentGroup.LENS, 0f, 100f, 100f),

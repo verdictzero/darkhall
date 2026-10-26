@@ -226,6 +226,11 @@ uniform int uLookN;
 uniform float uLookAmount;
 uniform int uMixOn;
 uniform vec3 uMix[8];
+uniform int uGradeOn;
+uniform float uGradeExp;
+uniform vec3 uGradeS;
+uniform vec3 uGradeM;
+uniform vec3 uGradeH;
 const float SHOULDER = 0.85;
 const float DESAT_END = 3.0;
 const float DESAT_MAX = 0.85;
@@ -309,10 +314,47 @@ void main() {
         d = clamp(yv + (d - yv) * k, 0.0, 1.0);
     }
     if (uMixOn == 1) d = mixer(d);
+    if (uGradeOn == 1) {
+        float t = pow(max(clamp(dot(LUM, d), 0.0, 1.0), 1e-6), uGradeExp);
+        float ws = (1.0 - t) * (1.0 - t);
+        float wh = t * t;
+        float wm = 2.0 * t * (1.0 - t);
+        d = clamp(d + ws * uGradeS + wm * uGradeM + wh * uGradeH, 0.0, 1.0);
+    }
     if (uLookOn == 1) {
         d += (applyLook(d) - d) * uLookAmount;
     }
     o = vec4(d, 1.0);
+}
+"""
+
+    /** Film grain: as Grain.apply. */
+    const val GRAIN = HEADER + """
+uniform sampler2D uIn;
+uniform float uGrainA;
+uniform float uCell;
+uniform vec2 uFrame0;
+uniform float uInvScale;
+float hash(int ix, int iy) {
+    uint h = uint(ix) * 374761393u + uint(iy) * 668265263u;
+    h = (h ^ (h >> 13u)) * 1274126177u;
+    h = h ^ (h >> 16u);
+    return float(h & 0xFFFFFFu) / 16777216.0;
+}
+void main() {
+    ivec2 p = P();
+    vec3 v = texelFetch(uIn, p, 0).rgb;
+    vec2 f = uFrame0 + (vec2(p) + 0.5) * uInvScale;
+    vec2 q = f / uCell;
+    vec2 i0 = floor(q);
+    vec2 t = q - i0;
+    t = t * t * (3.0 - 2.0 * t);
+    int ix = int(i0.x);
+    int iy = int(i0.y);
+    float n = (hash(ix, iy) * (1.0 - t.x) + hash(ix + 1, iy) * t.x) * (1.0 - t.y) + (hash(ix, iy + 1) * (1.0 - t.x) + hash(ix + 1, iy + 1) * t.x) * t.y;
+    float l = clamp(dot(LUM, v), 0.0, 1.0);
+    float add = uGrainA * (2.0 * n - 1.0) * 2.0 * sqrt(l * (1.0 - l));
+    o = vec4(clamp(v + add, 0.0, 1.0), 1.0);
 }
 """
 

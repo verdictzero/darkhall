@@ -77,6 +77,20 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
         }
     }
     val mixerOn: Boolean = mix.any { abs(it) > 1e-4f }
+    // ---- colour grading (display space, after the mixer) ------------------------------------
+    /** Exponent applied to luminance before splitting it into shadows, midtones and highlights. */
+    val gradeExponent: Float = pow2(-p[Adjustment.GRADE_BALANCE] / 100f)
+    /** Colour offsets added in full to pure shadows, midtones and highlights (zero luminance each). */
+    val gradeShadow = tint(p[Adjustment.GRADE_SHADOW_HUE], p[Adjustment.GRADE_SHADOW])
+    val gradeMidtone = tint(p[Adjustment.GRADE_MIDTONE_HUE], p[Adjustment.GRADE_MIDTONE])
+    val gradeHighlight = tint(p[Adjustment.GRADE_HIGHLIGHT_HUE], p[Adjustment.GRADE_HIGHLIGHT])
+    val gradeOn: Boolean = p[Adjustment.GRADE_SHADOW] > 0.05f || p[Adjustment.GRADE_MIDTONE] > 0.05f || p[Adjustment.GRADE_HIGHLIGHT] > 0.05f
+
+    // ---- grain (display space, last) -----------------------------------------------------------
+    val grainAmount: Float = p[Adjustment.GRAIN] / 100f * 0.14f
+    /** Grain cell size in full-resolution pixels. */
+    val grainCell: Float = 1f + p[Adjustment.GRAIN_SIZE] / 100f * 4f
+    val grainOn: Boolean = grainAmount > 1e-4f
     /** Display-space curve (blacks → whites → contrast) on 4097 points. */
     val curve = FloatArray(CURVE_SIZE)
 
@@ -167,6 +181,20 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
 
     companion object {
         const val CURVE_SIZE = 4097
+
+        /** The colour of [hueDeg] at full saturation, minus its luminance, scaled by [amount] 0..100. */
+        fun tint(hueDeg: Float, amount: Float): FloatArray {
+            val h = (hueDeg / 360f) * 6f
+            val r = (abs(h - 3f) - 1f).coerceIn(0f, 1f)
+            val g = (2f - abs(h - 2f)).coerceIn(0f, 1f)
+            val b = (2f - abs(h - 4f)).coerceIn(0f, 1f)
+            val y = LUM_R * r + LUM_G * g + LUM_B * b
+            val k = amount / 100f * GRADE_MAX
+            return floatArrayOf((r - y) * k, (g - y) * k, (b - y) * k)
+        }
+
+        /** How far a full tint moves a pure tone's colour. */
+        const val GRADE_MAX = 0.3f
         val LN2 = ln(2.0).toFloat()
 
         /** Linear level where the highlight shoulder starts. */

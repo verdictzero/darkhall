@@ -58,7 +58,8 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 | | Highlights | Underwater | Sharpening | Distortion |
 | | Shadows | Vibrance | Luminance NR | Straighten |
 | | Whites | Saturation | Color NR | Crop |
-| | Blacks | | | |
+| | Blacks | Color mixer | Grain | |
+| | | Color grading | Grain size | |
 
 **Color mixer**: pick one of eight hue bands (red, orange, yellow, green, aqua, blue,
 purple, magenta) and turn its hue (up to 30° towards a neighbour), saturation and luminance
@@ -66,6 +67,13 @@ purple, magenta) and turn its hue (up to 30° towards a neighbour), saturation a
 down aqua and blue or reviving a faded red changes only those colours. A dot under a band
 marks it as changed; **Reset** clears all eight. It runs after saturation and before the
 look, on the GPU as well as the CPU.
+
+**Color grading**: a tint for the shadows, the midtones and the highlights, each a hue
+(with a swatch beside the value) and a strength, plus **Balance**, which moves the split
+between shadows and highlights. The tints change colour, not brightness. **Grain** (with
+**Grain size**, in the Detail section) is monochrome film grain on a grid of full-resolution
+pixels, strongest in the midtones: the preview, a zoomed region and the export all show the
+same grain on the same spot.
 
 Double-tap a slider's label to reset it; the ⋮ menu resets everything. **Undo** and
 **Redo** in the top bar step through every change made since the photo was opened (a whole

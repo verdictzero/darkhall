@@ -66,6 +66,11 @@ class GpuParityTest {
                     add("look $look" to base.withLook(look))
                 }
                 add("look at 40%" to base.withLook("rt-color-kodak-kodak-portra-400-2").with(Adjustment.LOOK_AMOUNT, 40f))
+                add("grading, mixer and grain" to base.with(Adjustment.GRADE_SHADOW, 70f).with(Adjustment.GRADE_SHADOW_HUE, 200f)
+                    .with(Adjustment.GRADE_MIDTONE, 40f).with(Adjustment.GRADE_MIDTONE_HUE, 300f)
+                    .with(Adjustment.GRADE_HIGHLIGHT, 80f).with(Adjustment.GRADE_HIGHLIGHT_HUE, 40f).with(Adjustment.GRADE_BALANCE, 35f)
+                    .with(Adjustment.MIX_BLUE_HUE, -60f).with(Adjustment.MIX_GREEN_SAT, -70f).with(Adjustment.MIX_ORANGE_LUM, 50f)
+                    .with(Adjustment.GRAIN, 80f).with(Adjustment.GRAIN_SIZE, 60f))
                 add("combo" to base.with(Adjustment.DEHAZE, 40f).with(Adjustment.CLARITY, 30f).with(Adjustment.WATER, 50f)
                     .with(Adjustment.EXPOSURE, 1.2f).with(Adjustment.STRAIGHTEN, 3f).with(Adjustment.LUMA_NR, 60f))
             }

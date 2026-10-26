@@ -373,6 +373,9 @@ class Developer {
             }
         }
 
+        // ---- 7. grain ----------------------------------------------------------------------
+        if (plan.grainOn) Grain.apply(r, g, b, w, h, plan)
+
         return pack(r, g, b, n, w, h)
     }
 

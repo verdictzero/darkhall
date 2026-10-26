@@ -75,7 +75,7 @@ class GpuDeveloper(
             "dhNeg" to Shaders.DEHAZE_NEGATIVE, "min" to Shaders.MIN_1D, "box" to Shaders.BOX_1D,
             "luma" to Shaders.LUMA, "split" to Shaders.CHROMA_SPLIT, "merge" to Shaders.CHROMA_MERGE,
             "atrous" to Shaders.ATROUS_1D, "shrink" to Shaders.SHRINK, "lumaApply" to Shaders.LUMA_APPLY,
-            "tone" to Shaders.TONE, "detail" to Shaders.DETAIL_APPLY, "final" to Shaders.FINAL,
+            "tone" to Shaders.TONE, "detail" to Shaders.DETAIL_APPLY, "grain" to Shaders.GRAIN, "final" to Shaders.FINAL,
         )) programs[name] = link(name, src)
         vao = gl.genVertexArray()
         checkError("init")
@@ -323,6 +323,11 @@ class GpuDeveloper(
             gl.uniform1i(loc("uDoSat"), if (plan.saturationOn) 1 else 0)
             gl.uniform1i(loc("uMixOn"), if (plan.mixerOn) 1 else 0)
             for (k in 0 until 8) gl.uniform3f(loc("uMix[$k]"), plan.mix[3 * k], plan.mix[3 * k + 1], plan.mix[3 * k + 2])
+            gl.uniform1i(loc("uGradeOn"), if (plan.gradeOn) 1 else 0)
+            gl.uniform1f(loc("uGradeExp"), plan.gradeExponent)
+            plan.gradeShadow.let { gl.uniform3f(loc("uGradeS"), it[0], it[1], it[2]) }
+            plan.gradeMidtone.let { gl.uniform3f(loc("uGradeM"), it[0], it[1], it[2]) }
+            plan.gradeHighlight.let { gl.uniform3f(loc("uGradeH"), it[0], it[1], it[2]) }
         }
         swap()
 
@@ -336,6 +341,17 @@ class GpuDeveloper(
                 gl.uniform1i(loc("uClarOn"), if (plan.clarityOn) 1 else 0)
                 gl.uniform1f(loc("uSharpA"), plan.sharpenAmount)
                 gl.uniform1f(loc("uClarA"), plan.clarityAmount)
+            }
+            swap()
+        }
+
+        // 7. grain
+        if (plan.grainOn) {
+            pass("grain", other, listOf("uIn" to cur)) {
+                gl.uniform1f(loc("uGrainA"), plan.grainAmount)
+                gl.uniform1f(loc("uCell"), plan.grainCell)
+                gl.uniform2f(loc("uFrame0"), plan.frameX0.toFloat(), plan.frameY0.toFloat())
+                gl.uniform1f(loc("uInvScale"), plan.invScale)
             }
             swap()
         }

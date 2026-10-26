@@ -299,6 +299,30 @@ class ScreenshotTest {
         }
     }
 
+    /** Colour grading (teal shadows, warm highlights) and grain. */
+    @Test
+    fun gradingAndGrain() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("slider-GRADE_BALANCE"))
+            compose.onNodeWithTag("slider-GRADE_SHADOW_HUE").performSemanticsAction(SemanticsActions.SetProgress) { it(190f) }
+            compose.onNodeWithTag("slider-GRADE_SHADOW").performSemanticsAction(SemanticsActions.SetProgress) { it(60f) }
+            compose.onNodeWithTag("slider-GRADE_HIGHLIGHT").performSemanticsAction(SemanticsActions.SetProgress) { it(50f) }
+            waitFor { compose.onAllNodesWithText("190°").fetchSemanticsNodes().isNotEmpty() }
+            repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+            shot("grading")
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("slider-GRAIN_SIZE"))
+            compose.onNodeWithTag("slider-GRAIN").performSemanticsAction(SemanticsActions.SetProgress) { it(70f) }
+            repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+            shot("grain")
+            // Leave the photo as it was for the other tests.
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Reset all sliders").performClick()
+        }
+    }
+
     /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */
     @Test
     fun cropTool() {
