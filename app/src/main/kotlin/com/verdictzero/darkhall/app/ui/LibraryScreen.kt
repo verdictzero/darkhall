@@ -86,6 +86,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         vm.addFiles(uris)
     }
     var exportDialog by remember { mutableStateOf(false) }
+    var stackDialog by remember { mutableStateOf(false) }
     var exportSettings by remember { mutableStateOf(ExportSettings()) }
     val exportSelection = rememberExportStarter { vm.exportSelection(exportSettings) }
     if (exportDialog) {
@@ -96,6 +97,14 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
         }
     }
     var selectionMenu by remember { mutableStateOf(false) }
+    val stackSelection = rememberExportStarter { vm.stackSelection(exportSettings) }
+    if (stackDialog) {
+        ExportDialog(state.selected.size, onDismiss = { stackDialog = false }, title = "Focus stack of ${state.selected.size} photos") { s ->
+            stackDialog = false
+            exportSettings = s
+            stackSelection()
+        }
+    }
     var libraryMenu by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
     if (licenses) LicensesScreen(onDismiss = { licenses = false })
@@ -130,6 +139,11 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                                 border = BorderStroke(strokes.width, strokes.container),
                             ) {
                                 DropdownMenuItem(text = { Text("Select all") }, onClick = { selectionMenu = false; vm.selectAll() })
+                                DropdownMenuItem(
+                                    text = { Text("Focus stack…") },
+                                    enabled = state.selected.size >= 2,
+                                    onClick = { selectionMenu = false; stackDialog = true },
+                                )
                             }
                         }
                     },

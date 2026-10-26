@@ -28,6 +28,11 @@ import com.verdictzero.darkhall.core.export.PhotoInfo
 import com.verdictzero.darkhall.core.export.PngWriter
 import com.verdictzero.darkhall.core.export.TgaWriter
 import com.verdictzero.darkhall.core.export.TiffWriter
+import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.develop.Geometry
+import com.verdictzero.darkhall.core.export.RowSource
+import com.verdictzero.darkhall.core.stack.Similarity
+import com.verdictzero.darkhall.core.stack.FocusStack
 import com.verdictzero.darkhall.core.raw.RawFormats
 import java.io.File
 import java.io.FileOutputStream
@@ -42,6 +47,7 @@ import kotlinx.coroutines.withContext
 class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     private val total = inputData.getInt(ExportQueue.KEY_TOTAL, 1)
+    private val stack = inputData.getBoolean(ExportQueue.KEY_STACK, false)
     private val settings = ExportQueue.settingsOf(inputData)
     private var folder: String? = null
 
@@ -57,7 +63,17 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
         var ok = 0
         val failedNames = ArrayList<String>()
+        if (stack) {
+            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uris[0]).name }.getOrDefault("photo")
+            try {
+                withContext(Dispatchers.Default) { stackAll(uris) { k, f -> reportAsync(k, f, "Focus stack · $name") } }
+                ok = 1
+            } catch (e: Throwable) {
+                failedNames += "focus stack of $name (${e.message ?: e.javaClass.simpleName})"
+            }
+        }
         for ((i, uri) in uris.withIndex()) {
+            if (stack) break
             if (isStopped) break
             val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uri).name }.getOrDefault("photo")
             report(i, 0f, name)
@@ -168,6 +184,101 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         progress(1f)
     }
 
+    /**
+     * Merges a focus-bracketed series into one picture, developed with the first photo's
+     * settings: each frame is lined up with the one before (on its preview), developed at full
+     * size and folded into the result where it is sharpest (see FocusStack). One raw at a time
+     * is in memory. [progress] gets the frame index and how far along that frame is.
+     */
+    private fun stackAll(uris: List<Uri>, progress: (Int, Float) -> Unit) {
+        val context = applicationContext
+        val first = RawRepository.describe(context.contentResolver, uris[0])
+        var meta: RawMetadata? = null
+        var ctx: RenderContext? = null
+        var params: DevelopParams? = null
+        var merger: FocusStack.Merger? = null
+        var previous: FloatArray? = null
+        var pvSize = 0 to 0
+        var toFrame = Similarity.IDENTITY
+        for ((k, uri) in uris.withIndex()) {
+            if (isStopped) throw IllegalStateException("cancelled")
+            val loaded = RawRepository.load(context.contentResolver, uri)
+            val raw = RawFormats.decode(loaded.bytes, loaded.meta)
+            val m = loaded.meta
+            val pv = Demosaic.preview(raw, ALIGN_SIZE)
+            if (k == 0) {
+                // The first photo sets the look of the result: its context, edits and masks.
+                val c = RenderContext.forFile(m, pv, raw, looks = LookLibrary.source(context))
+                val defaults = DevelopParams.defaultsFor(m, c.noise)
+                val p = EditsStore.load(context, first.key, defaults) ?: defaults
+                if (p.usesMasks()) c.scene = SceneDetector.detect(context, first.key, pv, c, defaults.with(Adjustment.WATER, 0f), m)
+                meta = m; ctx = c; params = p; pvSize = pv.width to pv.height
+                merger = FocusStack.Merger(m.crop.width, m.crop.height)
+            } else if (m.crop.width != meta!!.crop.width || m.crop.height != meta.crop.height || pv.width != pvSize.first) {
+                throw IllegalArgumentException("${RawRepository.describe(context.contentResolver, uri).name} is a different size")
+            }
+            val lum = FloatArray(pv.width * pv.height) { i ->
+                kotlin.math.sqrt(maxOf(0f, 0.25f * pv.r[i] + 0.5f * pv.g[i] + 0.25f * pv.b[i]))
+            }
+            previous?.let { prev ->
+                val step = FocusStack.align(prev, lum, pv.width, pv.height).scaled(meta!!.crop.width.toDouble() / pv.width)
+                toFrame = toFrame.then(step)
+            }
+            previous = lum
+            val frame = FullRender.render16(raw, ctx!!, params!!, { f -> progress(k, f * 0.9f) }, isCancelled = { isStopped })
+                ?: throw IllegalStateException("cancelled")
+            val sharp = FocusStack.sharpness(FocusStack.luminance(frame.rgb, frame.width, frame.height), frame.width, frame.height)
+            merger!!.add(frame.rgb, sharp, toFrame)
+            progress(k, 1f)
+            System.gc()
+        }
+        val m = meta!!; val p = params!!; val mg = merger!!
+        val info = PhotoInfo.from(m)
+        val rows: RowSource = CroppedRows.of(GeometryRows16(mg.rgb, mg.width, mg.height, Geometry.create(mg.width, mg.height, p, ctx!!.lens), m.orientation), p)
+        val format = settings.format
+        val temp = File.createTempFile("stack", ".${format.extension}", context.cacheDir)
+        try {
+            when (format) {
+                ExportFormat.PNG -> PngWriter.write(if (settings.bits == 16) rows else EightBit(rows), temp, mapOf("Software" to info.software))
+                ExportFormat.TIFF -> TiffWriter.write(if (settings.bits == 16) rows else EightBit(rows), temp, settings.tiffCompressed, info)
+                ExportFormat.TGA -> TgaWriter.write(EightBit(rows), temp)
+                ExportFormat.JPEG, ExportFormat.WEBP -> {
+                    val bmp = toBitmap(EightBit(rows))
+                    FileOutputStream(temp).use { out ->
+                        if (format == ExportFormat.JPEG) bmp.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, out)
+                        else bmp.compress(webpLossless(), 100, out)
+                    }
+                    bmp.recycle()
+                }
+            }
+            if (format == ExportFormat.JPEG || format == ExportFormat.PNG || format == ExportFormat.WEBP) ExportService.writeExif(temp, info)
+            folder = ExportService.publish(context, temp, format, first.baseName + "_stack").folder
+        } finally {
+            temp.delete()
+        }
+    }
+
+    /** A 16-bit row source read as 8 bits. */
+    private class EightBit(private val src: RowSource) : RowSource {
+        override val width = src.width
+        override val height = src.height
+        override val bits = 8
+        override fun row(y: Int, out: IntArray) {
+            src.row(y, out)
+            if (src.bits == 16) for (i in 0 until 3 * width) out[i] = (out[i] * 255 + 32767) / 65535
+        }
+    }
+
+    private fun toBitmap(rows: RowSource): Bitmap {
+        val px = IntArray(rows.width * rows.height)
+        val line = IntArray(3 * rows.width)
+        for (y in 0 until rows.height) {
+            rows.row(y, line)
+            for (x in 0 until rows.width) px[y * rows.width + x] = (0xFF shl 24) or (line[3 * x] shl 16) or (line[3 * x + 1] shl 8) or line[3 * x + 2]
+        }
+        return Bitmap.createBitmap(px, rows.width, rows.height, Bitmap.Config.ARGB_8888)
+    }
+
     @Suppress("DEPRECATION")
     private fun webpLossless() =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSLESS
@@ -196,6 +307,8 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     }
 
     companion object {
+        /** Preview size the frames of a focus stack are lined up on. */
+        private const val ALIGN_SIZE = 1280
         private const val CHANNEL = "export"
         private const val NOTIFICATION_ID = 4711
     }

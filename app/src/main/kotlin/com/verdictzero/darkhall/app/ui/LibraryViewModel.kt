@@ -108,6 +108,17 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Merges the selected photos, a focus-bracketed series, into one picture (in name order,
+     * developed with the first one's settings) as a background export.
+     */
+    fun stackSelection(settings: ExportSettings) {
+        val targets = _state.value.files.filter { it.key in _state.value.selected }.sortedBy { it.name }
+        if (targets.size < 2) return
+        ExportQueue.enqueue(getApplication(), targets.map { it.uri }, settings, stack = true)
+        _state.update { it.copy(selected = emptySet(), message = "Stacking ${targets.size} photos. It keeps running if you leave the app.") }
+    }
+
+    /**
      * Auto tone for every selected photo, one at a time: each file is decoded, measured and its
      * six tone sliders set automatically on top of its saved edits (or the defaults).
      */

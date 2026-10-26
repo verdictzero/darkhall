@@ -36,6 +36,8 @@ object ExportQueue {
     private const val KEY_QUALITY = "quality"
     private const val KEY_16 = "sixteenBit"
     private const val KEY_ZIP = "tiffZip"
+    /** The files are one focus-bracketed series, to be merged into a single picture. */
+    const val KEY_STACK = "stack"
 
     fun settingsOf(data: Data) = ExportSettings(
         format = ExportFormat.entries.firstOrNull { it.name == data.getString(KEY_FORMAT) } ?: ExportFormat.JPEG,
@@ -46,7 +48,7 @@ object ExportQueue {
 
     private fun jobDir(context: Context) = File(context.filesDir, "export-jobs").apply { mkdirs() }
 
-    fun enqueue(context: Context, uris: List<Uri>, settings: ExportSettings = ExportSettings()): UUID {
+    fun enqueue(context: Context, uris: List<Uri>, settings: ExportSettings = ExportSettings(), stack: Boolean = false): UUID {
         val jobId = UUID.randomUUID().toString()
         File(jobDir(context), "$jobId.txt").writeText(uris.joinToString("\n") { it.toString() })
         val request = OneTimeWorkRequestBuilder<ExportWorker>()
@@ -55,6 +57,7 @@ object ExportQueue {
                     KEY_JOB to jobId, KEY_TOTAL to uris.size,
                     KEY_FORMAT to settings.format.name, KEY_QUALITY to settings.jpegQuality,
                     KEY_16 to settings.sixteenBit, KEY_ZIP to settings.tiffCompressed,
+                    KEY_STACK to stack,
                 )
             )
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

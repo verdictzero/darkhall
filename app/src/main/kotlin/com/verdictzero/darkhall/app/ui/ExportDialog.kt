@@ -42,7 +42,7 @@ private fun ExportFormat.purpose() = when (this) {
  * [onExport] gets the choice, already saved for next time.
  */
 @Composable
-fun ExportDialog(count: Int, onDismiss: () -> Unit, onExport: (ExportSettings) -> Unit) {
+fun ExportDialog(count: Int, onDismiss: () -> Unit, title: String? = null, onExport: (ExportSettings) -> Unit) {
     val context = LocalContext.current
     val prefs = remember { Prefs(context) }
     var s by remember { mutableStateOf(prefs.exportSettings) }
@@ -50,7 +50,7 @@ fun ExportDialog(count: Int, onDismiss: () -> Unit, onExport: (ExportSettings) -
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
-        title = { Text(if (count == 1) "Export" else "Export $count photos") },
+        title = { Text(title ?: if (count == 1) "Export" else "Export $count photos") },
         text = {
             Column {
                 Label("Format")

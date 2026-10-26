@@ -233,6 +233,16 @@ and WebP use Android's. The dialog remembers the last choice, and a library sele
 exports with the same dialog. Formats the gallery doesn't take as pictures on a given device
 go to `Download/Darkhall` instead.
 
+**Focus stacking.** The TG-7's focus bracketing (microscope mode) shoots a series at
+stepped focus distances. Select the series in the library, then ⋮ → **Focus stack…** and
+pick a format: the frames are merged into one picture, sharp from front to back, named after
+the first (`P0001_stack.tif`) and developed with the first photo's edits. Each frame is
+lined up with the one before on its preview, by a Lucas-Kanade fit of scale, rotation and
+shift (which covers focus breathing and a hand-held drift), then developed at full size and
+folded into the result: every pixel leans towards the frame where it is sharpest (the
+Laplacian's strength, pooled locally, to the fourth power), so edges come from the frame
+that has them and flat areas average out. Only one raw is in memory at a time.
+
 Exports run in a background job with a progress notification, so they finish even if you
 leave the app; several exports queue up and run one after another.
 
