@@ -14,6 +14,8 @@ import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.data.RawFile
+import com.verdictzero.darkhall.app.data.RatingsStore
+import com.verdictzero.darkhall.core.raw.ShotFacts
 import com.verdictzero.darkhall.core.develop.AutoTone
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
@@ -37,8 +39,20 @@ data class LibraryState(
     val canPaste: Boolean = false,
     /** "Auto tone 3 of 12" while a batch auto tone runs. */
     val autoProgress: String? = null,
+    /** Each file's camera, time and field readings, as they are read in. */
+    val facts: Map<String, ShotFacts> = emptyMap(),
+    val ratings: Map<String, Int> = emptyMap(),
+    val filter: LibraryFilter = LibraryFilter(),
 ) {
     val selecting get() = selected.isNotEmpty()
+
+    /** What the grid shows, after filtering and grouping. */
+    val groups: List<LibraryFilter.Group> get() = filter.apply(files, facts, ratings, edited)
+
+    /** Cameras in the folder, for the camera filter. */
+    val cameras: List<String> get() = facts.values.map { LibraryFilter.cameraOf(it) }.distinct().sorted()
+
+    val hasUnderwater: Boolean get() = facts.values.any { it.underwater }
 }
 
 class LibraryViewModel(app: Application) : AndroidViewModel(app) {
@@ -47,7 +61,40 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(LibraryState())
     val state = _state.asStateFlow()
 
-    init { refresh() }
+    init {
+        _state.update { it.copy(filter = it.filter.copy(byDate = prefs.libraryByDate)) }
+        refresh()
+    }
+
+    fun setFilter(filter: LibraryFilter) {
+        if (filter.byDate != _state.value.filter.byDate) prefs.libraryByDate = filter.byDate
+        _state.update { it.copy(filter = filter) }
+    }
+
+    /** Rates the selected photos (0 clears their rating). */
+    fun rateSelection(rating: Int) {
+        val keys = _state.value.selected
+        viewModelScope.launch {
+            val all = withContext(Dispatchers.IO) { RatingsStore.set(getApplication(), keys, rating) }
+            _state.update { it.copy(ratings = all, selected = emptySet()) }
+        }
+    }
+
+    /** Reads each file's facts (cached after the first time) in the background, a batch at a time. */
+    private fun loadFacts(files: List<RawFile>) {
+        factsJob?.cancel()
+        factsJob = viewModelScope.launch {
+            val app = getApplication<Application>()
+            val known = _state.value.facts
+            val missing = files.filter { it.key !in known }
+            for (chunk in missing.chunked(24)) {
+                val read = withContext(Dispatchers.IO) { chunk.mapNotNull { f -> RawRepository.facts(app, f)?.let { f.key to it } } }
+                _state.update { it.copy(facts = it.facts + read) }
+            }
+        }
+    }
+
+    private var factsJob: kotlinx.coroutines.Job? = null
 
     fun setFolder(uri: Uri) {
         val resolver = getApplication<Application>().contentResolver
@@ -79,7 +126,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         it.copy(selected = if (file.key in it.selected) it.selected - file.key else it.selected + file.key)
     }
 
-    fun selectAll() = _state.update { it.copy(selected = it.files.map { f -> f.key }.toSet()) }
+    /** Selects every photo the grid shows (the filters' result, not hidden ones). */
+    fun selectAll() = _state.update { it.copy(selected = it.groups.flatMap { g -> g.files }.map { f -> f.key }.toSet()) }
 
     fun clearSelection() = _state.update { it.copy(selected = emptySet()) }
 
@@ -181,7 +229,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             val app = getApplication<Application>()
             val files = _state.value.files
             val edited = withContext(Dispatchers.IO) { files.filter { EditsStore.exists(app, it.key) }.map { it.key }.toSet() }
-            _state.update { it.copy(edited = edited, canPaste = prefs.copiedSettings != null) }
+            val ratings = withContext(Dispatchers.IO) { RatingsStore.all(app) }
+            _state.update { it.copy(edited = edited, canPaste = prefs.copiedSettings != null, ratings = ratings) }
         }
     }
 
@@ -226,6 +275,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
             refreshEditMarks()
+            loadFacts(result.second)
         }
     }
 }

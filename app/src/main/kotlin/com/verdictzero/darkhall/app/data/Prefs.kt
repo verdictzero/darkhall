@@ -62,6 +62,11 @@ class Prefs(context: Context) {
                 .putInt("exportLongEdge", v.longEdge).apply()
         }
 
+    /** Library grouped by the day photos were taken (rather than in name order). */
+    var libraryByDate: Boolean
+        get() = sp.getBoolean("libraryByDate", false)
+        set(v) { sp.edit().putBoolean("libraryByDate", v).apply() }
+
     var previewLongEdge: Int
         get() = sp.getInt("previewLongEdge", 1280)
         set(v) { sp.edit().putInt("previewLongEdge", v).apply() }

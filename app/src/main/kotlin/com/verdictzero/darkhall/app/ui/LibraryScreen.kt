@@ -27,6 +27,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -89,6 +92,8 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
     var exportDialog by remember { mutableStateOf(false) }
     var stackDialog by remember { mutableStateOf(false) }
     var presetDialog by remember { mutableStateOf(false) }
+    var rateDialog by remember { mutableStateOf(false) }
+    if (rateDialog) RateDialog(state.selected.size, onRate = { vm.rateSelection(it); rateDialog = false }, onDismiss = { rateDialog = false })
     val context = LocalContext.current
     if (presetDialog) {
         var presets by remember { mutableStateOf(PresetStore.all(context)) }
@@ -152,6 +157,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                                 border = BorderStroke(strokes.width, strokes.container),
                             ) {
                                 DropdownMenuItem(text = { Text("Select all") }, onClick = { selectionMenu = false; vm.selectAll() })
+                                DropdownMenuItem(text = { Text("Rate…") }, onClick = { selectionMenu = false; rateDialog = true })
                                 DropdownMenuItem(text = { Text("Apply preset…") }, onClick = { selectionMenu = false; presetDialog = true })
                                 DropdownMenuItem(
                                     text = { Text("Focus stack…") },
@@ -214,6 +220,17 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
+                LibraryFilterBar(state, onChange = { vm.setFilter(it) })
+                val groups = state.groups
+                val shownCount = groups.sumOf { it.files.size }
+                if (shownCount < state.files.size) {
+                    Text(
+                        "Showing $shownCount of ${state.files.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                    )
+                }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 128.dp),
                     contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 96.dp),
@@ -221,14 +238,20 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(state.files, key = { it.key }) { file ->
-                        RawCell(
-                            file,
-                            selected = file.key in state.selected,
-                            edited = file.key in state.edited,
-                            onClick = { if (state.selecting) vm.toggle(file) else onOpen(file.uri) },
-                            onLongClick = { vm.toggle(file) },
-                        )
+                    for (group in groups) {
+                        group.title?.let { title ->
+                            item(key = "day-$title", span = { GridItemSpan(maxLineSpan) }) { DayHeader(title, group.files.size) }
+                        }
+                        items(group.files, key = { it.key }) { file ->
+                            RawCell(
+                                file,
+                                selected = file.key in state.selected,
+                                edited = file.key in state.edited,
+                                rating = state.ratings[file.key] ?: 0,
+                                onClick = { if (state.selecting) vm.toggle(file) else onOpen(file.uri) },
+                                onLongClick = { vm.toggle(file) },
+                            )
+                        }
                     }
                 }
             }
@@ -261,7 +284,7 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, rating: Int, onClick: () -> Unit, onLongClick: () -> Unit) {
     val context = LocalContext.current
     val thumb by produceState<Bitmap?>(initialValue = null, key1 = file.key) {
         value = withContext(Dispatchers.IO) { RawRepository.thumbnail(context, file) }
@@ -304,6 +327,20 @@ private fun RawCell(file: RawFile, selected: Boolean, edited: Boolean, onClick: 
                 ) {
                     Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                 }
+            }
+            if (rating > 0) {
+                Text(
+                    "★".repeat(rating),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFFFD25A),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xB3141416))
+                        .padding(horizontal = 4.dp)
+                        .semantics { contentDescription = "$rating stars" },
+                )
             }
             facts?.badge?.let { badge ->
                 // Depth and water temperature from the TG series' field sensors.

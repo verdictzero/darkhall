@@ -31,6 +31,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.longClick
 import org.junit.Assert.assertTrue
 import kotlin.math.PI
 import kotlin.math.tan
@@ -372,6 +373,34 @@ class ScreenshotTest {
             compose.onNodeWithContentDescription("More").performClick()
             compose.onNodeWithText("Reset all sliders").performClick()
         }
+    }
+
+    /** The library grouped by date, with a rating and the filter bar. */
+    @Test
+    fun library() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val files = listOf(samplePath, System.getProperty("darkhall.otherSample").orEmpty()).filter { it.isNotEmpty() && File(it).exists() }
+        com.verdictzero.darkhall.app.data.Prefs(app).extraFiles = files.map { Uri.fromFile(File(it)) }
+        com.verdictzero.darkhall.app.data.Prefs(app).libraryByDate = true
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitFor { compose.onAllNodesWithText("By date").fetchSemanticsNodes().isNotEmpty() }
+            // Rate the first photo through the selection menu.
+            waitFor { compose.onAllNodesWithText(File(files[0]).name).fetchSemanticsNodes().isNotEmpty() }
+            compose.onAllNodesWithText(File(files[0]).name)[0].performTouchInput { longClick() }
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Rate…").performClick()
+            compose.onNodeWithTag("star-4").performClick()
+            waitFor { compose.onAllNodesWithContentDescription("4 stars").fetchSemanticsNodes().isNotEmpty() }
+            repeat(40) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+            shot("library")
+            // The rating filter at 3+ keeps it.
+            compose.onNodeWithText("★ Any").performClick()
+            compose.onNodeWithText("★ 1+").performClick()
+            assertTrue(compose.onAllNodesWithContentDescription("4 stars").fetchSemanticsNodes().isNotEmpty())
+            compose.onNodeWithText("★ 3+").performClick()
+            compose.onNodeWithText("★★★★★").performClick()
+        }
+        com.verdictzero.darkhall.app.data.Prefs(app).libraryByDate = false
     }
 
     /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */

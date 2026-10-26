@@ -13,6 +13,7 @@ import com.verdictzero.darkhall.app.data.SceneDetector
 import com.verdictzero.darkhall.app.data.FactsStore
 import com.verdictzero.darkhall.app.data.Preset
 import com.verdictzero.darkhall.app.data.PresetStore
+import com.verdictzero.darkhall.app.data.RatingsStore
 import com.verdictzero.darkhall.core.raw.ShotFacts
 import com.verdictzero.darkhall.core.sky.MaskRegion
 import com.verdictzero.darkhall.app.data.Prefs
@@ -114,6 +115,8 @@ data class DevelopState(
     val maskOverlay: Bitmap? = null,
     /** The crop tool is open: the preview shows the whole picture with the crop drawn over it. */
     val cropping: Boolean = false,
+    /** This photo's star rating, 0 for none. */
+    val rating: Int = 0,
     /** Saved presets, for the Presets dialog. */
     val presets: List<Preset> = emptyList(),
     /** Camera, time, exposure and field-sensor readings for the info panel. */
@@ -289,6 +292,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 params = saved ?: defaults,
                 compare = cutCompare(saved ?: defaults, cropping = false),
                 // (The library's cached facts stay as they are, so its names and groups stay consistent.)
+                rating = RatingsStore.get(app, file.key),
                 facts = ShotFacts.from(m).also { if (FactsStore.load(app, file.key) == null) FactsStore.save(app, file.key, it) },
                 hasLensProfile = c.lens != null,
                 fullWidth = if (Orientation.swapsAxes(m.orientation)) m.crop.height else m.crop.width,
@@ -912,6 +916,13 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deletePreset(preset: Preset) {
         _state.update { it.copy(presets = PresetStore.delete(getApplication(), preset.name)) }
+    }
+
+    /** Rates this photo (0 clears it). */
+    fun rate(stars: Int) {
+        val key = editsKey.ifEmpty { return }
+        _state.update { it.copy(rating = stars) }
+        viewModelScope.launch(Dispatchers.IO) { RatingsStore.set(getApplication(), listOf(key), stars) }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }

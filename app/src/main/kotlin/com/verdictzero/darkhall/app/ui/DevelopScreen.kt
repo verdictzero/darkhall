@@ -195,6 +195,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(strokes.width, strokes.container),
                         ) {
+                            StarRow(state.rating, onRate = { vm.rate(it) }, modifier = Modifier.padding(horizontal = 8.dp))
                             DropdownMenuItem(text = { Text("Presets…") }, onClick = { menuOpen = false; showPresets = true })
                             DropdownMenuItem(text = { Text("Copy settings") }, onClick = { menuOpen = false; vm.copySettings() })
                             DropdownMenuItem(

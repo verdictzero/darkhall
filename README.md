@@ -211,7 +211,13 @@ generous memory allowance.
    raw from a file manager also works.
 3. Tap a thumbnail, adjust, then **Export** and pick a format (see below). Files (full
    resolution, with the shooting data) land in `Pictures/Darkhall`.
-4. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
+4. The chips above the grid sort and filter the library: **By date** groups photos by the
+   day they were taken (newest first), the star chip shows only photos rated 1+, 3+ or 5,
+   **Edited** cycles through edited, unedited and both, **Underwater** keeps dives only, and
+   with several cameras in a folder a camera chip narrows it to one. Rate a photo from the
+   editor's ⋮ menu (tap a star; tap it again to clear) or a whole selection with ⋮ →
+   **Rate…**; the stars show on its thumbnail.
+5. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
    long-press to select others and tap **Paste** (each photo keeps its own Straighten and crop).
    For a treatment you'll use again, ⋮ → **Presets…** saves the current settings under a
    name; tap a preset there to apply it, or select photos in the library and use ⋮ →
