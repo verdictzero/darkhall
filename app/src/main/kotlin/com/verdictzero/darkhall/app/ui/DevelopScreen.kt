@@ -396,14 +396,14 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 },
         ) {
             val divider = strokes.selected
-            val skyOverlay = state.skyOverlay?.takeIf { state.showSkyMask }
+            val skyOverlay = state.maskOverlay?.takeIf { state.showMask != null }
             when (mode) {
                 CompareMode.SINGLE -> PhotoView(
                     bitmap = if (original) state.compare else state.preview,
                     loupe = state.loupe?.takeIf { !original && it.params == state.params },
                     scale = scale, offset = offset,
                     showGrid = showGrid,
-                    label = if (original) "Original" else if (skyOverlay != null) "Sky mask" else null,
+                    label = if (original) "Original" else if (skyOverlay != null) "${state.showMask?.title} mask" else null,
                     modifier = Modifier.fillMaxSize().semantics { contentDescription = "Preview" },
                     overlay = if (original) null else skyOverlay,
                 )
@@ -554,7 +554,7 @@ private fun PhotoView(
     showGrid: Boolean,
     label: String?,
     modifier: Modifier,
-    /** Drawn over the photo, same placement (the sky mask). */
+    /** Drawn over the photo, same placement (a region's mask). */
     overlay: Bitmap? = null,
 ) {
     val frameStroke = LocalStrokes.current.overlay
@@ -682,7 +682,8 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
         contentPadding = PaddingValues(top = 6.dp, bottom = 96.dp),
     ) {
         for (group in AdjustmentGroup.entries) {
-            val adjustments = Adjustment.entries.filter { it.group == group && group.sliders }
+            val absent = group.region?.let { r -> state.scene == SceneStatus.DONE && !state.has(r) && !state.params.uses(r) } ?: false
+            val adjustments = Adjustment.entries.filter { it.group == group && group.sliders && !absent }
                 .filter { it != Adjustment.LENS_PROFILE || state.hasLensProfile }
                 .filter { it != Adjustment.LOOK_AMOUNT || state.params.look != null }
             item(key = "g-${group.name}") {
@@ -692,8 +693,9 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         if (group == AdjustmentGroup.LIGHT) {
                             StrokedTextButton(if (state.autoBusy) "Auto…" else "Auto", onClick = { vm.autoTone() }, enabled = !state.autoBusy)
                         }
-                        if (group == AdjustmentGroup.SKY) {
-                            StrokedTextButton("Show mask", onClick = { vm.toggleSkyMask() }, selected = state.showSkyMask)
+                        val region = group.region
+                        if (region != null && (state.scene != SceneStatus.DONE || state.has(region))) {
+                            StrokedTextButton("Show mask", onClick = { vm.toggleMask(region) }, selected = state.showMask == region, modifier = Modifier.testTag("mask-${region.name}"))
                         }
                         if (group == AdjustmentGroup.CROP) {
                             StrokedTextButton("Reset", onClick = { vm.resetCrop() }, enabled = !Crop.of(state.params).isFull)
@@ -709,14 +711,15 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         }
                     },
                 ) {
-                    if (group == AdjustmentGroup.SKY) {
-                        // Scrolling the Sky section into view starts looking for the sky (once per photo).
-                        LaunchedEffect(Unit) { vm.ensureSky() }
+                    val region = group.region
+                    if (region != null) {
+                        // Scrolling a masked section into view starts looking for the regions (once per photo).
+                        LaunchedEffect(Unit) { vm.ensureMasks() }
                         Text(
-                            when (state.sky) {
-                                SkyStatus.UNKNOWN, SkyStatus.FINDING -> "Finding the sky… (a second or two, once per photo)"
-                                SkyStatus.FOUND -> "Sky found: ${(state.skyCoverage * 100).roundToInt()}% of the picture. These sliders change only the sky."
-                                SkyStatus.NONE -> "No sky found in this photo."
+                            when {
+                                state.scene != SceneStatus.DONE -> "Finding the sky, water, people and foliage… (a second or two, once per photo)"
+                                state.has(region) -> "${region.title}: ${((state.coverage[region] ?: 0f) * 100).roundToInt().coerceAtLeast(1)}% of the picture. These sliders change only the ${region.noun}."
+                                else -> "No ${region.noun} found in this photo."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

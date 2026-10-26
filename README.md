@@ -105,20 +105,27 @@ Straighten changes. It is one undo step per drag, applies to every export format
 Straighten it belongs to its photo: pasting settings onto other photos leaves their crops
 alone. Moving the crop doesn't re-render anything; the last render is simply cut again.
 
-### Sky
+### Sky, water, subject and foliage
 
-The **Sky** sliders (Sky exposure, Sky saturation, Sky clarity, Sky warmth) change only the
-photo's sky. **Show mask** paints what counts as sky over the preview.
+Four sections act on one part of the photo each, through a mask: **Sky**, **Water** (sea,
+lakes, rivers, pools, waterfalls), **Subject** (people and animals) and **Foliage** (trees,
+grass, plants, flowers). Each has exposure, saturation, clarity and warmth, and **Show mask**
+paints what it covers over the preview. All four come from one run of the network, so
+finding them costs no more than finding the sky alone did; a section whose part isn't in the
+photo says so and hides its sliders.
 
-How the sky is found, on the phone, with nothing sent anywhere:
+How the regions are found, on the phone, with nothing sent anywhere (the sky as the example):
 
 1. **A neural network marks the sky.** DeepLab v3+ with a MobileNetV2 backbone, trained on
    the ADE20K scene dataset (150 kinds of things, "sky" among them), runs on the photo turned
-   upright and scaled to fit 513 px. It gives a probability of sky for every 4 × 4 px cell.
+   upright and scaled to fit 513 px. It gives, for every 4 × 4 px cell, a probability for
+   each of its 150 classes; a region's mask is the sum over its classes (sky; or water, sea,
+   river, swimming pool, waterfall and lake; or person and animal; or tree, grass, plant,
+   flower and palm).
    The network is implemented in plain Kotlin in `core/sky/SkyNet.kt` (no native libraries);
    its 2.3 million weights ship as a 4.6 MB file of 16-bit floats. It runs once per photo,
-   the first time the Sky section comes into view, in a second or two, and the result is kept
-   on disk.
+   the first time one of the four sections comes into view, in a second or two, and the
+   result is kept on disk.
 2. **The edge is snapped to the picture.** For whatever is being drawn (the preview, a zoomed
    area, a band of the full-size export) the coarse probabilities are scaled up and an
    edge-aware (guided) filter pulls the mask's edge onto the photo's own brightness edges, so
@@ -129,12 +136,13 @@ How the sky is found, on the phone, with nothing sent anywhere:
 
 The sliders are then blended through the mask: exposure, warmth and saturation in linear
 light before the tone curve, clarity as local contrast in the detail stage, so the change
-fades out smoothly at the sky's edge. While a Sky slider is in use the preview renders on the
-CPU (the GPU shaders have no sky stage yet).
+fades out smoothly at the region's edge. While a masked slider is in use the preview renders
+on the CPU (the GPU shaders have no mask stage yet).
 
 Limits: a still lake mirroring the sky can be partly marked, dense canopies give a patchy
-mask, and a dim, plain room can pass for a night sky; Show mask makes all of these plain.
-Underwater shots have no sky, so the section says so and does nothing.
+mask, a dim, plain room can pass for a night sky, and weathered wood can pass for water;
+Show mask makes all of these plain. The network learned from photos taken above water, so
+underwater it finds little: divers can come out as subjects, fish rarely do.
 
 ## Other cameras and phones
 
@@ -364,10 +372,11 @@ What they cover:
   within 0.2° and levelled by the measured amount; texture without lines gets no answer;
   on real photos, turning the picture by 3° moves the measurement by 3°; the editor's Draw
   level, Undo and Auto straighten work end to end;
-* sky: the Kotlin network matches a NumPy reference (itself matching TensorFlow to 0.0005) to
-  0.00002 in sky probability; skies found in landscape, city and seascape samples and not in
-  indoor ones; the Sky sliders change the sky and leave the ground alone, in the preview and
-  in the full-size export; the editor finds, shows and edits the sky end to end;
+* masks: the Kotlin network matches a NumPy reference (itself matching TensorFlow to 0.0005)
+  to 0.00002 in sky probability; sky, water, subjects and foliage found in the samples that
+  show them and not in those that don't; each section's sliders change its region and leave
+  the rest alone, in the preview and in the full-size export; the editor finds, shows and
+  edits them end to end;
 * noise profiling: recovers known synthetic noise within a few percent, measures noise added
   to a real file, demosaic noise factors; the denoiser halves the error of simulated
   ISO 1600 noise against the clean original while keeping strong-edge detail;

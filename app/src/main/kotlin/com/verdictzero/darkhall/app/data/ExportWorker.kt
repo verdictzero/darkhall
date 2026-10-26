@@ -110,8 +110,8 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val ctx = RenderContext.forFile(meta, pv, raw, looks = LookLibrary.source(context))
         val defaults = DevelopParams.defaultsFor(meta, ctx.noise)
         val params = EditsStore.load(context, file.key, defaults) ?: defaults
-        // Sky sliders need the photo's sky: remembered from the editor, or found now.
-        if (params.usesSky()) ctx.sky = SkyDetector.detect(context, file.key, pv, ctx, defaults.with(Adjustment.WATER, 0f), meta)
+        // Masked sliders need the photo's masks: remembered from the editor, or found now.
+        if (params.usesMasks()) ctx.scene = SceneDetector.detect(context, file.key, pv, ctx, defaults.with(Adjustment.WATER, 0f), meta)
         val format = settings.format
         val info = PhotoInfo.from(meta)
         val renderProgress = { f: Float -> progress(f * 0.8f) }

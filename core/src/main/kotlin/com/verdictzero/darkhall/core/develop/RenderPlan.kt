@@ -11,6 +11,7 @@ import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.roundToInt
+import com.verdictzero.darkhall.core.sky.MaskRegion
 
 /**
  * Every number the slider pipeline derives from the sliders, the file and the render scale,
@@ -77,20 +78,26 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     val sharpen: Float = p[Adjustment.SHARPEN] / 100f
     val sharpenOn: Boolean = sharpen > 0.005f
     val clarityOn: Boolean = abs(clarity) > 0.005f
-    val detailOn: Boolean get() = sharpenOn || clarityOn || skyClarityOn
+    val detailOn: Boolean get() = sharpenOn || clarityOn || regions.any { it.clarityOn }
     val sharpenRadius: Int = max(1, (1.0f * frame.scale).roundToInt())
     val sharpenAmount: Float = sharpen * 1.6f
     val clarityRadius: Int = max(2, (0.015f * ctx.fullWidth * frame.scale).roundToInt())
     val clarityAmount: Float = clarity * 0.7f
 
-    // ---- sky (through ctx.sky's mask) ------------------------------------------------------------
-    val skyEv: Float = p[Adjustment.SKY_EXPOSURE]
-    val skySaturation: Float = p[Adjustment.SKY_SATURATION] / 100f
-    val skyWarmth: Float = p[Adjustment.SKY_WARMTH] / 100f
-    val skyClarity: Float = p[Adjustment.SKY_CLARITY] / 100f * 0.9f
-    val skyColourOn: Boolean = ctx.sky != null && (abs(skyEv) > 0.005f || abs(skySaturation) > 0.005f || abs(skyWarmth) > 0.005f)
-    val skyClarityOn: Boolean = ctx.sky != null && abs(skyClarity) > 0.005f
-    val skyOn: Boolean = skyColourOn || skyClarityOn
+    // ---- regions (sky, water, subject, foliage, through ctx.scene's masks) -----------------------
+    /** One masked section's sliders, scaled for the pipeline. */
+    class RegionPlan(val region: MaskRegion, p: DevelopParams) {
+        val ev: Float = p[Adjustment.masked(region, MaskKind.EXPOSURE)]
+        val saturation: Float = p[Adjustment.masked(region, MaskKind.SATURATION)] / 100f
+        val warmth: Float = p[Adjustment.masked(region, MaskKind.WARMTH)] / 100f
+        val clarity: Float = p[Adjustment.masked(region, MaskKind.CLARITY)] / 100f * 0.9f
+        val colourOn: Boolean = abs(ev) > 0.005f || abs(saturation) > 0.005f || abs(warmth) > 0.005f
+        val clarityOn: Boolean = abs(clarity) > 0.005f
+    }
+
+    /** The masked sections in use; empty until the photo's masks have been found. */
+    val regions: List<RegionPlan> = if (ctx.scene == null) emptyList() else
+        MaskRegion.entries.map { RegionPlan(it, p) }.filter { it.colourOn || it.clarityOn }
 
     init {
         val temp = p[Adjustment.TEMPERATURE] / 100f

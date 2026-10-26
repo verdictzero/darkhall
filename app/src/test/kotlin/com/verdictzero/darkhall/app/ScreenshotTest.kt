@@ -306,29 +306,39 @@ class ScreenshotTest {
         val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(path))).setClass(app, MainActivity::class.java)
         ActivityScenario.launch<MainActivity>(intent).use {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasText("Show mask"))
-            waitFor(180_000) {
-                compose.onAllNodesWithText("Sky found", substring = true).fetchSemanticsNodes().isNotEmpty() ||
-                    compose.onAllNodesWithText("No sky found", substring = true).fetchSemanticsNodes().isNotEmpty()
-            }
-            val found = compose.onAllNodesWithText("Sky found", substring = true).fetchSemanticsNodes().isNotEmpty()
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("mask-SKY"))
+            waitFor(180_000) { compose.onAllNodesWithText("Finding the sky", substring = true).fetchSemanticsNodes().isEmpty() }
+            val found = compose.onAllNodesWithText("Sky: ", substring = true).fetchSemanticsNodes().isNotEmpty()
             println("sky: " + if (found) "found" else "none")
-            compose.onNodeWithText("Show mask").performClick()
             if (found) {
+                compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("mask-SKY"))
+                compose.onNodeWithTag("mask-SKY").performClick()
                 waitFor { compose.onAllNodesWithText("Sky mask").fetchSemanticsNodes().isNotEmpty() }
                 if (outDir.isNotEmpty()) shot("sky_mask")
-                compose.onNodeWithText("Show mask").performClick()
+                compose.onNodeWithTag("mask-SKY").performClick()
                 waitFor { compose.onAllNodesWithText("Sky mask").fetchSemanticsNodes().isEmpty() }
                 compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("slider-SKY_SATURATION"))
                 compose.onNodeWithTag("slider-SKY_EXPOSURE").performSemanticsAction(SemanticsActions.SetProgress) { it(-0.8f) }
                 compose.onNodeWithTag("slider-SKY_SATURATION").performSemanticsAction(SemanticsActions.SetProgress) { it(45f) }
                 compose.onNodeWithTag("slider-SKY_CLARITY").performSemanticsAction(SemanticsActions.SetProgress) { it(50f) }
                 waitFor { compose.onAllNodesWithText("-0.80 EV").fetchSemanticsNodes().isNotEmpty() }
-                // Sky sliders render on the CPU.
+                // Masked sliders render on the CPU.
                 waitFor { compose.onAllNodesWithText(" ms · CPU", substring = true).fetchSemanticsNodes().isNotEmpty() }
                 repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
                 if (outDir.isNotEmpty()) shot("sky_edited")
             }
+            // Foliage's mask, where there is some (the list is lazy: scroll its section in first).
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasText("Foliage"))
+            val foliage = compose.onAllNodesWithText("Foliage: ", substring = true).fetchSemanticsNodes().isNotEmpty()
+            println("foliage: " + if (foliage) "found" else "none")
+            if (foliage) {
+                compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("mask-FOLIAGE"))
+                compose.onNodeWithTag("mask-FOLIAGE").performClick()
+                waitFor { compose.onAllNodesWithText("Foliage mask").fetchSemanticsNodes().isNotEmpty() }
+                if (outDir.isNotEmpty()) shot("foliage_mask")
+                compose.onNodeWithTag("mask-FOLIAGE").performClick()
+            }
         }
     }
+
 }

@@ -9,13 +9,13 @@ import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
-import com.verdictzero.darkhall.app.data.SkyDetector
+import com.verdictzero.darkhall.app.data.SceneDetector
+import com.verdictzero.darkhall.core.sky.MaskRegion
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.app.gpu.GpuRenderer
 import com.verdictzero.darkhall.core.gpu.ImageCompare
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AutoStraighten
-import com.verdictzero.darkhall.core.develop.AdjustmentGroup
 import com.verdictzero.darkhall.core.develop.AutoTone
 import com.verdictzero.darkhall.core.develop.Demosaic
 import com.verdictzero.darkhall.core.develop.DevelopParams
@@ -100,12 +100,13 @@ data class DevelopState(
     val straightenBusy: Boolean = false,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
-    val sky: SkyStatus = SkyStatus.UNKNOWN,
-    /** Share of the picture that is sky, once found. */
-    val skyCoverage: Float = 0f,
-    val showSkyMask: Boolean = false,
-    /** The sky mask as a tinted overlay matching [preview], while [showSkyMask] is on. */
-    val skyOverlay: Bitmap? = null,
+    val scene: SceneStatus = SceneStatus.UNKNOWN,
+    /** Share of the picture each region takes, once found. */
+    val coverage: Map<MaskRegion, Float> = emptyMap(),
+    /** The region whose mask is shown over the preview, if any. */
+    val showMask: MaskRegion? = null,
+    /** That mask as a tinted overlay matching [preview]. */
+    val maskOverlay: Bitmap? = null,
     /** The crop tool is open: the preview shows the whole picture with the crop drawn over it. */
     val cropping: Boolean = false,
     /** Upright size of the full-resolution picture, for crop ratios and sizes. */
@@ -113,8 +114,14 @@ data class DevelopState(
     val fullHeight: Int = 0,
 )
 
-/** Where the photo's sky detection stands. */
-enum class SkyStatus { UNKNOWN, FINDING, FOUND, NONE }
+/** Where finding the photo's sky, water, people and foliage stands. */
+enum class SceneStatus { UNKNOWN, FINDING, DONE }
+
+/** True when [region] takes enough of the picture to be worth its sliders. */
+fun DevelopState.has(region: MaskRegion) = (coverage[region] ?: 0f) >= MIN_COVERAGE
+
+/** Less than this share of the picture counts as none of a region. */
+const val MIN_COVERAGE = 0.005f
 
 /**
  * One editing session at a time. The activity owns a single instance; [open] swaps files and
@@ -263,7 +270,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         meta = m; raw = r; preview = pv; ctx = c; frame = f
         fullCompare = compare
         editsKey = file.key
-        val knownSky = SkyDetector.cached(app, file.key)?.also { c.sky = it }
+        val knownScene = SceneDetector.cached(app, file.key)?.also { c.scene = it }
         _state.update {
             it.copy(
                 fileName = file.name,
@@ -275,15 +282,15 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 hasLensProfile = c.lens != null,
                 fullWidth = if (Orientation.swapsAxes(m.orientation)) m.crop.height else m.crop.width,
                 fullHeight = if (Orientation.swapsAxes(m.orientation)) m.crop.width else m.crop.height,
-                sky = knownSky?.let { k -> if (k.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND } ?: SkyStatus.UNKNOWN,
-                skyCoverage = knownSky?.coverage ?: 0f,
+                scene = if (knownScene != null) SceneStatus.DONE else SceneStatus.UNKNOWN,
+                coverage = knownScene?.let { k -> MaskRegion.entries.associateWith { k.coverage(it) } } ?: emptyMap(),
             )
         }
         setUpGpu(pv, c, f, defaults)
         if (loadedUri != uri) return
         startHistory(saved ?: defaults)
         paramsFlow.value = saved ?: defaults
-        if ((saved ?: defaults).usesSky()) ensureSky()
+        if ((saved ?: defaults).usesMasks()) ensureMasks()
     }
 
     private class PreviewResult(val bitmap: Bitmap, val histogram: IntArray, val ms: Long, val engine: String)
@@ -299,8 +306,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val uncropped = Crop.copy(p, DevelopParams.NEUTRAL)
         val full = lastFull?.takeIf { it.first == uncropped }?.second ?: run {
             engine = "CPU"
-            // The GPU shaders have no sky stage: photos using the Sky sliders render on the CPU.
-            val px = if (useGpu && !p.usesSky()) {
+            // The GPU shaders have no mask stage: photos using masked sliders render on the CPU.
+            val px = if (useGpu && !p.usesMasks()) {
                 try {
                     GpuRenderer.render(c, p, f).also { engine = "GPU" }
                 } catch (e: Throwable) {
@@ -323,9 +330,9 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val h = rect?.height ?: pv.height
         val hist = Developer.histogram(px)
         val bmp = toBitmap(px, w, h, m.orientation)
-        val overlay = if (_state.value.showSkyMask) skyOverlay(pv, c, p, f, m, rect) else null
+        val overlay = _state.value.showMask?.let { maskOverlay(it, pv, c, p, f, m, rect) }
         val compare = cutCompare(p, cropping)
-        _state.update { it.copy(skyOverlay = overlay, compare = compare) }
+        _state.update { it.copy(maskOverlay = overlay, compare = compare) }
         PreviewResult(bmp, hist, (System.nanoTime() - t0) / 1_000_000, engine)
     }
 
@@ -549,7 +556,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     // ---- sliders ---------------------------------------------------------------------------
 
     fun set(a: Adjustment, v: Float) {
-        if (a.group == AdjustmentGroup.SKY) ensureSky()
+        if (a.maskKind != null) ensureMasks()
         set(a, v, slider = a)
     }
 
@@ -601,41 +608,43 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         record(before)
     }
 
-    // ---- sky ---------------------------------------------------------------------------------
+    // ---- masks ---------------------------------------------------------------------------------
 
     /**
-     * Finds the photo's sky if that hasn't been done yet: a second or two on the CPU, once per
-     * photo (the result is cached on disk). The preview re-renders when it's in.
+     * Finds where the sky, water, people and foliage are if that hasn't been done yet: a second
+     * or two on the CPU, once per photo (the result is cached on disk). The preview re-renders
+     * when they're in.
      */
-    fun ensureSky() {
-        if (_state.value.sky != SkyStatus.UNKNOWN) return
+    fun ensureMasks() {
+        if (_state.value.scene != SceneStatus.UNKNOWN) return
         val pv = preview ?: return
         val c = ctx ?: return
         val m = meta ?: return
         val key = editsKey
         val asShot = _state.value.defaults.with(Adjustment.WATER, 0f)
-        _state.update { it.copy(sky = SkyStatus.FINDING) }
+        _state.update { it.copy(scene = SceneStatus.FINDING) }
         viewModelScope.launch {
-            val mask = try {
-                withContext(Dispatchers.Default) { SkyDetector.detect(getApplication(), key, pv, c, asShot, m) }
+            val masks = try {
+                withContext(Dispatchers.Default) { SceneDetector.detect(getApplication(), key, pv, c, asShot, m) }
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
-                _state.update { it.copy(sky = SkyStatus.UNKNOWN, message = "Couldn't look for the sky: ${e.message ?: e.javaClass.simpleName}") }
+                _state.update { it.copy(scene = SceneStatus.UNKNOWN, message = "Couldn't look for the sky, water and people: ${e.message ?: e.javaClass.simpleName}") }
                 return@launch
             }
             if (ctx !== c) return@launch // another photo by now
-            c.sky = mask
-            lastFull = null // the sky sliders now have a mask to work through
+            c.scene = masks
+            lastFull = null // the masked sliders now have masks to work through
             _state.update {
-                it.copy(sky = if (mask.coverage < MIN_SKY) SkyStatus.NONE else SkyStatus.FOUND, skyCoverage = mask.coverage)
+                it.copy(scene = SceneStatus.DONE, coverage = MaskRegion.entries.associateWith { r -> masks.coverage(r) })
             }
             rerender()
         }
     }
 
-    fun toggleSkyMask() {
-        _state.update { it.copy(showSkyMask = !it.showSkyMask, skyOverlay = null) }
-        ensureSky()
+    /** Shows [region]'s mask over the preview, or hides it if it is the one showing. */
+    fun toggleMask(region: MaskRegion) {
+        _state.update { it.copy(showMask = if (it.showMask == region) null else region, maskOverlay = null) }
+        ensureMasks()
         rerender()
     }
 
@@ -647,10 +656,9 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** The sky mask over the preview: magenta, see-through where there's no sky, upright and straightened like the picture. */
-    private fun skyOverlay(pv: LinearImage, c: RenderContext, p: DevelopParams, f: Frame, m: RawMetadata, crop: PixelRect?): Bitmap? {
-        val sky = c.sky ?: return null
-        val mask = sky.forFrame(pv, f, m.crop.width, m.crop.height)
+    /** [region]'s mask over the preview: magenta, see-through elsewhere, upright, straightened and cropped like the picture. */
+    private fun maskOverlay(region: MaskRegion, pv: LinearImage, c: RenderContext, p: DevelopParams, f: Frame, m: RawMetadata, crop: PixelRect?): Bitmap? {
+        val mask = c.scene?.get(region)?.forFrame(pv, f, m.crop.width, m.crop.height) ?: return null
         val grey = IntArray(mask.size) { i -> val v = (mask[i] * 255f + 0.5f).toInt().coerceIn(0, 255); (0xFF shl 24) or (v shl 16) or (v shl 8) or v }
         var placed = Geometry.apply(grey, pv.width, pv.height, p, c.lens)
         if (crop != null) placed = Crop.cut(placed, pv.width, pv.height, crop)
@@ -890,7 +898,5 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         /** EXIF orientations that mirror the picture. */
         val MIRRORED = setOf(2, 4, 5, 7)
         const val MAX_HISTORY = 200
-        /** Less sky than this (share of the picture) counts as none. */
-        const val MIN_SKY = 0.005f
     }
 }

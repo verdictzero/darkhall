@@ -3,33 +3,31 @@ package com.verdictzero.darkhall.core.sky
 import com.verdictzero.darkhall.core.develop.Filters
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.LinearImage
-import com.verdictzero.darkhall.core.export.Upright
 import com.verdictzero.darkhall.core.util.Parallel
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Where the sky is in one photo.
+ * Where one kind of thing (the sky, water, people, foliage: a [MaskRegion]) is in one photo.
  *
- * [detect] runs [SkyNet] once on the photo turned upright (the network learned skies at the
- * top) and keeps its coarse probability grid, about 129 cells across. [forFrame] turns that
- * into a mask for any rendered frame (the preview, a zoomed region, a band of the full-size
- * export) and refines it against that frame's own pixels:
+ * [SceneMasks.detect] runs [SkyNet] once on the photo turned upright and keeps, per region,
+ * its coarse probability grid, about 129 cells across. [forFrame] turns that into a mask for
+ * any rendered frame (the preview, a zoomed region, a band of the full-size export) and
+ * refines it against that frame's own pixels:
  *  1. an edge-aware ("guided") filter snaps the mask's edge onto the picture's brightness
- *     edges, so skylines and ridges come out crisp at any resolution;
- *  2. where the network is unsure (tree canopies, rigging), each pixel is compared with the
- *     sky colour expected there (the average of nearby certain sky) and kept if it matches,
- *     which picks out the sky between leaves and branches.
+ *     edges, so skylines, shorelines and outlines come out crisp at any resolution;
+ *  2. where the network is unsure (tree canopies, rigging, hair), each pixel is compared with
+ *     the colour expected there (the average of nearby certain pixels of the region) and kept
+ *     if it matches, which picks out, say, the sky between leaves and branches.
  *
  * Coordinates: the grid lives in the upright picture; frames are in the camera's crop, before
  * geometry, which is where the develop stage works.
  */
-class SkyMask(
-    /** Network grid size and the sky probability per cell, upright. */
+class RegionMask(
+    /** Network grid size and the region's probability per cell, upright. */
     val gridWidth: Int,
     val gridHeight: Int,
     val prob: FloatArray,
@@ -39,12 +37,12 @@ class SkyMask(
     /** EXIF orientation of the camera frame (3, 6 and 8 turn it; anything else doesn't). */
     val orientation: Int,
 ) {
-    /** Share of the picture that is sky (probability over a half). */
+    /** Share of the picture that is this region (probability over a half). */
     val coverage: Float = prob.count { it > 0.5f }.toFloat() / prob.size
 
     private val turn = when (orientation) { 3 -> 2; 6 -> 1; 8 -> 3; else -> 0 }
 
-    /** Coarse sky probability at crop-normalised position (u, v), bilinear on the grid. */
+    /** Coarse probability at crop-normalised position (u, v), bilinear on the grid. */
     fun coarse(u: Float, v: Float): Float {
         val a: Float; val b: Float
         when (turn) {
@@ -94,7 +92,7 @@ class SkyMask(
         val q = guided(lum, p, w, h, rad, 1e-3f)
         for (i in 0 until n) q[i] = q[i].coerceIn(0f, 1f)
 
-        // Where unsure, compare with the sky colour expected at that spot.
+        // Where unsure, compare with the region's colour expected at that spot.
         val sure = FloatArray(n) { if (q[it] > 0.9f) 1f else 0f }
         val far = max(4, (24f * unit).roundToInt())
         val tmp = FloatArray(n)
@@ -138,60 +136,19 @@ class SkyMask(
         return FloatArray(n) { ma[it] * guide[it] + mb[it] }
     }
 
-    /** For the on-disk cache. */
-    fun toBytes(): ByteArray {
-        val bb = ByteBuffer.allocate(4 * 6 + 4 * prob.size).order(ByteOrder.LITTLE_ENDIAN)
-        bb.putInt(MAGIC).putInt(gridWidth).putInt(gridHeight).putInt(netWidth).putInt(netHeight).putInt(orientation)
+    internal fun write(bb: ByteBuffer) {
+        bb.putInt(gridWidth).putInt(gridHeight).putInt(netWidth).putInt(netHeight).putInt(orientation)
         prob.forEach { bb.putFloat(it) }
-        return bb.array()
     }
 
-    companion object {
-        private const val MAGIC = 0x534B5931 // "SKY1"
+    internal val bytes: Int get() = 4 * 5 + 4 * prob.size
 
-        fun fromBytes(bytes: ByteArray): SkyMask? {
-            if (bytes.size < 24) return null
-            val bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-            if (bb.int != MAGIC) return null
+    internal companion object {
+        fun read(bb: ByteBuffer): RegionMask? {
+            if (bb.remaining() < 20) return null
             val gw = bb.int; val gh = bb.int; val nw = bb.int; val nh = bb.int; val o = bb.int
-            if (gw <= 0 || gh <= 0 || bytes.size != 24 + 4 * gw * gh) return null
-            return SkyMask(gw, gh, FloatArray(gw * gh) { bb.float }, nw, nh, o)
-        }
-
-        /**
-         * Finds the sky in [argb], the whole crop rendered at preview size in camera orientation
-         * (8-bit, before geometry), whose EXIF [orientation] says how to turn it upright.
-         */
-        fun detect(model: SkyModel, argb: IntArray, width: Int, height: Int, orientation: Int): SkyMask {
-            val up = Upright(width, height, orientation)
-            val s = SkyNet.INPUT.toFloat() / max(up.width, up.height)
-            val nw = min(SkyNet.INPUT, max(1, (up.width * s).roundToInt()))
-            val nh = min(SkyNet.INPUT, max(1, (up.height * s).roundToInt()))
-            // Area-average down to network size, scale to -1..1; the rest of the square stays 0,
-            // the mean grey the model was padded with in training.
-            val x = Tensor(3, SkyNet.INPUT, SkyNet.INPUT)
-            val plane = SkyNet.INPUT * SkyNet.INPUT
-            Parallel.rows(nh) { y0, y1 ->
-                for (ny in y0 until y1) {
-                    val sy0 = ny * up.height / nh; val sy1 = max(sy0 + 1, (ny + 1) * up.height / nh)
-                    for (nx in 0 until nw) {
-                        val sx0 = nx * up.width / nw; val sx1 = max(sx0 + 1, (nx + 1) * up.width / nw)
-                        var sr = 0; var sg = 0; var sb = 0
-                        for (yy in sy0 until sy1) for (xx in sx0 until sx1) {
-                            val px = argb[up.srcY(xx, yy) * width + up.srcX(xx, yy)]
-                            sr += (px shr 16) and 0xFF; sg += (px shr 8) and 0xFF; sb += px and 0xFF
-                        }
-                        val k = 1f / ((sy1 - sy0) * (sx1 - sx0) * 127.5f)
-                        val i = ny * SkyNet.INPUT + nx
-                        x.data[i] = sr * k - 1f; x.data[plane + i] = sg * k - 1f; x.data[2 * plane + i] = sb * k - 1f
-                    }
-                }
-            }
-            val logits = SkyNet.logits(model, x)
-            val all = SkyNet.skyProbability(logits)
-            val gw = (nw - 1) / 4 + 1; val gh = (nh - 1) / 4 + 1
-            val prob = FloatArray(gw * gh) { all[(it / gw) * logits.w + it % gw] }
-            return SkyMask(gw, gh, prob, nw, nh, orientation)
+            if (gw <= 0 || gh <= 0 || gw > 4096 || gh > 4096 || bb.remaining() < 4 * gw * gh) return null
+            return RegionMask(gw, gh, FloatArray(gw * gh) { bb.float }, nw, nh, o)
         }
     }
 }

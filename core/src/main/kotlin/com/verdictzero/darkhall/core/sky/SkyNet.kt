@@ -138,6 +138,28 @@ object SkyNet {
         return conv(z, layers.next(), 1, 1, NONE)
     }
 
+    /**
+     * For each group of ADE20K classes in [groups], the probability that each cell of [logits]'
+     * grid belongs to one of them (the softmax over all classes, summed over the group).
+     */
+    fun groupProbabilities(logits: Tensor, groups: List<IntArray>): List<FloatArray> {
+        val n = logits.plane
+        val out = List(groups.size) { FloatArray(n) }
+        val d = logits.data
+        for (i in 0 until n) {
+            var m = Float.NEGATIVE_INFINITY
+            for (c in 0 until logits.c) m = max(m, d[c * n + i])
+            var s = 0.0
+            for (c in 0 until logits.c) s += exp((d[c * n + i] - m).toDouble())
+            for ((g, classes) in groups.withIndex()) {
+                var e = 0.0
+                for (c in classes) e += exp((d[c * n + i] - m).toDouble())
+                out[g][i] = (e / s).toFloat()
+            }
+        }
+        return out
+    }
+
     /** Probability of sky at each cell of [logits]' grid (softmax over all classes). */
     fun skyProbability(logits: Tensor): FloatArray {
         val n = logits.plane

@@ -1,13 +1,23 @@
 package com.verdictzero.darkhall.core.develop
 
 import com.verdictzero.darkhall.core.raw.RawMetadata
+import com.verdictzero.darkhall.core.sky.MaskRegion
 import kotlin.math.ln
 import kotlin.math.roundToInt
 
-/** Editor sections, in order. [sliders] is false for a section with its own controls instead. */
-enum class AdjustmentGroup(val title: String, val sliders: Boolean = true) {
-    LOOK("Look"), LIGHT("Light"), COLOR("Color"), SKY("Sky"), DETAIL("Detail"), LENS("Lens"), CROP("Crop", sliders = false)
+/**
+ * Editor sections, in order. [sliders] is false for a section with its own controls instead;
+ * [region] is set for the sections that act on one part of the picture through its mask.
+ */
+enum class AdjustmentGroup(val title: String, val sliders: Boolean = true, val region: MaskRegion? = null) {
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"),
+    SKY("Sky", region = MaskRegion.SKY), WATER("Water", region = MaskRegion.WATER),
+    SUBJECT("Subject", region = MaskRegion.SUBJECT), FOLIAGE("Foliage", region = MaskRegion.FOLIAGE),
+    DETAIL("Detail"), LENS("Lens"), CROP("Crop", sliders = false)
 }
+
+/** What a masked slider does within its region (see the region passes in Developer). */
+enum class MaskKind { EXPOSURE, SATURATION, CLARITY, WARMTH }
 
 /**
  * Every control the app exposes. The UI is generated from this list, so the whole
@@ -21,6 +31,8 @@ enum class Adjustment(
     val default: Float,
     val decimals: Int = 0,
     val unit: String = "",
+    /** For a slider of a masked section: what it does there. */
+    val maskKind: MaskKind? = null,
 ) {
     /** How strongly the chosen look (3D LUT) is applied. */
     LOOK_AMOUNT("Look strength", AdjustmentGroup.LOOK, 0f, 100f, 100f),
@@ -50,11 +62,23 @@ enum class Adjustment(
     DISTORTION("Distortion", AdjustmentGroup.LENS, -100f, 100f, 0f),
     STRAIGHTEN("Straighten", AdjustmentGroup.LENS, -10f, 10f, 0f, 1, "°"),
 
-    // Applied through the sky mask (the photo's detected sky only); see SkyMask.
-    SKY_EXPOSURE("Sky exposure", AdjustmentGroup.SKY, -2f, 2f, 0f, 2, " EV"),
-    SKY_SATURATION("Sky saturation", AdjustmentGroup.SKY, -100f, 100f, 0f),
-    SKY_CLARITY("Sky clarity", AdjustmentGroup.SKY, -100f, 100f, 0f),
-    SKY_WARMTH("Sky warmth", AdjustmentGroup.SKY, -100f, 100f, 0f),
+    // Applied through each region's mask (that part of the photo only); see RegionMask.
+    SKY_EXPOSURE("Sky exposure", AdjustmentGroup.SKY, -2f, 2f, 0f, 2, " EV", MaskKind.EXPOSURE),
+    SKY_SATURATION("Sky saturation", AdjustmentGroup.SKY, -100f, 100f, 0f, maskKind = MaskKind.SATURATION),
+    SKY_CLARITY("Sky clarity", AdjustmentGroup.SKY, -100f, 100f, 0f, maskKind = MaskKind.CLARITY),
+    SKY_WARMTH("Sky warmth", AdjustmentGroup.SKY, -100f, 100f, 0f, maskKind = MaskKind.WARMTH),
+    WATER_EXPOSURE("Water exposure", AdjustmentGroup.WATER, -2f, 2f, 0f, 2, " EV", MaskKind.EXPOSURE),
+    WATER_SATURATION("Water saturation", AdjustmentGroup.WATER, -100f, 100f, 0f, maskKind = MaskKind.SATURATION),
+    WATER_CLARITY("Water clarity", AdjustmentGroup.WATER, -100f, 100f, 0f, maskKind = MaskKind.CLARITY),
+    WATER_WARMTH("Water warmth", AdjustmentGroup.WATER, -100f, 100f, 0f, maskKind = MaskKind.WARMTH),
+    SUBJECT_EXPOSURE("Subject exposure", AdjustmentGroup.SUBJECT, -2f, 2f, 0f, 2, " EV", MaskKind.EXPOSURE),
+    SUBJECT_SATURATION("Subject saturation", AdjustmentGroup.SUBJECT, -100f, 100f, 0f, maskKind = MaskKind.SATURATION),
+    SUBJECT_CLARITY("Subject clarity", AdjustmentGroup.SUBJECT, -100f, 100f, 0f, maskKind = MaskKind.CLARITY),
+    SUBJECT_WARMTH("Subject warmth", AdjustmentGroup.SUBJECT, -100f, 100f, 0f, maskKind = MaskKind.WARMTH),
+    FOLIAGE_EXPOSURE("Foliage exposure", AdjustmentGroup.FOLIAGE, -2f, 2f, 0f, 2, " EV", MaskKind.EXPOSURE),
+    FOLIAGE_SATURATION("Foliage saturation", AdjustmentGroup.FOLIAGE, -100f, 100f, 0f, maskKind = MaskKind.SATURATION),
+    FOLIAGE_CLARITY("Foliage clarity", AdjustmentGroup.FOLIAGE, -100f, 100f, 0f, maskKind = MaskKind.CLARITY),
+    FOLIAGE_WARMTH("Foliage warmth", AdjustmentGroup.FOLIAGE, -100f, 100f, 0f, maskKind = MaskKind.WARMTH),
 
     // The crop rectangle in the upright, straightened picture (0..1 of its width and height)
     // and the ratio picked for it (a CropAspect); set with the crop tool, see Crop.
@@ -64,6 +88,12 @@ enum class Adjustment(
     CROP_BOTTOM("Crop bottom", AdjustmentGroup.CROP, 0f, 1f, 1f, 4),
     CROP_ASPECT("Crop ratio", AdjustmentGroup.CROP, 0f, 5f, 0f),
     ;
+
+    companion object {
+        /** The slider of [region]'s section that does [kind]. */
+        fun masked(region: MaskRegion, kind: MaskKind): Adjustment =
+            entries.first { it.group.region == region && it.maskKind == kind }
+    }
 
     fun format(v: Float): String {
         val s = if (decimals == 0) v.roundToInt().toString() else "%.${decimals}f".format(v)
@@ -87,8 +117,12 @@ class DevelopParams private constructor(private val values: FloatArray, val look
 
     fun reset(a: Adjustment, defaults: DevelopParams) = with(a, defaults[a])
 
-    /** True when any Sky slider is in use, so the photo's sky mask is needed. */
-    fun usesSky(): Boolean = Adjustment.entries.any { it.group == AdjustmentGroup.SKY && kotlin.math.abs(values[it.ordinal]) > 1e-4f }
+    /** True when any masked slider (Sky, Water, Subject, Foliage) is in use, so the photo's masks are needed. */
+    fun usesMasks(): Boolean = Adjustment.entries.any { it.maskKind != null && kotlin.math.abs(values[it.ordinal]) > 1e-4f }
+
+    /** True when a slider of [region]'s section is in use. */
+    fun uses(region: MaskRegion): Boolean =
+        Adjustment.entries.any { it.group.region == region && kotlin.math.abs(values[it.ordinal]) > 1e-4f }
 
     fun isDefault(a: Adjustment, defaults: DevelopParams) = kotlin.math.abs(values[a.ordinal] - defaults[a]) < 1e-4f
 
