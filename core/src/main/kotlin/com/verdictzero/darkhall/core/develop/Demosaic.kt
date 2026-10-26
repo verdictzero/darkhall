@@ -10,7 +10,7 @@ data class Region(val x: Int, val y: Int, val width: Int, val height: Int) {
 }
 
 /**
- * Converts Bayer data to a [LinearImage].
+ * Converts Bayer (and Fujifilm X-Trans) data to a [LinearImage].
  *
  * Two strategies: [superpixel] bins each 2x2 Bayer cell into one RGB pixel (half
  * resolution, zero colour artefacts, very fast; ideal for the live preview) and
@@ -18,7 +18,10 @@ data class Region(val x: Int, val y: Int, val width: Int, val height: Int) {
  * full resolution for export and zoom. Both work on any crop-relative [Region];
  * pixels outside the crop are mirrored with a period of two so the Bayer phase holds.
  * Linear (already demosaiced) DNGs go through the same entry points: [superpixel]
- * box-averages 2x2 pixels and [malvar] just normalises.
+ * box-averages 2x2 pixels and [malvar] just normalises. X-Trans sensors, whose 6x6 pattern
+ * has no complete 2x2 cell, take their own routes: [superpixel] weighs a 4x4 window around
+ * each cell, and [malvar] interpolates green along the flatter direction, then red and blue
+ * as differences from it.
  */
 object Demosaic {
 
@@ -27,6 +30,7 @@ object Demosaic {
         val black = FloatArray(4) { raw.meta.blackLevels[it].toFloat() }
         val scale = FloatArray(4) { 1f / (raw.meta.whiteLevel - raw.meta.blackLevels[it]).coerceAtLeast(1) }
         val cfa = raw.meta.cfa
+        val meta = raw.meta
         val left = raw.meta.crop.left
         val top = raw.meta.crop.top
         val w = raw.meta.crop.width
@@ -35,6 +39,8 @@ object Demosaic {
         fun colorAt(row: Int, col: Int) = cfa[posAt(row, col)]
         /** Position of a crop-relative site in the 2x2 cell at the sensor origin. */
         fun posAt(row: Int, col: Int) = (((row + top) and 1) shl 1) or ((col + left) and 1)
+        /** Colour of a crop-relative site, X-Trans included. */
+        fun colorOf(row: Int, col: Int) = meta.cfaColor(row + top, col + left)
         fun reflectX(c: Int) = if (c < 0) -c else if (c >= w) 2 * (w - 1) - c else c
         fun reflectY(r: Int) = if (r < 0) -r else if (r >= h) 2 * (h - 1) - r else r
     }
@@ -53,6 +59,7 @@ object Demosaic {
         val w = (minOf(crop.width, region.right) - x0) / 2
         val h = (minOf(crop.height, region.bottom) - y0) / 2
         require(w > 0 && h > 0) { "empty region $region" }
+        if (raw.meta.isXTrans) return superpixelXTrans(raw, lv, x0, y0, w, h)
         val out = LinearImage.allocate(w, h)
         val rw = raw.width
         Parallel.rows(h) { b0, b1 ->
@@ -72,6 +79,50 @@ object Demosaic {
                         when (c) { 0 -> r = n; 2 -> b = n; else -> { g += n; gn++ } }
                     }
                     out.r[o] = r; out.g[o] = if (gn > 0) g / gn else g; out.b[o] = b
+                    neutralizeClipped(out.r, out.g, out.b, o, wb)
+                    o++
+                }
+            }
+        }
+        return out
+    }
+
+    /**
+     * X-Trans at half size: each 2x2 cell's colours from the 4x4 window around it, weighted
+     * 1-3-3-1 each way so the result stays centred on the cell (every such window holds at
+     * least three red and three blue sites).
+     */
+    private fun superpixelXTrans(raw: RawImage, lv: Levels, x0: Int, y0: Int, w: Int, h: Int): LinearImage {
+        val crop = raw.meta.crop
+        val wb = raw.meta.cameraWb
+        val out = LinearImage.allocate(w, h)
+        val rw = raw.width
+        val weight = floatArrayOf(1f, 3f, 3f, 1f)
+        val clip = Developer.CLIP
+        Parallel.rows(h) { b0, b1 ->
+            val sum = FloatArray(3); val wsum = FloatArray(3); val peak = FloatArray(3)
+            for (y in b0 until b1) {
+                val cy = y0 + y * 2
+                var o = y * w
+                for (x in 0 until w) {
+                    val cx = x0 + x * 2
+                    sum.fill(0f); wsum.fill(0f); peak.fill(0f)
+                    for (dy in 0..3) {
+                        val ry = lv.reflectY(cy - 1 + dy)
+                        val base = (crop.top + ry) * rw + crop.left
+                        for (dx in 0..3) {
+                            val rx = lv.reflectX(cx - 1 + dx)
+                            val p = lv.posAt(ry, rx)
+                            val c = lv.colorOf(ry, rx)
+                            val n = ((raw.data[base + rx].toInt() and 0xFFFF) - lv.black[p]) * lv.scale[p]
+                            val k = weight[dy] * weight[dx]
+                            sum[c] += n * k; wsum[c] += k
+                            if (n > peak[c]) peak[c] = n
+                        }
+                    }
+                    // A colour with any clipped site counts as clipped, so the neutralising sees it.
+                    fun ch(c: Int) = if (peak[c] >= clip) peak[c] else if (wsum[c] > 0f) sum[c] / wsum[c] else 0f
+                    out.r[o] = ch(0); out.g[o] = ch(1); out.b[o] = ch(2)
                     neutralizeClipped(out.r, out.g, out.b, o, wb)
                     o++
                 }
@@ -131,6 +182,7 @@ object Demosaic {
         val crop = raw.meta.crop
         require(region.width > 0 && region.height > 0 && region.x >= 0 && region.y >= 0 &&
             region.right <= crop.width && region.bottom <= crop.height) { "bad region $region" }
+        if (raw.meta.isXTrans) return xtrans(raw, lv, region)
         val w = region.width
         val h = region.height
         val rw = raw.width
@@ -203,6 +255,91 @@ object Demosaic {
         }
         return out
     }
+
+    /**
+     * Full-resolution X-Trans demosaic of [region]. Green first: every red or blue site has three
+     * green neighbours (two of them opposite each other), and the eight around it are weighted
+     * by how flat the green is horizontally and vertically there, so edges are followed rather
+     * than crossed. Red and blue then come from the green plus the mean colour difference
+     * (red minus green, blue minus green) of the nearest sites of that colour, at least one of
+     * each lying in every 3x3 window.
+     */
+    private fun xtrans(raw: RawImage, lv: Levels, region: Region): LinearImage {
+        val crop = raw.meta.crop
+        val w = region.width
+        val h = region.height
+        val rw = raw.width
+        val out = LinearImage.allocate(w, h)
+        val eps = 0.002f
+        Parallel.rows(h) { b0, b1 ->
+            // The band plus two sites all round: values, colours and the green plane.
+            val bw = w + 4
+            val bh = b1 - b0 + 4
+            val v = FloatArray(bw * bh)
+            val col = ByteArray(bw * bh)
+            val g = FloatArray(bw * bh)
+            for (j in 0 until bh) {
+                val ry = lv.reflectY(region.y + b0 - 2 + j)
+                val base = (crop.top + ry) * rw + crop.left
+                for (i in 0 until bw) {
+                    val rx = lv.reflectX(region.x - 2 + i)
+                    val p = lv.posAt(ry, rx)
+                    v[j * bw + i] = ((raw.data[base + rx].toInt() and 0xFFFF) - lv.black[p]) * lv.scale[p]
+                    col[j * bw + i] = lv.colorOf(ry, rx).toByte()
+                }
+            }
+            for (j in 1 until bh - 1) for (i in 1 until bw - 1) {
+                val k = j * bw + i
+                if (col[k].toInt() == 1) { g[k] = v[k]; continue }
+                // Green gradients across the 3x3 window, each way.
+                var gh = 0f; var nh = 0; var gv = 0f; var nv = 0
+                for (d in -1..1) {
+                    val a = k + d * bw - 1; val b = k + d * bw + 1
+                    if (col[a].toInt() == 1 && col[b].toInt() == 1) { gh += abs(v[a] - v[b]); nh++ }
+                    val c = k + d - bw; val e = k + d + bw
+                    if (col[c].toInt() == 1 && col[e].toInt() == 1) { gv += abs(v[c] - v[e]); nv++ }
+                }
+                if (nh > 0) gh /= nh
+                if (nv > 0) gv /= nv
+                if (nh == 0) gh = gv
+                if (nv == 0) gv = gh
+                val wh = 2f / (eps + gh); val wv = 2f / (eps + gv); val wd = 1f / (eps + 0.5f * (gh + gv))
+                var s = 0f; var ws = 0f
+                for (dy in -1..1) for (dx in -1..1) {
+                    if (dy == 0 && dx == 0) continue
+                    val n = k + dy * bw + dx
+                    if (col[n].toInt() != 1) continue
+                    val wt = if (dy == 0) wh else if (dx == 0) wv else wd
+                    s += v[n] * wt; ws += wt
+                }
+                g[k] = if (ws > 0f) s / ws else v[k]
+            }
+            for (by in b0 until b1) {
+                val j = by - b0 + 2
+                val o = by * w
+                for (x in 0 until w) {
+                    val k = j * bw + x + 2
+                    val own = col[k].toInt()
+                    val gg = g[k]
+                    var dr = 0f; var wr = 0f; var db = 0f; var wbs = 0f
+                    for (dy in -1..1) for (dx in -1..1) {
+                        val n = k + dy * bw + dx
+                        val wt = if (dy == 0 && dx == 0) 4f else if (dy == 0 || dx == 0) 2f else 1f
+                        when (col[n].toInt()) {
+                            0 -> { dr += (v[n] - g[n]) * wt; wr += wt }
+                            2 -> { db += (v[n] - g[n]) * wt; wbs += wt }
+                        }
+                    }
+                    out.r[o + x] = if (own == 0) v[k] else gg + (if (wr > 0f) dr / wr else 0f)
+                    out.g[o + x] = gg
+                    out.b[o + x] = if (own == 2) v[k] else gg + (if (wbs > 0f) db / wbs else 0f)
+                }
+            }
+        }
+        return out
+    }
+
+    private fun abs(x: Float) = if (x < 0f) -x else x
 
     /**
      * The half-size image feeds area-averaged previews, and an average of clipped sky with dark

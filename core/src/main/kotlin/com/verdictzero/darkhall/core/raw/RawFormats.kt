@@ -7,13 +7,14 @@ package com.verdictzero.darkhall.core.raw
 object RawFormats {
 
     /** File extensions Darkhall lists and opens. */
-    val EXTENSIONS = setOf("orf", "ori", "dng", "arw", "nef", "nrw", "cr2", "rw2", "rwl", "pef")
+    val EXTENSIONS = setOf("orf", "ori", "dng", "arw", "nef", "nrw", "cr2", "rw2", "rwl", "pef", "raf")
 
     fun hasRawExtension(name: String): Boolean = name.substringAfterLast('.', "").lowercase() in EXTENSIONS
 
     /** Quick check of the first bytes: a TIFF-style header any supported format starts with. */
     fun looksLikeRaw(head: ByteArray): Boolean {
         if (head.size < 8) return false
+        if (RafParser.isRaf(head)) return true
         val sig = String(head, 0, 4, Charsets.ISO_8859_1)
         return sig == "II*\u0000" || sig == "MM\u0000*" || sig == "IIRO" || sig == "IIRS" || sig == "MMOR" || sig == "IIU\u0000"
     }
@@ -48,6 +49,7 @@ object RawFormats {
             is Cr2Layout -> Cr2Decoder.decode(data, meta)
             is Rw2Layout -> Rw2Decoder.decode(data, meta)
             is PefLayout -> PefDecoder.decode(data, meta)
+            is RafLayout -> RafDecoder.decode(data, meta)
         }
     } catch (e: RawFormatException) {
         throw e
@@ -59,7 +61,7 @@ object RawFormats {
         if (data.size < 16) throw RawFormatException("File too small")
         val sig = String(data, 0, 16, Charsets.ISO_8859_1)
         when {
-            sig.startsWith("FUJIFILM") -> throw RawFormatException("Fujifilm RAF files are not supported")
+            sig.startsWith("FUJIFILM") -> return RafParser.parse(data)
             sig.substring(4, 12) == "ftypcrx " -> throw RawFormatException("Canon CR3 files are not supported")
             sig.substring(6, 14) == "HEAPCCDR" -> throw RawFormatException("Canon CRW files are not supported")
         }
@@ -87,7 +89,9 @@ object RawFormats {
      */
     fun factsFromHeader(head: ByteArray): ShotFacts? = runCatching {
         if (!looksLikeRaw(head)) return@runCatching null
-        val r = ByteReader(head, bigEndian = head[0] == 'M'.code.toByte())
+        // A RAF's EXIF is in its embedded JPEG.
+        val tiff = if (RafParser.isRaf(head)) RafParser.exifTiff(head) ?: return@runCatching null else head
+        val r = ByteReader(tiff, bigEndian = tiff[0] == 'M'.code.toByte())
         val roots = Tiff.chain(r, r.u32(4))
         val ifd0 = roots.firstOrNull() ?: return@runCatching null
         val exif = ExifInfo.read(r, ifd0, Tiff.tree(r, roots))
@@ -113,6 +117,15 @@ object RawFormats {
         if (OrfParser.isOrf(head)) {
             val m = OrfParser.parse(head)
             return@runCatching if (m.previewLength > 0) PreviewLocation(m.previewOffset, m.previewLength, m.orientation) else null
+        }
+        if (RafParser.isRaf(head)) {
+            val (off, len) = RafParser.preview(head) ?: return@runCatching null
+            if (off + len > fileSize) return@runCatching null
+            val orientation = RafParser.exifTiff(head)?.let { t ->
+                val tr = ByteReader(t, bigEndian = t[0] == 'M'.code.toByte())
+                Tiff.chain(tr, tr.u32(4)).firstOrNull()?.int(0x0112)
+            } ?: 1
+            return@runCatching PreviewLocation(off, len, orientation)
         }
         if (!looksLikeRaw(head)) return@runCatching null
         val r = ByteReader(head, bigEndian = head[0] == 'M'.code.toByte())

@@ -47,6 +47,7 @@
                 <data android:mimeType="image/x-panasonic-rw2" />
                 <data android:mimeType="image/x-panasonic-raw" />
                 <data android:mimeType="image/x-pentax-pef" />
+                <data android:mimeType="image/x-fuji-raf" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -95,6 +96,10 @@
                 <data android:pathPattern=".*\\..*\\.pef" />
                 <data android:pathPattern=".*\\.PEF" />
                 <data android:pathPattern=".*\\..*\\.PEF" />
+                <data android:pathPattern=".*\\.raf" />
+                <data android:pathPattern=".*\\..*\\.raf" />
+                <data android:pathPattern=".*\\.RAF" />
+                <data android:pathPattern=".*\\..*\\.RAF" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -109,6 +114,7 @@
                 <data android:mimeType="image/x-panasonic-rw2" />
                 <data android:mimeType="image/x-panasonic-raw" />
                 <data android:mimeType="image/x-pentax-pef" />
+                <data android:mimeType="image/x-fuji-raf" />
             </intent-filter>
         </activity>
 

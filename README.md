@@ -2,10 +2,11 @@
 
 A sliders-only RAW developer for Android, built around the files an
 **Olympus Tough TG-7** writes, and opening the raws of most other cameras and phones too
-(DNG, Sony ARW, Nikon NEF, Canon CR2, Panasonic RW2, Pentax PEF, every Olympus/OM ORF; see
+(DNG, Sony ARW, Nikon NEF, Canon CR2, Panasonic RW2, Pentax PEF, Fujifilm RAF, every
+Olympus/OM ORF; see
 [Other cameras and phones](#other-cameras-and-phones)).
 
-No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
+No curves, no layers, no brushes: open a raw, drag sliders, export a JPEG.
 
 ## What "tailored to the TG-7" means
 
@@ -188,6 +189,13 @@ other cameras. Each decoder is a Kotlin port of the dcraw/LibRaw algorithm and i
 | CR2 | Canon EOS 2004–2018 | lossless JPEG with Canon's slicing, 2- and 4-component streams, US/Japanese model names | 5D III, 6D II, 80D, 200D, 450D, Rebel T7i |
 | RW2 | Panasonic, Leica rebrands | all five encodings (original, GH5S/G9 high-res, S1/S5 generation, S1R high-res, and the GH6/G9 II/S5 II generation) | G9, GH5, GH5S, GH6, G85, GX7, LX100, S5 |
 | PEF | Pentax | Pentax Huffman, uncompressed | K-1, K-70 |
+| RAF | Fujifilm X and GFX (X-Trans and Bayer) | uncompressed, packed 14-bit, Fujifilm's compressed format (lossless and lossy) | X-T2 (both), X-T3, X-T4, X-T5, X-S10, X-A5, GFX 50S |
+
+X-Trans sensors (most Fujifilm X bodies) repeat their colours every six pixels instead of two,
+so they get their own demosaic: the half-size preview weighs each 2×2 cell's colours from the
+4×4 window around it, and full resolution interpolates green along the flatter direction, then
+red and blue as differences from that green. Noise is measured on the 36 same-colour sites of
+the 6×6 pattern.
 
 What the file provides is used as on the TG-7: as-shot white balance, per-channel black
 level, the camera's crop, orientation and EXIF. Colour comes from the DNG's own matrix or,
@@ -198,7 +206,8 @@ from turning magenta. DNG lens corrections are applied: phones' lens-shading gai
 vignetting, and the distortion/colour-fringe warp, which drives the *Lens profile* slider just
 like the TG lens profile; DNG BaselineExposure is honoured.
 
-Not supported, with a clear message when opened: Fujifilm RAF, Canon CR3, Canon sRAW/mRAW, Sony
+Not supported, with a clear message when opened: Fujifilm's older SuperCCD/EXR bodies (S, F
+and HS series), Canon CR3, Canon sRAW/mRAW, Sony
 medium/small lossless ARWs, Nikon High Efficiency RAW and small/medium NEFs, lossy and JPEG XL
 DNGs, X-Trans DNGs. Very large sensors (45–60 MP) open and export, but need a phone with a
 generous memory allowance.
@@ -363,8 +372,8 @@ Requires JDK 17+ and the Android SDK (platform 36).
 ### Tests
 
 GitHub Actions runs all of the tests below and Android lint on every push
-(`.github/workflows/ci.yml`), against eight CC0 raws from raw.pixls.us (TG-6, TG-5, Pixel 6
-Pro, EOS 450D, NEX-6, Z 6, LX100, K-70) with LibRaw references written by rawpy. To get the
+(`.github/workflows/ci.yml`), against nine CC0 raws from raw.pixls.us (TG-6, TG-5, Pixel 6
+Pro, EOS 450D, NEX-6, Z 6, LX100, K-70, X-S10) with LibRaw references written by rawpy. To get the
 same set locally: `tools/ci/fetch_samples.sh samples` (needs `pip install rawpy numpy`).
 
 The decoder, pipeline and app tests run against a real file. Two have been used:
@@ -449,8 +458,8 @@ What they cover:
 ## Layout
 
 * `core/` – pure Kotlin/JVM: raw format readers and decoders (`core/raw`: a TIFF reader,
-  lossless JPEG, DNG, ORF, ARW, NEF, CR2, RW2, PEF), the camera colour table, demosaic (superpixel for
-  previews, Malvar-He-Cutler for export and zoom), the slider pipeline and its shared
+  lossless JPEG, DNG, ORF, ARW, NEF, CR2, RW2, PEF, RAF), the camera colour table, demosaic
+  (superpixel for previews, Malvar-He-Cutler for export and zoom, and X-Trans variants of both), the slider pipeline and its shared
   `RenderPlan`, the GLSL ES port behind a small `Gl` interface, lens geometry, region
   rendering for zoom, banded 12 MP export, and the PNG/TIFF/TGA encoders (`core/export`).
 * `app/` – Jetpack Compose UI, Storage Access Framework browsing, WorkManager export to

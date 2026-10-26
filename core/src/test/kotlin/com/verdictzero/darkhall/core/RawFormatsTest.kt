@@ -87,7 +87,15 @@ class RawFormatsTest {
                 if (expectUnsupported) problems += "decoded a file LibRaw treats as non-Bayer"
                 if (meta.rawWidth != ref.rawW || meta.rawHeight != ref.rawH) problems += "size ${meta.rawWidth}x${meta.rawHeight} != ${ref.rawW}x${ref.rawH}"
                 else if (sha(raw) != ref.sha) problems += "data differs"
-                if (!meta.isLinear) {
+                val xt = meta.xtrans
+                if (xt != null) {
+                    // A 6x6 X-Trans pattern, again relative to LibRaw's visible area.
+                    if (ref.pattern.size != 36) problems += "cfa: X-Trans here, ${ref.pattern.size} sites in LibRaw"
+                    else for (r in 0..5) for (c in 0..5) {
+                        if (xt[((r + ref.top) % 6) * 6 + (c + ref.left) % 6] != ref.pattern[r * 6 + c]) problems += "cfa ${xt.toList()} vs ${ref.pattern.toList()}"
+                    }
+                    for (p in 0..3) if (abs(meta.blackLevels[p] - ref.black[1]) > 2) problems += "black ${meta.blackLevels.toList()} vs ${ref.black.toList()}"
+                } else if (!meta.isLinear) {
                     // LibRaw's pattern is relative to its visible area; ours to the sensor origin.
                     for (r in 0..1) for (c in 0..1) {
                         val p = ((r + ref.top) and 1) * 2 + ((c + ref.left) and 1)

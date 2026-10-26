@@ -270,7 +270,7 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         Text(
             "Pick a folder of raw files (your TG-7's DCIM/100OLYMP, another camera's card, or your phone's DNGs), " +
-                "or open individual files. Reads ORF, DNG, ARW, NEF, CR2, RW2 and PEF.",
+                "or open individual files. Reads ORF, DNG, ARW, NEF, CR2, RW2, PEF and RAF.",
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -24,13 +24,15 @@ enum class RawFormat(val label: String) {
     CR2("Canon CR2"),
     RW2("Panasonic RW2"),
     PEF("Pentax PEF"),
+    RAF("Fujifilm RAF"),
 }
 
 /**
  * Everything needed to decode and colour-manage one raw file, whatever its format.
  *
- * Mosaic (Bayer) files have [samplesPerPixel] 1 and a 2x2 [cfa]; LinearRaw DNGs (Apple ProRAW,
- * Samsung Expert RAW) are already demosaiced and carry three samples per pixel.
+ * Mosaic (Bayer) files have [samplesPerPixel] 1 and a 2x2 [cfa]; Fujifilm X-Trans files a 6x6
+ * [xtrans] pattern as well. LinearRaw DNGs (Apple ProRAW, Samsung Expert RAW) are already
+ * demosaiced and carry three samples per pixel.
  */
 data class RawMetadata(
     val format: RawFormat,
@@ -42,6 +44,8 @@ data class RawMetadata(
     val samplesPerPixel: Int = 1,
     /** 2x2 CFA at the sensor origin, row-major; 0 = R, 1 = G, 2 = B. */
     val cfa: IntArray,
+    /** Fujifilm X-Trans: the 6x6 pattern at the sensor origin, row-major, else null. */
+    val xtrans: IntArray? = null,
     /**
      * Black levels. For a CFA, indexed by position in the 2x2 cell at the sensor origin
      * (`(row & 1) * 2 + (col & 1)`); for linear RGB, by channel.
@@ -95,8 +99,11 @@ data class RawMetadata(
 
     val isLinear: Boolean get() = samplesPerPixel == 3
 
+    val isXTrans: Boolean get() = xtrans != null
+
     /** Colour of the CFA site at absolute sensor row/col. */
-    fun cfaColor(row: Int, col: Int): Int = cfa[((row and 1) shl 1) or (col and 1)]
+    fun cfaColor(row: Int, col: Int): Int =
+        xtrans?.let { it[(row % 6) * 6 + col % 6] } ?: cfa[((row and 1) shl 1) or (col and 1)]
 
     /** Black level of the CFA site at absolute sensor row/col. */
     fun blackAt(row: Int, col: Int): Int = blackLevels[((row and 1) shl 1) or (col and 1)]

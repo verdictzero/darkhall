@@ -66,21 +66,24 @@ class NoiseProfile(val a: FloatArray, val b: FloatArray, val measured: Boolean) 
         fun estimate(raw: RawImage): NoiseProfile {
             val meta = raw.meta
             val crop = meta.crop
-            val pw = crop.width / 2
-            val ph = crop.height / 2
+            // Same-colour sub-planes: the 2x2 Bayer cell's four (or X-Trans's 6x6 cell's 36)
+            // positions, (dy, dx) offset inside the cell; or, for linear data, the three
+            // channels sampled on a half-resolution grid.
+            val linear = meta.isLinear
+            val period = if (meta.isXTrans) 6 else 2
+            val pw = crop.width / period
+            val ph = crop.height / period
             val bx = (pw - 2) / BLOCK
             val by = (ph - 2) / BLOCK
-            // Four Bayer sub-planes, (dy, dx) offset inside the 2x2 cell; or, for linear data, the
-            // three channels sampled on the same half-resolution grid.
-            val linear = meta.isLinear
-            val planes = if (linear) 3 else 4
-            val planeColor = IntArray(planes) { k -> if (linear) k else meta.cfaColor(crop.top + (k shr 1), crop.left + (k and 1)) }
-            val means = Array(planes) { FloatArray(bx * by) }
-            val vars = Array(planes) { FloatArray(bx * by) }
-            val valid = Array(planes) { BooleanArray(bx * by) }
+            val planes = if (linear) 3 else period * period
+            val planeColor = IntArray(planes) { k -> if (linear) k else meta.cfaColor(crop.top + k / period, crop.left + k % period) }
+            val means = Array(planes) { FloatArray(maxOf(0, bx * by)) }
+            val vars = Array(planes) { FloatArray(maxOf(0, bx * by)) }
+            val valid = Array(planes) { BooleanArray(maxOf(0, bx * by)) }
+            if (bx <= 0 || by <= 0) return fromIso(meta)
             for (k in 0 until planes) {
-                val dy = if (linear) 0 else k shr 1
-                val dx = if (linear) 0 else k and 1
+                val dy = if (linear) 0 else k / period
+                val dx = if (linear) 0 else k % period
                 val blackLevel = if (linear) meta.blackLevels[k] else meta.blackAt(crop.top + dy, crop.left + dx)
                 val black = blackLevel.toFloat()
                 val scale = 1f / (meta.whiteLevel - blackLevel).coerceAtLeast(1)
@@ -93,8 +96,8 @@ class NoiseProfile(val a: FloatArray, val b: FloatArray, val measured: Boolean) 
                             for (j in 0 until BLOCK) {
                                 val px = 1 + bj * BLOCK + j
                                 fun v(yy: Int, xx: Int): Float {
-                                    val sy = crop.top + 2 * yy + dy
-                                    val sx = crop.left + 2 * xx + dx
+                                    val sy = crop.top + period * yy + dy
+                                    val sx = crop.left + period * xx + dx
                                     val i = if (linear) (sy * raw.width + sx) * 3 + k else sy * raw.width + sx
                                     return ((raw.data[i].toInt() and 0xFFFF) - black) * scale
                                 }
