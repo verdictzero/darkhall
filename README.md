@@ -68,6 +68,16 @@ down aqua and blue or reviving a faded red changes only those colours. A dot und
 marks it as changed; **Reset** clears all eight. It runs after saturation and before the
 look, on the GPU as well as the CPU.
 
+**Backscatter removal** (Color section): the specks of plankton and silt a flash lights up
+between the camera and the subject. A morphological opening of the brightness (a minimum
+then a maximum filter as wide as the largest speck) shows the picture without anything that
+small and bright; what stands well above it, relative to the water around, is a speck, and is
+filled from each colour channel's own opening, so the fill follows the water's gradient.
+Anything bigger (a fish, a torch) is left alone, and so is texture: specks are scattered, so
+where candidates crowd together (foliage, sand, polyps) they are kept. The slider sets both
+the largest speck (up to about 1% of the picture's width) and how faint one may be. It runs
+on the CPU.
+
 **Color grading**: a tint for the shadows, the midtones and the highlights, each a hue
 (with a swatch beside the value) and a strength, plus **Balance**, which moves the split
 between shadows and highlights. The tints change colour, not brightness. **Grain** (with

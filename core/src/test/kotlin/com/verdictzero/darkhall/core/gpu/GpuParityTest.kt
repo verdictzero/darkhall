@@ -57,7 +57,8 @@ class GpuParityTest {
             val base = DevelopParams.defaultsFor(meta, ctx.noise)
             val sets = buildList {
                 add("defaults" to base)
-                for (a in Adjustment.entries) {
+                // (CPU-only sliders make the app render on the CPU, so they have no GPU form to compare.)
+                for (a in Adjustment.entries.filter { it !in Adjustment.CPU_ONLY }) {
                     add("${a.name}=min" to base.with(a, a.min))
                     add("${a.name}=max" to base.with(a, a.max))
                 }

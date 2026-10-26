@@ -84,12 +84,15 @@ class Frame(val x0: Int, val y0: Int, val scale: Float)
  *
  * Order of operations (linear light first, display space afterwards):
  *  0. highlight reconstruction (clipped channels rebuilt from their neighbours' colour)
- *  1. white balance, underwater correction, temperature/tint, camera matrix, exposure, vignette
+ *  1. white balance, underwater correction, temperature/tint, camera matrix, exposure, vignette;
+ *     the masked regions (sky, water, subject, foliage); backscatter removal
  *  2. dehaze (dark channel prior)
  *  3. noise reduction (luminance: profiled wavelet shrinkage; colour: chroma blur)
  *  4. shadows / highlights (luminance masked gains)
- *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation, look (3D LUT)
+ *  5. sRGB encode, blacks / whites / contrast curve, vibrance / saturation, colour mixer,
+ *     colour grading, look (3D LUT)
  *  6. clarity + sharpening (unsharp masks on display luminance)
+ *  7. grain
  * Geometry (lens profile, distortion, straighten) is a separate pass on the 8-bit result, see [Geometry].
  */
 class Developer {
@@ -240,6 +243,9 @@ class Developer {
                 }
             }
         }
+
+        // ---- 1c. backscatter -------------------------------------------------------------
+        if (plan.backscatterOn) Backscatter.apply(r, g, b, w, h, plan.backscatter, plan.backscatterRadius)
 
         // ---- 2. dehaze ----------------------------------------------------------------
         if (plan.dehazeOn) {

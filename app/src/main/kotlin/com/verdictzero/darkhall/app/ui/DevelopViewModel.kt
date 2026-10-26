@@ -307,8 +307,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val uncropped = Crop.copy(p, DevelopParams.NEUTRAL)
         val full = lastFull?.takeIf { it.first == uncropped }?.second ?: run {
             engine = "CPU"
-            // The GPU shaders have no mask stage: photos using masked sliders render on the CPU.
-            val px = if (useGpu && !p.usesMasks()) {
+            // The GPU shaders have no mask or backscatter stage: photos using those render on the CPU.
+            val px = if (useGpu && !p.needsCpu()) {
                 try {
                     GpuRenderer.render(c, p, f).also { engine = "GPU" }
                 } catch (e: Throwable) {

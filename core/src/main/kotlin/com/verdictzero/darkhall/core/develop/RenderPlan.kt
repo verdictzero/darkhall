@@ -33,6 +33,12 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     val frameX0: Int = frame.x0
     val frameY0: Int = frame.y0
 
+    // ---- backscatter ---------------------------------------------------------------------------
+    val backscatter: Float = p[Adjustment.BACKSCATTER] / 100f
+    val backscatterOn: Boolean = backscatter > 0.005f
+    /** Largest speck's radius in this frame's pixels: up to about 1% of the picture's width. */
+    val backscatterRadius: Int = max(1, ((0.003f + 0.007f * backscatter) * ctx.fullWidth * frame.scale).roundToInt())
+
     // ---- dehaze ------------------------------------------------------------------------------
     val dehaze: Float = p[Adjustment.DEHAZE] / 100f
     val dehazeOn: Boolean = abs(dehaze) > 0.005f
