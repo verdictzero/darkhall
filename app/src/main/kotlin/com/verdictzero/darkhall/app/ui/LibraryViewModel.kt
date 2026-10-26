@@ -8,6 +8,7 @@ import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdictzero.darkhall.app.data.EditsStore
+import com.verdictzero.darkhall.app.data.Preset
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
@@ -95,6 +96,23 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                     selected = emptySet(),
                     edited = it.edited + targets.map { f -> f.key },
                     message = "Pasted settings onto ${targets.size} ${if (targets.size == 1) "photo" else "photos"}",
+                )
+            }
+        }
+    }
+
+    /** Applies [preset] to every selected photo, keeping each one's Straighten and crop. */
+    fun applyPresetToSelection(preset: Preset) {
+        val targets = _state.value.files.filter { it.key in _state.value.selected }
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                for (f in targets) runCatching { EditsStore.paste(getApplication(), f.key, preset.params) }
+            }
+            _state.update {
+                it.copy(
+                    selected = emptySet(),
+                    edited = it.edited + targets.map { f -> f.key },
+                    message = "Applied \"${preset.name}\" to ${targets.size} ${if (targets.size == 1) "photo" else "photos"}",
                 )
             }
         }

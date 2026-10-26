@@ -26,6 +26,7 @@ import com.verdictzero.darkhall.app.ui.SLIDERS_TAG
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
@@ -335,6 +336,41 @@ class ScreenshotTest {
             assertTrue(compose.onAllNodesWithText("Camera").fetchSemanticsNodes().isNotEmpty())
             if (outDir.isNotEmpty()) shot("shot_info")
             compose.onNodeWithText("Close").performClick()
+        }
+    }
+
+    /** Presets: save the current settings, change a slider, apply the preset to get it back, delete it. */
+    @Test
+    fun presets() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("slider-CONTRAST").performSemanticsAction(SemanticsActions.SetProgress) { it(35f) }
+            waitFor { compose.onAllNodesWithText("+35").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Presets…").performClick()
+            // (Typing would focus the field, whose blinking cursor never lets the test go idle.)
+            compose.onNodeWithText("Preset name").performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("Punchy")) }
+            compose.onNodeWithText("Save").performClick()
+            waitFor { compose.onAllNodesWithContentDescription("Delete preset Punchy").fetchSemanticsNodes().isNotEmpty() }
+            if (outDir.isNotEmpty()) shot("presets")
+            compose.onNodeWithText("Close").performClick()
+
+            compose.onNodeWithTag("slider-CONTRAST").performSemanticsAction(SemanticsActions.SetProgress) { it(-20f) }
+            waitFor { compose.onAllNodesWithText("-20").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Presets…").performClick()
+            compose.onNodeWithText("Punchy").performClick()
+            waitFor { compose.onAllNodesWithText("+35").fetchSemanticsNodes().isNotEmpty() }
+
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Presets…").performClick()
+            compose.onNodeWithContentDescription("Delete preset Punchy").performClick()
+            waitFor { compose.onAllNodesWithText("No presets yet", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Close").performClick()
+            compose.onNodeWithContentDescription("More").performClick()
+            compose.onNodeWithText("Reset all sliders").performClick()
         }
     }
 

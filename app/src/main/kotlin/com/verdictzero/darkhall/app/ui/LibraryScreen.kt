@@ -68,6 +68,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.RawFile
+import com.verdictzero.darkhall.app.data.PresetStore
 import com.verdictzero.darkhall.core.raw.ShotFacts
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +88,18 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
     }
     var exportDialog by remember { mutableStateOf(false) }
     var stackDialog by remember { mutableStateOf(false) }
+    var presetDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    if (presetDialog) {
+        var presets by remember { mutableStateOf(PresetStore.all(context)) }
+        PresetsDialog(
+            presets,
+            onApply = { vm.applyPresetToSelection(it); presetDialog = false },
+            onDelete = { presets = PresetStore.delete(context, it.name) },
+            onDismiss = { presetDialog = false },
+            title = "Apply a preset to ${state.selected.size} ${if (state.selected.size == 1) "photo" else "photos"}",
+        )
+    }
     var exportSettings by remember { mutableStateOf(ExportSettings()) }
     val exportSelection = rememberExportStarter { vm.exportSelection(exportSettings) }
     if (exportDialog) {
@@ -139,6 +152,7 @@ fun LibraryScreen(onOpen: (Uri) -> Unit, vm: LibraryViewModel = viewModel()) {
                                 border = BorderStroke(strokes.width, strokes.container),
                             ) {
                                 DropdownMenuItem(text = { Text("Select all") }, onClick = { selectionMenu = false; vm.selectAll() })
+                                DropdownMenuItem(text = { Text("Apply preset…") }, onClick = { selectionMenu = false; presetDialog = true })
                                 DropdownMenuItem(
                                     text = { Text("Focus stack…") },
                                     enabled = state.selected.size >= 2,

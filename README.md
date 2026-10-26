@@ -213,6 +213,9 @@ generous memory allowance.
    resolution, with the shooting data) land in `Pictures/Darkhall`.
 4. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
    long-press to select others and tap **Paste** (each photo keeps its own Straighten and crop).
+   For a treatment you'll use again, ⋮ → **Presets…** saves the current settings under a
+   name; tap a preset there to apply it, or select photos in the library and use ⋮ →
+   **Apply preset…**. Presets, like pasting, leave each photo's Straighten and crop alone.
    **Export** on a selection renders the batch.
 
 ### Export formats

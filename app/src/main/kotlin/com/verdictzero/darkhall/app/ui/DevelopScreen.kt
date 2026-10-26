@@ -118,6 +118,16 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    var showPresets by remember { mutableStateOf(false) }
+    if (showPresets) {
+        PresetsDialog(
+            state.presets,
+            onApply = { vm.applyPreset(it); showPresets = false },
+            onDelete = { vm.deletePreset(it) },
+            onDismiss = { showPresets = false },
+            onSave = { vm.savePreset(it) },
+        )
+    }
     state.facts?.takeIf { showInfo }?.let { ShotInfoDialog(state.fileName, it, onDismiss = { showInfo = false }) }
     BackHandler(enabled = state.cropping) { vm.setCropping(false) }
     if (licenses) LicensesScreen(onDismiss = { licenses = false })
@@ -185,6 +195,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(strokes.width, strokes.container),
                         ) {
+                            DropdownMenuItem(text = { Text("Presets…") }, onClick = { menuOpen = false; showPresets = true })
                             DropdownMenuItem(text = { Text("Copy settings") }, onClick = { menuOpen = false; vm.copySettings() })
                             DropdownMenuItem(
                                 text = { Text("Paste settings") },

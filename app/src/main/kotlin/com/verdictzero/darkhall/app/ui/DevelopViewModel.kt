@@ -11,6 +11,8 @@ import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.app.data.RawRepository
 import com.verdictzero.darkhall.app.data.SceneDetector
 import com.verdictzero.darkhall.app.data.FactsStore
+import com.verdictzero.darkhall.app.data.Preset
+import com.verdictzero.darkhall.app.data.PresetStore
 import com.verdictzero.darkhall.core.raw.ShotFacts
 import com.verdictzero.darkhall.core.sky.MaskRegion
 import com.verdictzero.darkhall.app.data.Prefs
@@ -112,6 +114,8 @@ data class DevelopState(
     val maskOverlay: Bitmap? = null,
     /** The crop tool is open: the preview shows the whole picture with the crop drawn over it. */
     val cropping: Boolean = false,
+    /** Saved presets, for the Presets dialog. */
+    val presets: List<Preset> = emptyList(),
     /** Camera, time, exposure and field-sensor readings for the info panel. */
     val facts: ShotFacts? = null,
     /** Upright size of the full-resolution picture, for crop ratios and sizes. */
@@ -194,7 +198,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         close()
         loadedUri = uri
         _state.value = DevelopState(
-            canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled,
+            canPaste = prefs.copiedSettings != null, gpuEnabled = prefs.gpuEnabled, presets = PresetStore.all(getApplication()),
             autoToneOnOpen = prefs.autoToneOnOpen, favoriteLooks = prefs.favoriteLooks,
         )
         loadJob = viewModelScope.launch {
@@ -889,6 +893,25 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(params = next, message = "Settings pasted") }
         paramsFlow.value = next
         record(next)
+    }
+
+    /** Saves the current settings (all but Straighten and the crop, which belong to the photo) as [name]. */
+    fun savePreset(name: String) {
+        val clean = name.trim().ifEmpty { return }
+        val list = PresetStore.save(getApplication(), clean, _state.value.params)
+        _state.update { it.copy(presets = list, message = "Saved preset \"$clean\"") }
+    }
+
+    fun applyPreset(preset: Preset) {
+        val next = EditsStore.keepPerShot(preset.params, _state.value.params)
+        _state.update { it.copy(params = next, message = "Applied \"${preset.name}\"") }
+        paramsFlow.value = next
+        record(next)
+        if (next.usesMasks()) ensureMasks()
+    }
+
+    fun deletePreset(preset: Preset) {
+        _state.update { it.copy(presets = PresetStore.delete(getApplication(), preset.name)) }
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
