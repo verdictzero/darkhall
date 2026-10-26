@@ -301,6 +301,11 @@ Requires JDK 17+ and the Android SDK (platform 36).
 
 ### Tests
 
+GitHub Actions runs all of the tests below and Android lint on every push
+(`.github/workflows/ci.yml`), against eight CC0 raws from raw.pixls.us (TG-6, TG-5, Pixel 6
+Pro, EOS 450D, NEX-6, Z 6, LX100, K-70) with LibRaw references written by rawpy. To get the
+same set locally: `tools/ci/fetch_samples.sh samples` (needs `pip install rawpy numpy`).
+
 The decoder, pipeline and app tests run against a real file. Two have been used:
 
 * the CC0 TG-6 sample from raw.pixls.us (same sensor and file format as the TG-7);

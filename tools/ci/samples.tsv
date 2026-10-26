@@ -1,0 +1,10 @@
+# Sample raws for CI, all CC0 from raw.pixls.us: sha256, local name, URL.
+# tg6.orf is the main sample (-Pdarkhall.sample); the rest go into the raws directory.
+edd6f928bc790c79852a17fce56718d26563c7a593894d22970ef0fdb86ba45f	tg6.orf	https://raw.pixls.us/getfile.php/3210/nice/Olympus%20-%20TG-6%20-%2016bit%20(4:3).ORF
+1fd6d09b8c93a9bb629e1871859c18a6763397301396844c34217330de094453	raws/TG-5__P9100007.ORF	https://raw.pixls.us/getfile.php/1723/nice/Olympus%20-%20TG-5%20-%2016bit%20(4:3).ORF
+3a859e917a91698a3e15ce3b3721a48a1fb1296873e0697d3bf7c2793297200d	raws/Pixel_6_Pro__PXL_20220910_093206982.dng	https://raw.pixls.us/getfile.php/5961/nice/Google%20-%20Pixel%206%20Pro%20-%2016bit%20(4:3).dng
+e975f71429b939701dd618a7bac4709c1409f4bb6aa1c3607ceeaa86031c1c4a	raws/EOS_450D___MG_7191.CR2	https://raw.pixls.us/getfile.php/1353/nice/Canon%20-%20EOS%20450D%20-%20RAW%20(3:2).CR2
+bf4c6d21136aa4fd626212fe72b962b6404e3fca45cdc3b6afbed8e73fee2cf8	raws/NEX-6__DSC07133.ARW	https://raw.pixls.us/getfile.php/782/nice/Sony%20-%20NEX-6%20-%2012bit%2012bit%20compressed%20(3:2).ARW
+f0ab08da469ee205f2bc08efd9005778c64cdcb064893cee03768e32e5da1a36	raws/Z_6__DSC_0757.NEF	https://raw.pixls.us/getfile.php/3587/nice/Nikon%20-%20Z%206%20-%2012bit%2012bit%20compressed%20(3:2).NEF
+49aa3e4cac9fa0963fec783c6dde1e5d1a667fb9a43dc47643c33f0cf0a12412	raws/DMC-LX100__Lumix_DMC-LX100_4.RW2	https://raw.pixls.us/getfile.php/1139/nice/Panasonic%20-%20DMC-LX100%20-%201:1.RW2
+1d64c6aa71680642ba8f00b6f6105df3e66a4534e631f422fbf3316273c4408c	raws/K-70__IMGP6854.PEF	https://raw.pixls.us/getfile.php/1141/nice/Pentax%20-%20K-70%20-%2014bit%20(3:2).PEF

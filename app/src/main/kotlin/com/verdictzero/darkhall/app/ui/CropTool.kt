@@ -183,14 +183,6 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            for (a in CropAspect.entries) {
-                StrokedTextButton(
-                    a.label(portrait),
-                    onClick = { vm.setCropping(true); vm.setCropAspect(a) },
-                    selected = a == aspect,
-                    modifier = Modifier.testTag("crop-${a.name}"),
-                )
-            }
             StrokedIconButton(onClick = { vm.setCropping(true); vm.rotateCrop() }) {
                 Canvas(Modifier.size(22.dp).semantics { contentDescription = if (portrait) "Make the crop landscape" else "Make the crop portrait" }) {
                     val sw = 1.5.dp.toPx()
@@ -200,6 +192,14 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
                     drawRect(ink.copy(alpha = 0.45f), (if (portrait) port else land).topLeft, (if (portrait) port else land).size, style = Stroke(sw))
                     drawRect(ink, (if (portrait) land else port).topLeft, (if (portrait) land else port).size, style = Stroke(sw * 1.4f))
                 }
+            }
+            for (a in CropAspect.entries) {
+                StrokedTextButton(
+                    a.label(portrait),
+                    onClick = { vm.setCropping(true); vm.setCropAspect(a) },
+                    selected = a == aspect,
+                    modifier = Modifier.testTag("crop-${a.name}"),
+                )
             }
         }
         Text(

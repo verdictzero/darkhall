@@ -27,6 +27,7 @@ import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import org.junit.Assert.assertTrue
@@ -284,7 +285,7 @@ class ScreenshotTest {
             compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("crop-R5_4"))
             compose.onNodeWithTag("crop-R5_4").performClick()
             if (compose.onAllNodesWithContentDescription("Make the crop portrait").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithContentDescription("Make the crop portrait").performClick()
+                compose.onNodeWithContentDescription("Make the crop portrait").performScrollTo().performClick()
             }
             waitFor { compose.onAllNodesWithText("Cropped to 4:5", substring = true).fetchSemanticsNodes().isNotEmpty() }
             // Slide it a little to the right.
