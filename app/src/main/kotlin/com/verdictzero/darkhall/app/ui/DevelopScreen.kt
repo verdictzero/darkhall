@@ -1,6 +1,12 @@
 package com.verdictzero.darkhall.app.ui
 
 import android.net.Uri
+import android.graphics.Bitmap
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.clipToBounds
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
@@ -137,6 +143,12 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     StrokedIconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
+                    StrokedIconButton(onClick = { vm.undo() }, enabled = ready && state.canUndo) {
+                        Icon(Glyphs.Undo, contentDescription = "Undo")
+                    }
+                    StrokedIconButton(onClick = { vm.redo() }, enabled = ready && state.canRedo) {
+                        Icon(Glyphs.Redo, contentDescription = "Redo")
+                    }
                     StrokedTextButton("Export", onClick = startExport, enabled = ready)
                     Box {
                         StrokedIconButton(onClick = { menuOpen = true }, enabled = ready) {
@@ -245,13 +257,22 @@ class StraightenGuides {
     var leveling by mutableStateOf(false)
 }
 
+/** How the preview shows the edit: alone, or beside the original. */
+enum class CompareMode { SINGLE, SIDE_BY_SIDE, TOP_BOTTOM }
+
 @Composable
 private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: StraightenGuides, modifier: Modifier) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var comparing by remember { mutableStateOf(false) }
+    var mode by rememberSaveable { mutableStateOf(CompareMode.SINGLE) }
+    val split = mode != CompareMode.SINGLE
+    // The original shows while the button or the photo itself is held (single view only).
+    var holdingButton by remember { mutableStateOf(false) }
+    var holdingPhoto by remember { mutableStateOf(false) }
+    val original = !split && (holdingButton || holdingPhoto)
+    var holdJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
-    val shown = if (comparing) state.compare else state.preview
 
     // The grid shows while straightening: slider held, Draw level on, or just after a change.
     val straighten = state.params[Adjustment.STRAIGHTEN]
@@ -264,20 +285,21 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
         delay(1500)
         recentlyStraightened = false
     }
-    val showGrid = !comparing && (guides.adjusting || guides.leveling || recentlyStraightened)
+    val showGrid = !original && (guides.adjusting || guides.leveling || recentlyStraightened)
     // Draw level: the line being drawn, in preview-pane pixels.
     var lineStart by remember { mutableStateOf<Offset?>(null) }
     var lineEnd by remember { mutableStateOf<Offset?>(null) }
 
-    // After the view settles, ask for a full-resolution render of what is on screen.
+    // After the view settles, ask for a full-resolution render of what is on screen. Not in
+    // the split views, where the original beside it has only preview resolution to offer.
     val bmpW = state.preview?.width ?: 0
     val bmpH = state.preview?.height ?: 0
-    LaunchedEffect(scale, offset, boxSize, bmpW, bmpH) {
-        if (scale <= 1.01f || boxSize.width == 0 || bmpW == 0) {
+    LaunchedEffect(scale, offset, boxSize, bmpW, bmpH, split) {
+        if (split || scale <= 1.01f || boxSize.width == 0 || bmpW == 0) {
             vm.requestLoupe(null)
             return@LaunchedEffect
         }
-        kotlinx.coroutines.delay(150)
+        delay(150)
         val bw = boxSize.width.toFloat()
         val bh = boxSize.height.toFloat()
         val fit = min(bw / bmpW, bh / bmpH)
@@ -300,7 +322,6 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
     }
 
     val strokes = LocalStrokes.current
-    val frameStroke = strokes.overlay
     Box(
         modifier
             .cautionStripes()
@@ -312,63 +333,57 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
+                        // Moving the picture is not holding it.
+                        holdJob?.cancel(); holdingPhoto = false
                         val newScale = (scale * zoom).coerceIn(1f, 12f)
                         offset = if (newScale == 1f) Offset.Zero else offset + pan
                         scale = newScale
                     }
                 }
-                .pointerInput(Unit) {
-                    detectTapGestures(onDoubleTap = { tap ->
-                        if (scale > 1.01f) {
-                            scale = 1f; offset = Offset.Zero
-                        } else {
-                            // Zoom to roughly 1:1 around the tapped point.
-                            val target = 4f
-                            val c = Offset(size.width / 2f, size.height / 2f)
-                            offset = (c - tap) * (target - 1f)
-                            scale = target
-                        }
-                    })
+                .pointerInput(split) {
+                    detectTapGestures(
+                        onPress = {
+                            if (split) return@detectTapGestures
+                            // Held still for a moment: show the original until released.
+                            holdJob = scope.launch { delay(HOLD_MS); holdingPhoto = true }
+                            tryAwaitRelease()
+                            holdJob?.cancel()
+                            holdingPhoto = false
+                        },
+                        onDoubleTap = { tap ->
+                            if (scale > 1.01f) {
+                                scale = 1f; offset = Offset.Zero
+                            } else {
+                                // Zoom to roughly 1:1 around the tapped point.
+                                val target = 4f
+                                val c = Offset(size.width / 2f, size.height / 2f)
+                                offset = (c - tap) * (target - 1f)
+                                scale = target
+                            }
+                        },
+                    )
                 },
         ) {
-            val loupe = state.loupe?.takeIf { !comparing && it.params == state.params }
-            Canvas(
-                Modifier
-                    .fillMaxSize()
-                    .semantics { contentDescription = "Preview" }
-                    .graphicsLayer {
-                        scaleX = scale; scaleY = scale
-                        translationX = offset.x; translationY = offset.y
-                    },
-            ) {
-                val bmp = shown ?: return@Canvas
-                val fit = min(size.width / bmp.width, size.height / bmp.height)
-                val w = bmp.width * fit
-                val h = bmp.height * fit
-                val left = (size.width - w) / 2f
-                val top = (size.height - h) / 2f
-                drawImage(
-                    bmp.asImageBitmap(),
-                    dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
-                    dstSize = IntSize(w.roundToInt(), h.roundToInt()),
-                    filterQuality = FilterQuality.Medium,
+            val divider = strokes.selected
+            when (mode) {
+                CompareMode.SINGLE -> PhotoView(
+                    bitmap = if (original) state.compare else state.preview,
+                    loupe = state.loupe?.takeIf { !original && it.params == state.params },
+                    scale = scale, offset = offset,
+                    showGrid = showGrid,
+                    label = if (original) "Original" else null,
+                    modifier = Modifier.fillMaxSize().semantics { contentDescription = "Preview" },
                 )
-                // Thin light frame separating the photo from the stripes; constant on screen at any zoom.
-                val sw = 1.dp.toPx() / scale
-                drawRect(frameStroke, topLeft = Offset(left - sw / 2f, top - sw / 2f), size = Size(w + sw, h + sw), style = Stroke(sw))
-                if (loupe != null) {
-                    val lx = left + loupe.left * w
-                    val ly = top + loupe.top * h
-                    val lw = (loupe.right - loupe.left) * w
-                    val lh = (loupe.bottom - loupe.top) * h
-                    drawImage(
-                        loupe.bitmap.asImageBitmap(),
-                        dstOffset = IntOffset(lx.roundToInt(), ly.roundToInt()),
-                        dstSize = IntSize(max(1, lw.roundToInt()), max(1, lh.roundToInt())),
-                        filterQuality = FilterQuality.Medium,
-                    )
+                CompareMode.SIDE_BY_SIDE -> Row(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
+                    PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxHeight())
+                    Box(Modifier.width(2.dp).fillMaxHeight().background(divider))
+                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxHeight())
                 }
-                if (showGrid) drawStraightenGrid(left, top, w, h, 1.dp.toPx() / scale)
+                CompareMode.TOP_BOTTOM -> Column(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
+                    PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxWidth())
+                    Box(Modifier.height(2.dp).fillMaxWidth().background(divider))
+                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxWidth())
+                }
             }
         }
         if (guides.leveling) {
@@ -410,20 +425,10 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                 guides.leveling -> "Drag along the horizon or an upright edge"
                 else -> "Straighten ${Adjustment.STRAIGHTEN.format(straighten)}"
             }
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 8.dp)
-                    .background(Color(0xD9141416), RoundedCornerShape(10.dp))
-                    .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            )
+            OverlayLabel(label, Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
         }
-        // Out of the way of the guide label while straightening.
-        state.histogram?.takeIf { !showGrid && !guides.leveling }?.let { bins ->
+        // Out of the way of the guide label while straightening, and of the split view's labels.
+        state.histogram?.takeIf { !showGrid && !guides.leveling && !split }?.let { bins ->
             Histogram(
                 bins,
                 Modifier
@@ -435,31 +440,34 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             )
         }
         Row(
-            Modifier.align(Alignment.BottomStart).padding(8.dp),
+            Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (comparing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
-                    .border(strokes.width, if (comparing) strokes.selected else strokes.overlay, RoundedCornerShape(16.dp))
-                    .pointerInput(Unit) {
-                        detectTapGestures(onPress = {
-                            comparing = true
-                            tryAwaitRelease()
-                            comparing = false
-                        })
-                    }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    if (comparing) "As shot" else "Hold to compare",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (comparing) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                )
+            if (!split) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (original) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
+                        .border(strokes.width, if (original) strokes.selected else strokes.overlay, RoundedCornerShape(16.dp))
+                        .pointerInput(Unit) {
+                            detectTapGestures(onPress = {
+                                holdingButton = true
+                                tryAwaitRelease()
+                                holdingButton = false
+                            })
+                        }
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        if (original) "Original" else "Hold for original",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (original) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
             }
-            Spacer(Modifier.width(8.dp))
             val zoomLabel = when {
+                split -> ""
                 scale > 1.01f && state.loupeBusy -> "Rendering detail…"
                 scale > 1.01f && state.loupe != null && state.loupe.params == state.params -> "Full resolution"
                 state.renderMs > 0 -> "${state.renderMs} ms · ${state.engine}"
@@ -471,11 +479,130 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
                     modifier = Modifier
                         .background(Color(0xB3141416), RoundedCornerShape(10.dp))
                         .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
+            }
+            Spacer(Modifier.weight(1f))
+            CompareModePicker(mode, onPick = { mode = it })
+        }
+    }
+}
+
+/** How long the photo must be held, still, before the original shows. */
+private const val HOLD_MS = 300L
+
+/**
+ * One photo fitted into its box, with the shared zoom and pan, a thin frame, the full-resolution
+ * loupe when there is one, the straighten grid, and a corner label.
+ */
+@Composable
+private fun PhotoView(
+    bitmap: Bitmap?,
+    loupe: Loupe?,
+    scale: Float,
+    offset: Offset,
+    showGrid: Boolean,
+    label: String?,
+    modifier: Modifier,
+) {
+    val frameStroke = LocalStrokes.current.overlay
+    Box(modifier.clipToBounds()) {
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale; scaleY = scale
+                    translationX = offset.x; translationY = offset.y
+                },
+        ) {
+            val bmp = bitmap ?: return@Canvas
+            val fit = min(size.width / bmp.width, size.height / bmp.height)
+            val w = bmp.width * fit
+            val h = bmp.height * fit
+            val left = (size.width - w) / 2f
+            val top = (size.height - h) / 2f
+            drawImage(
+                bmp.asImageBitmap(),
+                dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
+                dstSize = IntSize(w.roundToInt(), h.roundToInt()),
+                filterQuality = FilterQuality.Medium,
+            )
+            // Thin light frame separating the photo from the stripes; constant on screen at any zoom.
+            val sw = 1.dp.toPx() / scale
+            drawRect(frameStroke, topLeft = Offset(left - sw / 2f, top - sw / 2f), size = Size(w + sw, h + sw), style = Stroke(sw))
+            if (loupe != null) {
+                val lx = left + loupe.left * w
+                val ly = top + loupe.top * h
+                val lw = (loupe.right - loupe.left) * w
+                val lh = (loupe.bottom - loupe.top) * h
+                drawImage(
+                    loupe.bitmap.asImageBitmap(),
+                    dstOffset = IntOffset(lx.roundToInt(), ly.roundToInt()),
+                    dstSize = IntSize(max(1, lw.roundToInt()), max(1, lh.roundToInt())),
+                    filterQuality = FilterQuality.Medium,
+                )
+            }
+            if (showGrid) drawStraightenGrid(left, top, w, h, 1.dp.toPx() / scale)
+        }
+        if (label != null) OverlayLabel(label, Modifier.align(Alignment.TopStart).padding(8.dp))
+    }
+}
+
+/** A small dark label over the photo. */
+@Composable
+private fun OverlayLabel(text: String, modifier: Modifier) {
+    val strokes = LocalStrokes.current
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .background(Color(0xD9141416), RoundedCornerShape(10.dp))
+            .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
+/** Single view, side by side, or top and bottom: three small segments drawn as their layouts. */
+@Composable
+private fun CompareModePicker(mode: CompareMode, onPick: (CompareMode) -> Unit) {
+    val strokes = LocalStrokes.current
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier
+            .clip(shape)
+            .background(Color(0xD9141416))
+            .border(strokes.width, strokes.overlay, shape),
+    ) {
+        for (m in CompareMode.entries) {
+            val selected = m == mode
+            val ink = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+            val description = when (m) {
+                CompareMode.SINGLE -> "Single view"
+                CompareMode.SIDE_BY_SIDE -> "Side by side with the original"
+                CompareMode.TOP_BOTTOM -> "Original above, edit below"
+            }
+            Box(
+                Modifier
+                    .size(width = 40.dp, height = 32.dp)
+                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .semantics { contentDescription = description }
+                    .clickable { onPick(m) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(Modifier.size(width = 22.dp, height = 16.dp)) {
+                    val sw = 1.5.dp.toPx()
+                    drawRect(ink, topLeft = Offset(sw / 2, sw / 2), size = Size(size.width - sw, size.height - sw), style = Stroke(sw))
+                    when (m) {
+                        CompareMode.SINGLE -> {}
+                        CompareMode.SIDE_BY_SIDE -> drawLine(ink, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), sw)
+                        CompareMode.TOP_BOTTOM -> drawLine(ink, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), sw)
+                    }
+                }
             }
         }
     }

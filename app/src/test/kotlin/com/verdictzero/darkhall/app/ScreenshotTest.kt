@@ -15,7 +15,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -158,6 +162,48 @@ class ScreenshotTest {
                     compose.onAllNodesWithText("No clear horizon", substring = true).fetchSemanticsNodes().isNotEmpty()
             }
             if (outDir.isNotEmpty()) shot("straighten_auto")
+        }
+    }
+
+    /**
+     * Comparing and history: holding the photo shows the original, the split views show both,
+     * and Undo / Redo step through an Auto.
+     */
+    @Test
+    fun compareAndHistory() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Undo").assertIsNotEnabled()
+
+            // Hold the photo still: the original shows until the finger lifts.
+            compose.onNodeWithContentDescription("Preview").performTouchInput { down(center) }
+            waitFor(10_000) { compose.onAllNodesWithText("Original").fetchSemanticsNodes().isNotEmpty() }
+            if (outDir.isNotEmpty()) shot("hold_original")
+            compose.onNodeWithContentDescription("Preview").performTouchInput { up() }
+            waitFor(10_000) { compose.onAllNodesWithText("Hold for original").fetchSemanticsNodes().isNotEmpty() }
+
+            compose.onNodeWithContentDescription("Side by side with the original").performClick()
+            waitFor { compose.onAllNodesWithText("Edited").fetchSemanticsNodes().isNotEmpty() }
+            if (outDir.isNotEmpty()) shot("side_by_side")
+            compose.onNodeWithContentDescription("Original above, edit below").performClick()
+            if (outDir.isNotEmpty()) shot("top_bottom")
+            compose.onNodeWithContentDescription("Single view").performClick()
+            waitFor { compose.onAllNodesWithText("Edited").fetchSemanticsNodes().isEmpty() }
+
+            // Auto makes one undo step; Undo takes it back, Redo brings it again.
+            compose.onNodeWithText("Auto").performClick()
+            waitFor { compose.onAllNodesWithText("Auto:", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Undo").assertIsEnabled()
+            compose.onNodeWithContentDescription("Redo").assertIsNotEnabled()
+            compose.onNodeWithContentDescription("Undo").performClick()
+            waitFor { compose.onAllNodes(hasContentDescription("Redo") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Undo").assertIsNotEnabled()
+            compose.onNodeWithContentDescription("Redo").performClick()
+            waitFor { compose.onAllNodes(hasContentDescription("Undo") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Redo").assertIsNotEnabled()
+            if (outDir.isNotEmpty()) shot("history")
         }
     }
 }

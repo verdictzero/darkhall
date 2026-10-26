@@ -89,6 +89,8 @@ data class DevelopState(
     val beforeAuto: DevelopParams? = null,
     val autoBusy: Boolean = false,
     val straightenBusy: Boolean = false,
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
 )
 
 /**
@@ -180,6 +182,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         loupeRequests.value = null
         meta = null; raw = null; preview = null; ctx = null; frame = null
         editsKey = ""
+        history.clear()
+        historyIndex = -1
         useGpu = false
         thumbBase = null
         thumbCache.evictAll()
@@ -240,6 +244,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
         setUpGpu(pv, c, f, defaults)
         if (loadedUri != uri) return
+        startHistory(saved ?: defaults)
         paramsFlow.value = saved ?: defaults
     }
 
@@ -417,20 +422,76 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- undo / redo -------------------------------------------------------------------------
+
+    /** Every distinct state of the sliders this session, oldest first; [historyIndex] is the current one. */
+    private val history = ArrayList<DevelopParams>()
+    private var historyIndex = -1
+    /** The slider being dragged, so one drag makes one undo step rather than hundreds. */
+    private var dragging: Adjustment? = null
+    private var draggedAt = 0L
+
+    private fun startHistory(p: DevelopParams) {
+        history.clear()
+        history += p
+        historyIndex = 0
+        dragging = null
+        _state.update { it.copy(canUndo = false, canRedo = false) }
+    }
+
+    /**
+     * Records [p] as a new undo step. Successive changes to the same slider less than a
+     * second apart ([slider]) update the step instead, so a whole drag undoes at once.
+     */
+    private fun record(p: DevelopParams, slider: Adjustment? = null) {
+        if (historyIndex < 0) return
+        val now = android.os.SystemClock.uptimeMillis()
+        val merge = slider != null && slider == dragging && now - draggedAt < 1000 && historyIndex > 0
+        dragging = slider
+        draggedAt = now
+        while (history.size > historyIndex + 1) history.removeAt(history.size - 1)
+        if (merge) {
+            history[historyIndex] = p
+        } else if (history[historyIndex] != p) {
+            history += p
+            historyIndex++
+            if (history.size > MAX_HISTORY) { history.removeAt(0); historyIndex-- }
+        }
+        _state.update { it.copy(canUndo = historyIndex > 0, canRedo = false) }
+    }
+
+    fun undo() = stepHistory(-1)
+
+    fun redo() = stepHistory(+1)
+
+    private fun stepHistory(by: Int) {
+        val i = historyIndex + by
+        if (i !in history.indices) return
+        historyIndex = i
+        dragging = null
+        val p = history[i]
+        _state.update { it.copy(params = p, beforeAuto = null, canUndo = i > 0, canRedo = i < history.size - 1) }
+        paramsFlow.value = p
+    }
+
     // ---- sliders ---------------------------------------------------------------------------
 
-    fun set(a: Adjustment, v: Float) {
+    fun set(a: Adjustment, v: Float) = set(a, v, slider = a)
+
+    private fun set(a: Adjustment, v: Float, slider: Adjustment?) {
         val next = _state.value.params.with(a, v)
         _state.update { it.copy(params = next, beforeAuto = null) }
         paramsFlow.value = next
+        record(next, slider)
     }
 
-    fun resetOne(a: Adjustment) = set(a, _state.value.defaults[a])
+    fun resetOne(a: Adjustment) = set(a, _state.value.defaults[a], slider = null)
 
     fun resetAll() {
         val d = _state.value.defaults
         _state.update { it.copy(params = d) }
         paramsFlow.value = d
+        record(d)
         val key = editsKey
         viewModelScope.launch(Dispatchers.IO) { runCatching { EditsStore.clear(getApplication(), key) } }
     }
@@ -452,13 +513,17 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(params = p, beforeAuto = before, autoBusy = false, message = "Auto: " + describeAuto(before, p))
             }
             paramsFlow.value = p
+            record(p)
         }
     }
 
     fun undoAuto() {
         val before = _state.value.beforeAuto ?: return
+        // The step Auto (or Draw level) just made is the latest one: step back over it.
+        if (historyIndex > 0 && history[historyIndex - 1] == before) return undo()
         _state.update { it.copy(params = before, beforeAuto = null) }
         paramsFlow.value = before
+        record(before)
     }
 
     // ---- straighten ---------------------------------------------------------------------------
@@ -523,6 +588,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val p = before.with(a, clamped)
         _state.update { it.copy(params = p, beforeAuto = before, message = msg) }
         paramsFlow.value = p
+        record(p)
     }
 
     fun setAutoToneOnOpen(on: Boolean) {
@@ -544,6 +610,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         if (id != null && next[Adjustment.LOOK_AMOUNT] < 1f) next = next.with(Adjustment.LOOK_AMOUNT, 100f)
         _state.update { it.copy(params = next) }
         paramsFlow.value = next
+        record(next)
     }
 
     private class ThumbBase(val key: DevelopParams, val argb: IntArray, val width: Int, val height: Int, val orientation: Int)
@@ -608,6 +675,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val next = copied.with(Adjustment.STRAIGHTEN, _state.value.params[Adjustment.STRAIGHTEN])
         _state.update { it.copy(params = next, message = "Settings pasted") }
         paramsFlow.value = next
+        record(next)
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
@@ -632,5 +700,6 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         /** EXIF orientations that mirror the picture. */
         val MIRRORED = setOf(2, 4, 5, 7)
+        const val MAX_HISTORY = 200
     }
 }

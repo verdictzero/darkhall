@@ -61,8 +61,14 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 | | Whites | Saturation | Color NR | |
 | | Blacks | | | |
 
-Double-tap a slider's label to reset it; the ⋮ menu resets everything.
-Hold **Hold to compare** to see the as-shot rendering.
+Double-tap a slider's label to reset it; the ⋮ menu resets everything. **Undo** and
+**Redo** in the top bar step through every change made since the photo was opened (a whole
+slider drag counts as one step).
+
+To compare with the original (the camera's own rendering, without your edits): press and
+hold the photo, or hold **Hold for original**. The three-way switch at the bottom right of the
+preview puts the original and the edit **side by side** or **one above the other**; zoom and
+pan move both together.
 Pinch or double-tap to zoom: once the preview runs out of pixels, the visible area is
 re-rendered from the raw at up to full resolution, so sharpening and noise reduction can be
 judged properly. Edits are saved automatically per file and restored when you reopen it.
