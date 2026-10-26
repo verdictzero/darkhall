@@ -41,12 +41,19 @@ data class ShotFacts(
             temperature?.let { add("%.0f °C".format(Locale.US, it)) }
         }.joinToString(" · ")
 
-    /** The info panel's rows: label and value, only those the file has. */
-    fun rows(): List<Pair<String, String>> = buildList {
-        add("Camera" to listOf(make, model).filter { it.isNotBlank() }.distinct().joinToString(" ").ifBlank { "Unknown" })
+    /** What a row of the info panel shows; [label] is the English name (the app has translations). */
+    enum class Field(val label: String) {
+        CAMERA("Camera"), TAKEN("Taken"), EXPOSURE("Exposure"), SIZE("Size"), DEPTH("Depth"),
+        WATER_TEMPERATURE("Water temperature"), TEMPERATURE("Temperature"), PRESSURE("Pressure"),
+        ALTITUDE("Altitude"), LOCATION("Location"),
+    }
+
+    /** The info panel's rows, only those the file has; the camera is blank when unknown. */
+    fun fields(): List<Pair<Field, String>> = buildList {
+        add(Field.CAMERA to listOf(make, model).filter { it.isNotBlank() }.distinct().joinToString(" "))
         when {
-            dateTime.length >= 16 -> add("Taken" to "${dateTime.take(10).replace(':', '-')} ${dateTime.substring(11, 16)}")
-            dateTime.isNotBlank() -> add("Taken" to dateTime)
+            dateTime.length >= 16 -> add(Field.TAKEN to "${dateTime.take(10).replace(':', '-')} ${dateTime.substring(11, 16)}")
+            dateTime.isNotBlank() -> add(Field.TAKEN to dateTime)
         }
         val exposure = listOfNotNull(
             shutter(),
@@ -54,16 +61,19 @@ data class ShotFacts(
             iso.takeIf { it > 0 }?.let { "ISO $it" },
             focalLength.takeIf { it > 0 }?.let { "${trim(it)} mm" },
         )
-        if (exposure.isNotEmpty()) add("Exposure" to exposure.joinToString("  ·  "))
-        if (width > 0 && height > 0) add("Size" to "%,d × %,d px (%.1f MP)".format(Locale.US, width, height, width * height / 1e6))
-        if (underwater) add("Depth" to "%.1f m".format(Locale.US, depth))
-        temperature?.let { add((if (underwater) "Water temperature" else "Temperature") to "%.1f °C".format(Locale.US, it)) }
-        pressureHpa?.let { add("Pressure" to "%,.0f hPa".format(Locale.US, it)) }
-        altitude?.let { add("Altitude" to "%,d m".format(Locale.US, it.roundToInt())) }
+        if (exposure.isNotEmpty()) add(Field.EXPOSURE to exposure.joinToString("  ·  "))
+        if (width > 0 && height > 0) add(Field.SIZE to "%,d × %,d px (%.1f MP)".format(Locale.US, width, height, width * height / 1e6))
+        if (underwater) add(Field.DEPTH to "%.1f m".format(Locale.US, depth))
+        temperature?.let { add((if (underwater) Field.WATER_TEMPERATURE else Field.TEMPERATURE) to "%.1f °C".format(Locale.US, it)) }
+        pressureHpa?.let { add(Field.PRESSURE to "%,.0f hPa".format(Locale.US, it)) }
+        altitude?.let { add(Field.ALTITUDE to "%,d m".format(Locale.US, it.roundToInt())) }
         if (latitude != null && longitude != null) {
-            add("Location" to "%.5f° %s, %.5f° %s".format(Locale.US, abs(latitude), if (latitude >= 0) "N" else "S", abs(longitude), if (longitude >= 0) "E" else "W"))
+            add(Field.LOCATION to "%.5f° %s, %.5f° %s".format(Locale.US, abs(latitude), if (latitude >= 0) "N" else "S", abs(longitude), if (longitude >= 0) "E" else "W"))
         }
     }
+
+    /** [fields] with English labels. */
+    fun rows(): List<Pair<String, String>> = fields().map { (f, v) -> f.label to (if (f == Field.CAMERA) v.ifBlank { "Unknown" } else v) }
 
     private fun shutter(): String? = when {
         exposureTime <= 0 -> null

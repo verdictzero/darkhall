@@ -2,6 +2,8 @@ package com.verdictzero.darkhall.app.data
 
 import android.content.Context
 import android.util.LruCache
+import androidx.annotation.StringRes
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.core.develop.LookSource
 import com.verdictzero.darkhall.core.develop.Lut
 import org.json.JSONObject
@@ -16,6 +18,33 @@ data class LookInfo(val id: String, val name: String, val group: String, val cat
 object LookLibrary {
     /** Shelf order in the browser. */
     val GROUPS = listOf("Darkhall", "Film color", "Film B&W", "Creative")
+
+    /**
+     * Translations of the shelf and section names in index.json (which stay the English keys).
+     * Names not listed here, like the "Darkhall" shelf, are shown as they are.
+     */
+    private val LABELS = mapOf(
+        "Film color" to R.string.looks_group_film_color,
+        "Film B&W" to R.string.looks_group_film_bw,
+        "Creative" to R.string.looks_group_creative,
+        "Instant" to R.string.looks_category_instant,
+        "Color negative" to R.string.looks_category_color_negative,
+        "Slide" to R.string.looks_category_slide,
+        "Cross process" to R.string.looks_category_cross_process,
+        "Creative pack" to R.string.looks_category_creative_pack,
+        "Modern" to R.string.looks_category_modern,
+        "Classic" to R.string.looks_category_classic,
+        "Special" to R.string.looks_category_special,
+        "Black & white" to R.string.looks_category_black_white,
+        "Cinematic" to R.string.looks_category_cinematic,
+        "Split tone" to R.string.looks_category_split_tone,
+        "Underwater" to R.string.looks_category_underwater,
+        "Faded" to R.string.looks_category_faded,
+        "Duotone" to R.string.looks_category_duotone,
+    )
+
+    /** String resource for a shelf ([LookInfo.group]) or section ([LookInfo.category]) name, or null to show it as is. */
+    @StringRes fun labelRes(name: String): Int? = LABELS[name]
 
     @Volatile private var index: List<LookInfo>? = null
     private val cache = LruCache<String, Lut>(32)

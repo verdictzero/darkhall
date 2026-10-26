@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Look browser, open-source licences, crash dialog and GPU status texts. -->
+<resources>
+    <!-- Look browser -->
+    <string name="looks_close">Close looks</string>
+    <string name="looks_title">Looks</string>
+    <string name="looks_credits">Credits</string>
+    <string name="looks_search_placeholder">Search films and looks</string>
+    <string name="looks_all">All</string>
+    <string name="looks_favorites">Favorites</string>
+    <string name="looks_favorites_chip">♥ Favorites</string>
+    <string name="looks_favorites_empty">No favorites yet. Tap the heart on any look to keep it here.</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_favorites_no_match">No favorites match “%1$s”.</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_no_match">No looks match “%1$s”.</string>
+    <string name="looks_none">None</string>
+    <!-- Shelf header: %1$s shelf (e.g. Film color), %2$s section inside it (e.g. Slide) -->
+    <string name="looks_shelf_header">%1$s · %2$s</string>
+    <string name="looks_credits_title">Look credits</string>
+    <string name="looks_credits_close">Close</string>
+    <!-- %1$s: look name -->
+    <string name="looks_cell_description">Look %1$s</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_add">Add %1$s to favorites</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_remove">Remove %1$s from favorites</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_strip_description">Favorite look %1$s</string>
+
+    <!-- Look shelves (the "Darkhall" shelf is a proper name and is not translated) -->
+    <string name="looks_group_film_color">Film color</string>
+    <string name="looks_group_film_bw">Film B&amp;W</string>
+    <string name="looks_group_creative">Creative</string>
+    <!-- Look sections inside the shelves -->
+    <string name="looks_category_instant">Instant</string>
+    <string name="looks_category_color_negative">Color negative</string>
+    <string name="looks_category_slide">Slide</string>
+    <string name="looks_category_cross_process">Cross process</string>
+    <string name="looks_category_creative_pack">Creative pack</string>
+    <string name="looks_category_modern">Modern</string>
+    <string name="looks_category_classic">Classic</string>
+    <string name="looks_category_special">Special</string>
+    <string name="looks_category_black_white">Black &amp; white</string>
+    <string name="looks_category_cinematic">Cinematic</string>
+    <string name="looks_category_split_tone">Split tone</string>
+    <string name="looks_category_underwater">Underwater</string>
+    <string name="looks_category_faded">Faded</string>
+    <string name="looks_category_duotone">Duotone</string>
+
+    <!-- Open-source licences -->
+    <string name="licenses_close">Close licences</string>
+    <string name="licenses_title">Open-source licences</string>
+    <!-- %1$s: URL of the app's source code -->
+    <string name="licenses_intro">Darkhall © 2026 verdictzero. It includes the components below, each under its own licence. The raw decoders are covered by the CDDL 1.0; their source code is at %1$s.</string>
+    <string name="licenses_dialog_close">Close</string>
+    <!-- What each third-party component is used for -->
+    <string name="licenses_use_libraw">Raw decoders, camera colour and Canon model tables</string>
+    <string name="licenses_use_dng_sdk">Floating-point DNG decoding</string>
+    <string name="licenses_use_film_simulation">Film looks, resampled to 33³ tables</string>
+    <string name="licenses_use_lensfun">TG-5/6/7 lens distortion and chromatic aberration coefficients</string>
+    <string name="licenses_use_deeplab">Sky detection model</string>
+    <string name="licenses_use_androidx">Core, SplashScreen, Activity, Lifecycle, Compose UI, Foundation, Material 3, Material Icons, DocumentFile, ExifInterface, WorkManager</string>
+    <string name="licenses_use_kotlin">Language runtime</string>
+
+    <!-- Crash report shown on the next launch -->
+    <string name="app_crash_title">Darkhall crashed last time</string>
+    <string name="app_crash_copy">Copy</string>
+    <string name="app_crash_share">Share</string>
+    <string name="app_crash_clip_label">Darkhall crash</string>
+    <string name="app_crash_share_title">Share crash report</string>
+
+    <!-- Why GPU rendering is off; %1$s: the technical reason from the driver -->
+    <string name="gpu_unavailable">GPU unavailable: %1$s</string>
+    <string name="gpu_error">GPU error: %1$s</string>
+</resources>

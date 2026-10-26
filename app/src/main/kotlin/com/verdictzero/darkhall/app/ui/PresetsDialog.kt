@@ -29,8 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.Preset
 
 /**
@@ -44,7 +46,7 @@ fun PresetsDialog(
     onDelete: (Preset) -> Unit,
     onDismiss: () -> Unit,
     onSave: ((String) -> Unit)? = null,
-    title: String = "Presets",
+    title: String = stringResource(R.string.presets_title),
 ) {
     val strokes = LocalStrokes.current
     var name by remember { mutableStateOf("") }
@@ -60,7 +62,7 @@ fun PresetsDialog(
                 Text(title, style = MaterialTheme.typography.headlineSmall)
                 if (presets.isEmpty()) {
                     Text(
-                        "No presets yet. Save this photo's settings to use them on others; Straighten and the crop stay with each photo.",
+                        stringResource(R.string.presets_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -76,7 +78,7 @@ fun PresetsDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(p.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            StrokedIconButton(onClick = { onDelete(p) }) { Icon(Icons.Filled.Delete, contentDescription = "Delete preset ${p.name}") }
+                            StrokedIconButton(onClick = { onDelete(p) }) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.presets_delete, p.name)) }
                         }
                     }
                 }
@@ -86,16 +88,16 @@ fun PresetsDialog(
                             value = name,
                             onValueChange = { name = it.take(40) },
                             singleLine = true,
-                            placeholder = { Text("Preset name") },
+                            placeholder = { Text(stringResource(R.string.presets_name_hint)) },
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = strokes.action, focusedBorderColor = strokes.selected),
                             modifier = Modifier.weight(1f),
                         )
-                        StrokedTextButton("Save", onClick = { onSave(name); name = "" }, enabled = name.isNotBlank(), modifier = Modifier.padding(start = 6.dp))
+                        StrokedTextButton(stringResource(R.string.presets_save), onClick = { onSave(name); name = "" }, enabled = name.isNotBlank(), modifier = Modifier.padding(start = 6.dp))
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    StrokedTextButton("Close", onClick = onDismiss)
+                    StrokedTextButton(stringResource(R.string.presets_close), onClick = onDismiss)
                 }
             }
         }

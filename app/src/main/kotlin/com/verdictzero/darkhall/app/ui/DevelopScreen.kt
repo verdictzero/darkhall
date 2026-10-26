@@ -88,6 +88,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -99,6 +100,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.LookLibrary
 import com.verdictzero.darkhall.core.develop.Adjustment
 import com.verdictzero.darkhall.core.develop.AdjustmentGroup
@@ -136,11 +138,12 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     if (licenses) LicensesScreen(onDismiss = { licenses = false })
     val guides = remember { StraightenGuides() }
 
+    val undoLabel = stringResource(R.string.editor_undo)
     LaunchedEffect(state.message) {
         val msg = state.message ?: return@LaunchedEffect
         // Show first, clear after: clearing changes the key and would cancel this effect.
-        if ((msg.startsWith("Auto:") || msg.startsWith("Level:")) && state.beforeAuto != null) {
-            val r = snackbar.showSnackbar(msg, actionLabel = "Undo", duration = SnackbarDuration.Long)
+        if (state.messageUndoable && state.beforeAuto != null) {
+            val r = snackbar.showSnackbar(msg, actionLabel = undoLabel, duration = SnackbarDuration.Long)
             vm.clearMessage()
             if (r == SnackbarResult.ActionPerformed) vm.undoAuto()
         } else {
@@ -161,6 +164,7 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
     }
     val ready = !state.loading && state.error == null
     val strokes = LocalStrokes.current
+    val shootingInfo = stringResource(R.string.editor_shooting_info)
 
     Scaffold(
         topBar = {
@@ -169,28 +173,28 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                     Column(
                         Modifier
                             .clickable(enabled = state.facts != null) { showInfo = true }
-                            .semantics { contentDescription = "Shooting info" },
+                            .semantics { contentDescription = shootingInfo },
                     ) {
-                        Text(state.fileName.ifEmpty { "Develop" }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+                        Text(state.fileName.ifEmpty { stringResource(R.string.editor_develop) }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
                         if (state.info.isNotEmpty()) {
                             Text(state.info, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 },
                 navigationIcon = {
-                    StrokedIconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    StrokedIconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.editor_back)) }
                 },
                 actions = {
                     StrokedIconButton(onClick = { vm.undo() }, enabled = ready && state.canUndo) {
-                        Icon(Glyphs.Undo, contentDescription = "Undo")
+                        Icon(Glyphs.Undo, contentDescription = undoLabel)
                     }
                     StrokedIconButton(onClick = { vm.redo() }, enabled = ready && state.canRedo) {
-                        Icon(Glyphs.Redo, contentDescription = "Redo")
+                        Icon(Glyphs.Redo, contentDescription = stringResource(R.string.editor_redo))
                     }
-                    StrokedTextButton("Export", onClick = { exportDialog = true }, enabled = ready)
+                    StrokedTextButton(stringResource(R.string.editor_export), onClick = { exportDialog = true }, enabled = ready)
                     Box {
                         StrokedIconButton(onClick = { menuOpen = true }, enabled = ready) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.editor_more))
                         }
                         DropdownMenu(
                             expanded = menuOpen,
@@ -199,23 +203,23 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                             border = BorderStroke(strokes.width, strokes.container),
                         ) {
                             StarRow(state.rating, onRate = { vm.rate(it) }, modifier = Modifier.padding(horizontal = 8.dp))
-                            DropdownMenuItem(text = { Text("Presets…") }, onClick = { menuOpen = false; showPresets = true })
-                            DropdownMenuItem(text = { Text("Copy settings") }, onClick = { menuOpen = false; vm.copySettings() })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.editor_presets)) }, onClick = { menuOpen = false; showPresets = true })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.editor_copy_settings)) }, onClick = { menuOpen = false; vm.copySettings() })
                             DropdownMenuItem(
-                                text = { Text("Paste settings") },
+                                text = { Text(stringResource(R.string.editor_paste_settings)) },
                                 enabled = state.canPaste,
                                 onClick = { menuOpen = false; vm.pasteSettings() },
                             )
-                            DropdownMenuItem(text = { Text("Reset all sliders") }, onClick = { menuOpen = false; vm.resetAll() })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.editor_reset_all)) }, onClick = { menuOpen = false; vm.resetAll() })
                             DropdownMenuItem(
-                                text = { Text("Auto tone new photos") },
+                                text = { Text(stringResource(R.string.editor_auto_tone_new)) },
                                 trailingIcon = { Checkbox(checked = state.autoToneOnOpen, onCheckedChange = null) },
                                 onClick = { menuOpen = false; vm.setAutoToneOnOpen(!state.autoToneOnOpen) },
                             )
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text("GPU rendering")
+                                        Text(stringResource(R.string.editor_gpu_rendering))
                                         if (state.gpuLabel.isNotEmpty()) {
                                             Text(state.gpuLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                         }
@@ -224,8 +228,8 @@ fun DevelopScreen(uri: Uri, vm: DevelopViewModel, onBack: () -> Unit) {
                                 trailingIcon = { Checkbox(checked = state.gpuEnabled, onCheckedChange = null) },
                                 onClick = { menuOpen = false; vm.setGpuEnabled(!state.gpuEnabled) },
                             )
-                            DropdownMenuItem(text = { Text("Shooting info") }, enabled = state.facts != null, onClick = { menuOpen = false; showInfo = true })
-                            DropdownMenuItem(text = { Text("Open-source licences") }, onClick = { menuOpen = false; licenses = true })
+                            DropdownMenuItem(text = { Text(shootingInfo) }, enabled = state.facts != null, onClick = { menuOpen = false; showInfo = true })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.editor_licences)) }, onClick = { menuOpen = false; licenses = true })
                         }
                     }
                 },
@@ -277,18 +281,18 @@ private fun LoadingPane() {
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text("Decoding raw…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.editor_decoding), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun ErrorPane(message: String, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("Could not open this file", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.editor_open_failed), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onBack, border = BorderStroke(LocalStrokes.current.width, LocalStrokes.current.selected)) { Text("Back to library") }
+        Button(onClick = onBack, border = BorderStroke(LocalStrokes.current.width, LocalStrokes.current.selected)) { Text(stringResource(R.string.editor_back_to_library)) }
     }
 }
 
@@ -376,6 +380,9 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
     }
 
     val strokes = LocalStrokes.current
+    val previewDescription = stringResource(R.string.editor_preview)
+    val originalLabel = stringResource(R.string.editor_original)
+    val editedLabel = stringResource(R.string.editor_edited)
     Box(
         modifier
             .cautionStripes()
@@ -428,19 +435,19 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                     loupe = state.loupe?.takeIf { !original && it.params == state.params },
                     scale = scale, offset = offset,
                     showGrid = showGrid,
-                    label = if (original) "Original" else if (skyOverlay != null) "${state.showMask?.title} mask" else null,
-                    modifier = Modifier.fillMaxSize().semantics { contentDescription = "Preview" },
+                    label = if (original) originalLabel else if (skyOverlay != null) state.showMask?.let { stringResource(R.string.editor_mask_label, it.title()) } else null,
+                    modifier = Modifier.fillMaxSize().semantics { contentDescription = previewDescription },
                     overlay = if (original) null else skyOverlay,
                 )
-                CompareMode.SIDE_BY_SIDE -> Row(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
-                    PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxHeight())
+                CompareMode.SIDE_BY_SIDE -> Row(Modifier.fillMaxSize().semantics { contentDescription = previewDescription }) {
+                    PhotoView(state.compare, null, scale, offset, false, originalLabel, Modifier.weight(1f).fillMaxHeight())
                     Box(Modifier.width(2.dp).fillMaxHeight().background(divider))
-                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxHeight(), skyOverlay)
+                    PhotoView(state.preview, null, scale, offset, showGrid, editedLabel, Modifier.weight(1f).fillMaxHeight(), skyOverlay)
                 }
-                CompareMode.TOP_BOTTOM -> Column(Modifier.fillMaxSize().semantics { contentDescription = "Preview" }) {
-                    PhotoView(state.compare, null, scale, offset, false, "Original", Modifier.weight(1f).fillMaxWidth())
+                CompareMode.TOP_BOTTOM -> Column(Modifier.fillMaxSize().semantics { contentDescription = previewDescription }) {
+                    PhotoView(state.compare, null, scale, offset, false, originalLabel, Modifier.weight(1f).fillMaxWidth())
                     Box(Modifier.height(2.dp).fillMaxWidth().background(divider))
-                    PhotoView(state.preview, null, scale, offset, showGrid, "Edited", Modifier.weight(1f).fillMaxWidth(), skyOverlay)
+                    PhotoView(state.preview, null, scale, offset, showGrid, editedLabel, Modifier.weight(1f).fillMaxWidth(), skyOverlay)
                 }
             }
         }
@@ -459,10 +466,11 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
         }
         if (guides.leveling) {
             val accent = MaterialTheme.colorScheme.primary
+            val levelDescription = stringResource(R.string.editor_draw_line_to_level)
             Canvas(
                 Modifier
                     .fillMaxSize()
-                    .semantics { contentDescription = "Draw a line to level" }
+                    .semantics { contentDescription = levelDescription }
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragStart = { lineStart = it; lineEnd = it },
@@ -493,8 +501,8 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             val a = lineStart; val b = lineEnd
             val label = when {
                 guides.leveling && a != null && b != null && (b - a).getDistance() > 1f -> lineLabel(b - a)
-                guides.leveling -> "Drag along the horizon or an upright edge"
-                else -> "Straighten ${Adjustment.STRAIGHTEN.format(straighten)}"
+                guides.leveling -> stringResource(R.string.editor_level_hint)
+                else -> stringResource(R.string.editor_straighten_value, Adjustment.STRAIGHTEN.format(straighten))
             }
             OverlayLabel(label, Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
         }
@@ -530,7 +538,7 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                         .padding(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     Text(
-                        if (original) "Original" else "Hold for original",
+                        if (original) originalLabel else stringResource(R.string.editor_hold_for_original),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (original) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     )
@@ -539,9 +547,9 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             }
             val zoomLabel = when {
                 split -> ""
-                scale > 1.01f && state.loupeBusy -> "Rendering detail…"
-                scale > 1.01f && state.loupe != null && state.loupe.params == state.params -> "Full resolution"
-                state.renderMs > 0 -> "${state.renderMs} ms · ${state.engine}"
+                scale > 1.01f && state.loupeBusy -> stringResource(R.string.editor_rendering_detail)
+                scale > 1.01f && state.loupe != null && state.loupe.params == state.params -> stringResource(R.string.editor_full_resolution)
+                state.renderMs > 0 -> stringResource(R.string.editor_render_time, state.renderMs, state.engine)
                 else -> ""
             }
             if (zoomLabel.isNotEmpty()) {
@@ -663,9 +671,9 @@ private fun CompareModePicker(mode: CompareMode, onPick: (CompareMode) -> Unit) 
             val selected = m == mode
             val ink = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
             val description = when (m) {
-                CompareMode.SINGLE -> "Single view"
-                CompareMode.SIDE_BY_SIDE -> "Side by side with the original"
-                CompareMode.TOP_BOTTOM -> "Original above, edit below"
+                CompareMode.SINGLE -> stringResource(R.string.editor_single_view)
+                CompareMode.SIDE_BY_SIDE -> stringResource(R.string.editor_side_by_side)
+                CompareMode.TOP_BOTTOM -> stringResource(R.string.editor_top_bottom)
             }
             Box(
                 Modifier
@@ -698,8 +706,10 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
     val straightenDragged by straightenTouch.collectIsDraggedAsState()
     val straightenPressed by straightenTouch.collectIsPressedAsState()
     LaunchedEffect(straightenDragged, straightenPressed) { guides.adjusting = straightenDragged || straightenPressed }
-    val lookName = remember(state.params.look) {
-        state.params.look?.let { id -> LookLibrary.info(context, id)?.name ?: "Unknown look" } ?: "None"
+    val unknownLook = stringResource(R.string.editor_unknown_look)
+    val noLook = stringResource(R.string.editor_no_look)
+    val lookName = remember(state.params.look, unknownLook, noLook) {
+        state.params.look?.let { id -> LookLibrary.info(context, id)?.name ?: unknownLook } ?: noLook
     }
     if (browsing) LookBrowser(vm, state.params.look, onDismiss = { browsing = false })
     LazyColumn(
@@ -713,26 +723,26 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                 .filter { it != Adjustment.LOOK_AMOUNT || state.params.look != null }
             item(key = "g-${group.name}") {
                 SectionCard(
-                    group.title,
+                    group.title(),
                     trailing = {
                         if (group == AdjustmentGroup.LIGHT) {
-                            StrokedTextButton(if (state.autoBusy) "Auto…" else "Auto", onClick = { vm.autoTone() }, enabled = !state.autoBusy)
+                            StrokedTextButton(stringResource(if (state.autoBusy) R.string.editor_auto_busy else R.string.editor_auto), onClick = { vm.autoTone() }, enabled = !state.autoBusy)
                         }
                         val region = group.region
                         if (region != null && (state.scene != SceneStatus.DONE || state.has(region))) {
-                            StrokedTextButton("Show mask", onClick = { vm.toggleMask(region) }, selected = state.showMask == region, modifier = Modifier.testTag("mask-${region.name}"))
+                            StrokedTextButton(stringResource(R.string.editor_show_mask), onClick = { vm.toggleMask(region) }, selected = state.showMask == region, modifier = Modifier.testTag("mask-${region.name}"))
                         }
                         if (group == AdjustmentGroup.MIXER) {
-                            StrokedTextButton("Reset", onClick = { vm.resetMixer() }, enabled = state.mixerUsed())
+                            StrokedTextButton(stringResource(R.string.editor_reset), onClick = { vm.resetMixer() }, enabled = state.mixerUsed())
                         }
                         if (group == AdjustmentGroup.CROP) {
-                            StrokedTextButton("Reset", onClick = { vm.resetCrop() }, enabled = !Crop.of(state.params).isFull)
-                            StrokedTextButton(if (state.cropping) "Done" else "Crop", onClick = { vm.setCropping(!state.cropping) }, selected = state.cropping)
+                            StrokedTextButton(stringResource(R.string.editor_reset), onClick = { vm.resetCrop() }, enabled = !Crop.of(state.params).isFull)
+                            StrokedTextButton(stringResource(if (state.cropping) R.string.editor_done else R.string.editor_crop), onClick = { vm.setCropping(!state.cropping) }, selected = state.cropping)
                         }
                         if (group == AdjustmentGroup.LENS) {
-                            StrokedTextButton("Draw level", onClick = { guides.leveling = !guides.leveling }, selected = guides.leveling)
+                            StrokedTextButton(stringResource(R.string.editor_draw_level), onClick = { guides.leveling = !guides.leveling }, selected = guides.leveling)
                             StrokedTextButton(
-                                if (state.straightenBusy) "Straightening…" else "Auto straighten",
+                                stringResource(if (state.straightenBusy) R.string.editor_straightening else R.string.editor_auto_straighten),
                                 onClick = { guides.leveling = false; vm.autoStraighten() },
                                 enabled = !state.straightenBusy && state.preview != null,
                             )
@@ -745,9 +755,14 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         LaunchedEffect(Unit) { vm.ensureMasks() }
                         Text(
                             when {
-                                state.scene != SceneStatus.DONE -> "Finding the sky, water, people and foliage… (a second or two, once per photo)"
-                                state.has(region) -> "${region.title}: ${((state.coverage[region] ?: 0f) * 100).roundToInt().coerceAtLeast(1)}% of the picture. These sliders change only the ${region.noun}."
-                                else -> "No ${region.noun} found in this photo."
+                                state.scene != SceneStatus.DONE -> stringResource(R.string.editor_finding_regions)
+                                state.has(region) -> stringResource(
+                                    R.string.editor_region_coverage,
+                                    region.title(),
+                                    ((state.coverage[region] ?: 0f) * 100).roundToInt().coerceAtLeast(1),
+                                    region.noun(),
+                                )
+                                else -> stringResource(R.string.editor_region_absent, region.noun())
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -774,7 +789,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
-                                    info?.let { "${it.group} · ${it.category}" } ?: "Film simulations and creative looks",
+                                    info?.let { stringResource(R.string.looks_shelf_header, lookLabel(it.group), lookLabel(it.category)) } ?: stringResource(R.string.editor_looks_hint),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -787,8 +802,8 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                                     .padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Browse", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Browse looks", tint = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.editor_browse), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.editor_browse_looks), tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                         if (state.favoriteLooks.isNotEmpty()) FavoriteLookStrip(vm, state.favoriteLooks, state.params.look)
@@ -819,10 +834,12 @@ internal fun SliderRow(
 ) {
     val value = params[adj]
     val isDefault = params.isDefault(adj, defaults)
+    val title = adj.title()
+    val resetLabel = stringResource(R.string.editor_reset_slider, title)
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                adj.label,
+                title,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .weight(1f)
@@ -851,9 +868,9 @@ internal fun SliderRow(
         // Screen readers hear the slider's name and value, and can reset it (double-tapping
         // the label does that for everyone else).
         val tag = Modifier.testTag("slider-${adj.name}").semantics {
-            contentDescription = adj.label
+            contentDescription = title
             stateDescription = adj.format(value)
-            if (!isDefault) customActions = listOf(CustomAccessibilityAction("Reset ${adj.label}") { onReset(); true })
+            if (!isDefault) customActions = listOf(CustomAccessibilityAction(resetLabel) { onReset(); true })
         }
         if (interactionSource != null) {
             ShadowedSlider(value = value, onValueChange = onChange, range = adj.min..adj.max, anchor = anchor, modifier = tag, interactionSource = interactionSource)
@@ -867,13 +884,14 @@ internal fun SliderRow(
 private val HUE_SLIDERS = setOf(Adjustment.GRADE_SHADOW_HUE, Adjustment.GRADE_MIDTONE_HUE, Adjustment.GRADE_HIGHLIGHT_HUE)
 
 /** How far a drawn line is from level or upright, whichever it is nearer. */
+@Composable
 private fun lineLabel(d: Offset): String {
     var a = atan2(d.y, d.x) * 180f / PI.toFloat()
     if (a > 90f) a -= 180f
     if (a <= -90f) a += 180f
     val upright = abs(a) > 45f
     val off = if (upright) 90f - abs(a) else abs(a)
-    return "%.1f° off %s".format(off, if (upright) "upright" else "level")
+    return stringResource(if (upright) R.string.editor_off_upright else R.string.editor_off_level, "%.1f".format(off))
 }
 
 /**

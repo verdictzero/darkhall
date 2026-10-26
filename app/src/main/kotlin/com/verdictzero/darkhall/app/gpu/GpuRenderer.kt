@@ -1,5 +1,6 @@
 package com.verdictzero.darkhall.app.gpu
 
+import android.content.Context
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLContext
@@ -7,6 +8,8 @@ import android.opengl.EGLDisplay
 import android.opengl.EGLExt
 import android.opengl.EGLSurface
 import android.util.Log
+import androidx.annotation.StringRes
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.core.develop.DevelopParams
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.LinearImage
@@ -41,6 +44,16 @@ object GpuRenderer {
     @Volatile var unavailableReason: String? = null
         private set
 
+    /** [unavailableReason] for the UI: a string resource taking the technical detail, or 0 to show the reason as is. */
+    @StringRes private var reasonLabel = 0
+    private var reasonDetail = ""
+
+    /** [unavailableReason] translated for display, or null while the GPU is usable. */
+    fun unavailableLabel(context: Context): String? {
+        val reason = unavailableReason ?: return null
+        return if (reasonLabel != 0) context.getString(reasonLabel, reasonDetail) else reason
+    }
+
     val available: Boolean get() = developer != null && unavailableReason == null
 
     /** Creates the context and compiles the shaders once. Returns false when the GPU can't be used. */
@@ -56,7 +69,8 @@ object GpuRenderer {
             Log.i(TAG, "GPU ready: ${dev.description}")
             true
         } catch (e: Throwable) {
-            fail("GPU unavailable: ${e.message ?: e.javaClass.simpleName}")
+            val detail = e.message ?: e.javaClass.simpleName
+            fail("GPU unavailable: $detail", R.string.gpu_unavailable, detail)
             false
         }
     }
@@ -109,13 +123,19 @@ object GpuRenderer {
     private fun <T> guard(block: () -> T): T = try {
         block()
     } catch (e: Throwable) {
-        fail("GPU error: ${e.message ?: e.javaClass.simpleName}")
+        val detail = e.message ?: e.javaClass.simpleName
+        fail("GPU error: $detail", R.string.gpu_error, detail)
         throw e
     }
 
-    /** Marks the GPU unusable for this process and tears the context down. */
-    fun fail(reason: String) {
+    /**
+     * Marks the GPU unusable for this process and tears the context down. [reason] is logged;
+     * [label] (a format string taking [detail]) is what [unavailableLabel] shows, if given.
+     */
+    fun fail(reason: String, @StringRes label: Int = 0, detail: String = "") {
         Log.w(TAG, reason)
+        reasonLabel = label
+        reasonDetail = detail
         unavailableReason = reason
         executor.execute {
             runCatching { developer?.release() }

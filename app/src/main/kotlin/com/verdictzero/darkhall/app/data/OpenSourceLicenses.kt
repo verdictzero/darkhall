@@ -1,14 +1,17 @@
 package com.verdictzero.darkhall.app.data
 
 import android.content.Context
+import androidx.annotation.StringRes
+import com.verdictzero.darkhall.R
 
 /**
  * One third-party component bundled in the app: what it is used for, who holds the copyright,
- * and its licence. [text] is an asset holding the full licence or notice.
+ * and its licence. [use] is a string resource (shown translated); [text] is an asset holding the
+ * full licence or notice.
  */
 data class OpenSourceComponent(
     val name: String,
-    val use: String,
+    @StringRes val use: Int,
     val copyright: String,
     val license: String,
     val url: String,
@@ -22,7 +25,7 @@ object OpenSourceLicenses {
     val components = listOf(
         OpenSourceComponent(
             "LibRaw",
-            "Raw decoders, camera colour and Canon model tables",
+            R.string.licenses_use_libraw,
             "Copyright (C) 2008-2025 LibRaw LLC. Fujifilm compressed decoder copyright (C) 2016-2019 Alexey Danilchenko. " +
                 "Includes code from dcraw.c, copyright 1997-2018 Dave Coffin (no restricted dcraw code).",
             "Common Development and Distribution License 1.0",
@@ -31,7 +34,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "Adobe DNG SDK 1.4 (portions, via LibRaw)",
-            "Floating-point DNG decoding",
+            R.string.licenses_use_dng_sdk,
             "Copyright (c) 2005 Adobe Systems Incorporated",
             "MIT",
             "https://helpx.adobe.com/camera-raw/digital-negative.html",
@@ -39,7 +42,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "RawTherapee Film Simulation Collection",
-            "Film looks, resampled to 33³ tables",
+            R.string.licenses_use_film_simulation,
             "Pat David, Pavlov Dmitry, Michael Ezra",
             "CC BY-SA 4.0",
             "https://creativecommons.org/licenses/by-sa/4.0/",
@@ -47,7 +50,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "lensfun",
-            "TG-5/6/7 lens distortion and chromatic aberration coefficients",
+            R.string.licenses_use_lensfun,
             "The lensfun contributors",
             "CC BY-SA 3.0",
             "https://creativecommons.org/licenses/by-sa/3.0/",
@@ -55,7 +58,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "DeepLab v3+ (MobileNetV2, ADE20K)",
-            "Sky detection model",
+            R.string.licenses_use_deeplab,
             "Copyright The TensorFlow Authors",
             "Apache License 2.0",
             "https://github.com/tensorflow/models/tree/master/research/deeplab",
@@ -63,7 +66,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "AndroidX and Jetpack Compose",
-            "Core, SplashScreen, Activity, Lifecycle, Compose UI, Foundation, Material 3, Material Icons, DocumentFile, ExifInterface, WorkManager",
+            R.string.licenses_use_androidx,
             "Copyright The Android Open Source Project; Material Icons copyright Google LLC",
             "Apache License 2.0",
             "https://developer.android.com/jetpack/androidx",
@@ -71,7 +74,7 @@ object OpenSourceLicenses {
         ),
         OpenSourceComponent(
             "Kotlin and kotlinx.coroutines",
-            "Language runtime",
+            R.string.licenses_use_kotlin,
             "Copyright JetBrains s.r.o. and Kotlin Programming Language contributors",
             "Apache License 2.0",
             "https://kotlinlang.org",

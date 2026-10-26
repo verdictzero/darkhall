@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.Preset
 import com.verdictzero.darkhall.app.data.ExportQueue
@@ -58,6 +59,7 @@ data class LibraryState(
 class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = Prefs(app)
+    private val res get() = getApplication<Application>().resources
     private val _state = MutableStateFlow(LibraryState())
     val state = _state.asStateFlow()
 
@@ -143,7 +145,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(
                     selected = emptySet(),
                     edited = it.edited + targets.map { f -> f.key },
-                    message = "Pasted settings onto ${targets.size} ${if (targets.size == 1) "photo" else "photos"}",
+                    message = res.getQuantityString(R.plurals.library_pasted, targets.size, targets.size),
                 )
             }
         }
@@ -160,7 +162,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(
                     selected = emptySet(),
                     edited = it.edited + targets.map { f -> f.key },
-                    message = "Applied \"${preset.name}\" to ${targets.size} ${if (targets.size == 1) "photo" else "photos"}",
+                    message = res.getQuantityString(R.plurals.library_preset_applied, targets.size, preset.name, targets.size),
                 )
             }
         }
@@ -181,7 +183,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         val targets = _state.value.files.filter { it.key in _state.value.selected }.sortedBy { it.name }
         if (targets.size < 2) return
         ExportQueue.enqueue(getApplication(), targets.map { it.uri }, settings, stack = true)
-        _state.update { it.copy(selected = emptySet(), message = "Stacking ${targets.size} photos. It keeps running if you leave the app.") }
+        _state.update { it.copy(selected = emptySet(), message = res.getQuantityString(R.plurals.library_stacking, targets.size, targets.size)) }
     }
 
     /**
@@ -197,7 +199,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
             val app = getApplication<Application>()
             var ok = 0
             for ((i, f) in targets.withIndex()) {
-                _state.update { it.copy(autoProgress = "Auto tone ${i + 1} of ${targets.size}") }
+                _state.update { it.copy(autoProgress = res.getString(R.string.library_auto_progress, i + 1, targets.size)) }
                 val done = withContext(Dispatchers.Default) {
                     runCatching {
                         val loaded = RawRepository.load(app.contentResolver, f.uri)
@@ -216,8 +218,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(
                     autoProgress = null,
                     edited = it.edited + targets.map { t -> t.key },
-                    message = if (ok == targets.size) "Auto tone applied to $ok ${if (ok == 1) "photo" else "photos"}"
-                    else "Auto tone applied to $ok of ${targets.size}; some files couldn't be read",
+                    message = if (ok == targets.size) res.getQuantityString(R.plurals.library_auto_done, ok, ok)
+                    else res.getString(R.string.library_auto_partial, ok, targets.size),
                 )
             }
         }
@@ -248,9 +250,9 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
                         files += RawRepository.listFolder(resolver, tree)
                         folderName = runCatching {
                             DocumentsContract.getTreeDocumentId(tree).substringAfterLast(':').substringAfterLast('/')
-                        }.getOrNull()?.ifEmpty { null } ?: "Folder"
+                        }.getOrNull()?.ifEmpty { null } ?: app.getString(R.string.library_folder_unnamed)
                     } catch (e: Exception) {
-                        message = "Folder is no longer accessible; pick it again."
+                        message = app.getString(R.string.library_folder_lost)
                         prefs.folderUri = null
                     }
                 }

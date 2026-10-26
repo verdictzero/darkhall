@@ -21,8 +21,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.Prefs
 import com.verdictzero.darkhall.core.export.ExportFormat
 import com.verdictzero.darkhall.core.export.EXPORT_SIZES
@@ -32,13 +35,16 @@ import com.verdictzero.darkhall.core.export.ExportSettings
 import kotlin.math.roundToInt
 
 /** What each format is for, under the format chips. */
-private fun ExportFormat.purpose() = when (this) {
-    ExportFormat.JPEG -> "Small files for sharing and printing services. 8-bit."
-    ExportFormat.PNG -> "Lossless. At 16 bits it keeps every tone for editing in other apps."
-    ExportFormat.TIFF -> "Lossless, for print and other editors. Keeps the shooting data and GPS."
-    ExportFormat.WEBP -> "Lossless and smaller than PNG. 8-bit."
-    ExportFormat.TGA -> "8-bit, for game engines and older tools. No shooting data."
-}
+@Composable
+private fun ExportFormat.purpose() = stringResource(
+    when (this) {
+        ExportFormat.JPEG -> R.string.export_purpose_jpeg
+        ExportFormat.PNG -> R.string.export_purpose_png
+        ExportFormat.TIFF -> R.string.export_purpose_tiff
+        ExportFormat.WEBP -> R.string.export_purpose_webp
+        ExportFormat.TGA -> R.string.export_purpose_tga
+    }
+)
 
 /**
  * Format and options for an export of [count] photos, starting from the last settings used.
@@ -53,10 +59,10 @@ fun ExportDialog(count: Int, onDismiss: () -> Unit, title: String? = null, onExp
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
-        title = { Text(title ?: if (count == 1) "Export" else "Export $count photos") },
+        title = { Text(title ?: pluralStringResource(R.plurals.export_dialog_title, count, count)) },
         text = {
             Column {
-                Label("Format")
+                Label(stringResource(R.string.export_format))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (f in ExportFormat.entries) Choice(f.label, s.format == f) { s = s.copy(format = f) }
                 }
@@ -69,7 +75,7 @@ fun ExportDialog(count: Int, onDismiss: () -> Unit, title: String? = null, onExp
                 when (s.format) {
                     ExportFormat.JPEG -> {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Label("Quality", Modifier.weight(1f))
+                            Label(stringResource(R.string.export_quality), Modifier.weight(1f))
                             Text("${s.jpegQuality}", fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
                         }
                         ShadowedSlider(
@@ -80,38 +86,38 @@ fun ExportDialog(count: Int, onDismiss: () -> Unit, title: String? = null, onExp
                         )
                     }
                     ExportFormat.PNG, ExportFormat.TIFF -> {
-                        Label("Bit depth")
+                        Label(stringResource(R.string.export_bit_depth))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Choice("8-bit", !s.sixteenBit) { s = s.copy(sixteenBit = false) }
-                            Choice("16-bit", s.sixteenBit) { s = s.copy(sixteenBit = true) }
+                            Choice(stringResource(R.string.export_8_bit), !s.sixteenBit) { s = s.copy(sixteenBit = false) }
+                            Choice(stringResource(R.string.export_16_bit), s.sixteenBit) { s = s.copy(sixteenBit = true) }
                         }
                         if (s.format == ExportFormat.TIFF) {
                             Spacer(Modifier.height(8.dp))
-                            Label("Compression")
+                            Label(stringResource(R.string.export_compression))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Choice("ZIP", s.tiffCompressed) { s = s.copy(tiffCompressed = true) }
-                                Choice("None", !s.tiffCompressed) { s = s.copy(tiffCompressed = false) }
+                                Choice(stringResource(R.string.export_compression_none), !s.tiffCompressed) { s = s.copy(tiffCompressed = false) }
                             }
                         }
                     }
                     else -> {}
                 }
                 Spacer(Modifier.height(12.dp))
-                Label("Size (long edge)")
+                Label(stringResource(R.string.export_size))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (edge in EXPORT_SIZES) {
-                        Choice(if (edge == 0) "Full" else "$edge px", s.longEdge == edge) { s = s.copy(longEdge = edge) }
+                        Choice(if (edge == 0) stringResource(R.string.export_size_full) else stringResource(R.string.export_size_px, edge), s.longEdge == edge) { s = s.copy(longEdge = edge) }
                     }
                 }
             }
         },
         confirmButton = {
-            StrokedTextButton("Start export", onClick = {
+            StrokedTextButton(stringResource(R.string.export_start), onClick = {
                 prefs.exportSettings = s
                 onExport(s)
             })
         },
-        dismissButton = { StrokedTextButton("Cancel", onClick = onDismiss) },
+        dismissButton = { StrokedTextButton(stringResource(R.string.export_cancel), onClick = onDismiss) },
     )
 }
 

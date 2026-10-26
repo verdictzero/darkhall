@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -65,10 +66,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.LookInfo
 import com.verdictzero.darkhall.app.data.LookLibrary
 
-/** The chip that shows only favorites; not a real shelf name. */
+/** The chip that shows only favorites; not a real shelf name (the label shown is a string resource). */
 private const val FAVORITES = "Favorites"
 
 /**
@@ -104,9 +106,9 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                     Modifier.fillMaxWidth().bottomStroke(strokes.container).padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StrokedIconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close looks") }
+                    StrokedIconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.looks_close)) }
                     Spacer(Modifier.width(10.dp))
-                    Text("Looks", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.looks_title), style = MaterialTheme.typography.titleLarge)
                     Text(
                         "  ${all.size}",
                         style = MaterialTheme.typography.labelLarge,
@@ -114,13 +116,13 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                         fontFamily = FontFamily.Monospace,
                     )
                     Spacer(Modifier.weight(1f))
-                    StrokedTextButton("Credits", onClick = { showCredits = true })
+                    StrokedTextButton(stringResource(R.string.looks_credits), onClick = { showCredits = true })
                 }
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    placeholder = { Text("Search films and looks") },
+                    placeholder = { Text(stringResource(R.string.looks_search_placeholder)) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -133,10 +135,10 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item { GroupChip("All", selected = group == null) { group = null } }
-                    item { GroupChip("♥ $FAVORITES", selected = group == FAVORITES) { group = if (group == FAVORITES) null else FAVORITES } }
+                    item { GroupChip(stringResource(R.string.looks_all), selected = group == null) { group = null } }
+                    item { GroupChip(stringResource(R.string.looks_favorites_chip), selected = group == FAVORITES) { group = if (group == FAVORITES) null else FAVORITES } }
                     items(LookLibrary.GROUPS) { g ->
-                        GroupChip(g, selected = group == g) { group = if (group == g) null else g }
+                        GroupChip(lookLabel(g), selected = group == g) { group = if (group == g) null else g }
                     }
                 }
                 LazyVerticalGrid(
@@ -160,12 +162,12 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                         ) { vm.setLook(look.id); onDismiss() }
                     }
                     if (group == FAVORITES) {
-                        item(key = "h:fav", span = { GridItemSpan(maxLineSpan) }) { header(FAVORITES) }
+                        item(key = "h:fav", span = { GridItemSpan(maxLineSpan) }) { header(stringResource(R.string.looks_favorites)) }
                         items(favoriteLooks, key = { "f:${it.id}" }) { cell(it) }
                         if (favoriteLooks.isEmpty()) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 Text(
-                                    if (favorites.isEmpty()) "No favorites yet. Tap the heart on any look to keep it here." else "No favorites match “$query”.",
+                                    if (favorites.isEmpty()) stringResource(R.string.looks_favorites_empty) else stringResource(R.string.looks_favorites_no_match, query),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(16.dp),
                                 )
@@ -175,12 +177,12 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                     }
                     if (query.isBlank()) {
                         item(key = "none") {
-                            LookCell(vm, null, "None", selected = current == null) { vm.setLook(null); onDismiss() }
+                            LookCell(vm, null, stringResource(R.string.looks_none), selected = current == null) { vm.setLook(null); onDismiss() }
                         }
                     }
                     // Favorites first, on the full shelf view (they also stay on their own shelves).
                     if (group == null && favoriteLooks.isNotEmpty()) {
-                        item(key = "h:fav", span = { GridItemSpan(maxLineSpan) }) { header(FAVORITES) }
+                        item(key = "h:fav", span = { GridItemSpan(maxLineSpan) }) { header(stringResource(R.string.looks_favorites)) }
                         items(favoriteLooks, key = { "f:${it.id}" }) { cell(it) }
                     }
                     var lastHeader = ""
@@ -190,7 +192,7 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                             lastHeader = header
                             item(key = "h:$header", span = { GridItemSpan(maxLineSpan) }) {
                                 Text(
-                                    header,
+                                    stringResource(R.string.looks_shelf_header, lookLabel(look.group), lookLabel(look.category)),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
@@ -201,7 +203,7 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
                     }
                     if (shown.isEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            Text("No looks match “$query”.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
+                            Text(stringResource(R.string.looks_no_match, query), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
                         }
                     }
                 }
@@ -213,8 +215,8 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
         AlertDialog(
             onDismissRequest = { showCredits = false },
             modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
-            confirmButton = { StrokedTextButton("Close", onClick = { showCredits = false }) },
-            title = { Text("Look credits") },
+            confirmButton = { StrokedTextButton(stringResource(R.string.looks_credits_close), onClick = { showCredits = false }) },
+            title = { Text(stringResource(R.string.looks_credits_title)) },
             text = {
                 Text(
                     remember { LookLibrary.licenses(context) },
@@ -225,6 +227,10 @@ fun LookBrowser(vm: DevelopViewModel, current: String?, onDismiss: () -> Unit) {
         )
     }
 }
+
+/** A shelf or section name from the look index, translated when there is a string for it. */
+@Composable
+internal fun lookLabel(name: String): String = LookLibrary.labelRes(name)?.let { stringResource(it) } ?: name
 
 @Composable
 private fun GroupChip(label: String, selected: Boolean, onClick: () -> Unit) {
@@ -260,10 +266,12 @@ private fun LookCell(
     }
     val accent = MaterialTheme.colorScheme.primary
     val strokes = LocalStrokes.current
+    val description = stringResource(R.string.looks_cell_description, name)
+    val favoriteDescription = stringResource(if (favorite) R.string.looks_favorite_remove else R.string.looks_favorite_add, name)
     Column(
         Modifier
             .clickable(onClick = onClick)
-            .semantics { contentDescription = "Look $name" },
+            .semantics { contentDescription = description },
     ) {
         Box(
             Modifier
@@ -289,7 +297,7 @@ private fun LookCell(
                         .clip(CircleShape)
                         .background(Color(0xA6141416))
                         .clickable(onClick = onFavorite)
-                        .semantics { contentDescription = if (favorite) "Remove $name from favorites" else "Add $name to favorites" },
+                        .semantics { contentDescription = favoriteDescription },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -329,11 +337,12 @@ fun FavoriteLookStrip(vm: DevelopViewModel, favorites: List<String>, current: St
             val info = remember(id) { LookLibrary.info(context, id) } ?: return@items
             val selected = id == current
             val thumb by produceState<Bitmap?>(initialValue = null, key1 = id) { value = vm.lookThumbnail(id) }
+            val description = stringResource(R.string.looks_favorite_strip_description, info.name)
             Column(
                 Modifier
                     .width(64.dp)
                     .clickable { vm.setLook(if (selected) null else id) }
-                    .semantics { contentDescription = "Favorite look ${info.name}" },
+                    .semantics { contentDescription = description },
             ) {
                 Box(
                     Modifier

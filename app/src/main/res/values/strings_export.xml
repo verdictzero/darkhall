@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Export dialog, progress pill, export notifications and the editor's messages. -->
+<resources>
+    <!-- Export dialog -->
+    <plurals name="export_dialog_title">
+        <item quantity="one">Export</item>
+        <item quantity="other">Export %1$d photos</item>
+    </plurals>
+    <string name="export_format">Format</string>
+    <string name="export_purpose_jpeg">Small files for sharing and printing services. 8-bit.</string>
+    <string name="export_purpose_png">Lossless. At 16 bits it keeps every tone for editing in other apps.</string>
+    <string name="export_purpose_tiff">Lossless, for print and other editors. Keeps the shooting data and GPS.</string>
+    <string name="export_purpose_webp">Lossless and smaller than PNG. 8-bit.</string>
+    <string name="export_purpose_tga">8-bit, for game engines and older tools. No shooting data.</string>
+    <string name="export_quality">Quality</string>
+    <string name="export_bit_depth">Bit depth</string>
+    <string name="export_8_bit">8-bit</string>
+    <string name="export_16_bit">16-bit</string>
+    <string name="export_compression">Compression</string>
+    <!-- No TIFF compression -->
+    <string name="export_compression_none">None</string>
+    <string name="export_size">Size (long edge)</string>
+    <!-- Export at the photo's full size -->
+    <string name="export_size_full">Full</string>
+    <string name="export_size_px">%1$d px</string>
+    <string name="export_start">Start export</string>
+    <string name="export_cancel">Cancel</string>
+
+    <!-- Progress pill -->
+    <string name="export_progress_of">Exporting %1$d of %2$d · %3$d%%</string>
+    <string name="export_progress">Exporting · %1$d%%</string>
+    <!-- %2$s is the folder, e.g. Pictures/Darkhall -->
+    <plurals name="export_saved_photos">
+        <item quantity="one">Saved %1$d photo to %2$s</item>
+        <item quantity="other">Saved %1$d photos to %2$s</item>
+    </plurals>
+    <string name="export_failed">Export failed</string>
+    <!-- %1$s lists the files that failed -->
+    <string name="export_failed_names">Export failed: %1$s</string>
+    <string name="export_saved_failed">Saved %1$d, failed %2$d</string>
+    <string name="export_saved_failed_names">Saved %1$d, failed %2$d: %3$s</string>
+    <string name="export_share">Share</string>
+    <plurals name="export_share_chooser">
+        <item quantity="one">Share photo</item>
+        <item quantity="other">Share %1$d photos</item>
+    </plurals>
+
+    <!-- Export notification and results -->
+    <string name="export_channel">Exports</string>
+    <string name="export_notification_of">Exporting %1$d of %2$d</string>
+    <string name="export_notification">Exporting</string>
+    <string name="export_preparing">Preparing…</string>
+    <!-- Stands in for a file name that could not be read -->
+    <string name="export_default_name">photo</string>
+    <string name="export_focus_stack">Focus stack · %1$s</string>
+    <!-- %2$s is the reason -->
+    <string name="export_focus_stack_failed">focus stack of %1$s (%2$s)</string>
+    <string name="export_stack_different_size">%1$s is a different size</string>
+    <string name="export_job_missing">the export\'s file list is missing</string>
+
+    <!-- Editor messages -->
+    <string name="develop_render_failed">Render failed: %1$s</string>
+    <string name="develop_out_of_memory">Not enough memory to open this file. Close other apps and try again.</string>
+    <!-- Appended to the photo's description; the two leading spaces are kept -->
+    <string name="develop_info_noise">"%1$s  noise ≈ ISO %2$d"</string>
+    <string name="develop_gpu_stopped">GPU rendering stopped; using the CPU</string>
+    <string name="develop_gpu_off">Off</string>
+    <string name="develop_gpu_unavailable">Unavailable</string>
+    <string name="develop_gpu_rejected">Off: did not match the CPU on this driver</string>
+    <!-- %1$s is a technical measure of the difference -->
+    <string name="develop_gpu_mismatch">Off: did not match the CPU (%1$s)</string>
+    <string name="develop_gpu_mismatch_message">This GPU\'s output didn\'t match; using the CPU</string>
+    <string name="develop_gpu_error">GPU error</string>
+    <!-- %1$s lists the changed sliders, or says nothing changed -->
+    <string name="develop_auto">Auto: %1$s</string>
+    <string name="develop_auto_balanced">already balanced</string>
+    <!-- A slider and its new value, e.g. Exposure +0.50 -->
+    <string name="develop_auto_change">%1$s %2$s</string>
+    <string name="develop_masks_failed">Couldn\'t look for the sky, water and people: %1$s</string>
+    <string name="develop_no_lines">No clear horizon or upright lines to level by</string>
+    <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
+    <string name="develop_source_auto">Auto</string>
+    <string name="develop_source_level">Level</string>
+    <string name="develop_already_level">%1$s: already level</string>
+    <!-- %2$s is the Straighten value, %3$s the tilt in degrees -->
+    <string name="develop_straighten_limit">%1$s: Straighten %2$s (as far as it goes; the line is %3$s° off)</string>
+    <!-- %3$s says how it was levelled, e.g. from the horizon -->
+    <string name="develop_straighten">%1$s: Straighten %2$s %3$s</string>
+    <string name="develop_by_verticals">from the upright lines</string>
+    <string name="develop_by_horizon">from the horizon</string>
+    <string name="develop_to_level">to level</string>
+    <string name="develop_to_upright">to upright</string>
+    <string name="develop_settings_copied">Settings copied. Paste them onto other photos from the library.</string>
+    <string name="develop_settings_pasted">Settings pasted</string>
+    <string name="develop_preset_saved">Saved preset \"%1$s\"</string>
+    <string name="develop_preset_applied">Applied \"%1$s\"</string>
+    <string name="develop_export_started">Export started. It keeps running if you leave the app.</string>
+</resources>

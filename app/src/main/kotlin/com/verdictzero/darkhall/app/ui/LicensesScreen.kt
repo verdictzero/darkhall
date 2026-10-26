@@ -34,10 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.OpenSourceComponent
 import com.verdictzero.darkhall.app.data.OpenSourceLicenses
 
@@ -54,9 +56,9 @@ fun LicensesScreen(onDismiss: () -> Unit) {
                     Modifier.fillMaxWidth().bottomStroke(strokes.container).padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StrokedIconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close licences") }
+                    StrokedIconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.licenses_close)) }
                     Spacer(Modifier.width(10.dp))
-                    Text("Open-source licences", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.licenses_title), style = MaterialTheme.typography.titleLarge)
                 }
                 LazyColumn(
                     contentPadding = PaddingValues(12.dp),
@@ -65,9 +67,7 @@ fun LicensesScreen(onDismiss: () -> Unit) {
                 ) {
                     item {
                         Text(
-                            "Darkhall © 2026 verdictzero. It includes the components below, each under its own " +
-                                "licence. The raw decoders are covered by the CDDL 1.0; their source code is at " +
-                                OpenSourceLicenses.SOURCE_URL + ".",
+                            stringResource(R.string.licenses_intro, OpenSourceLicenses.SOURCE_URL),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                         )
@@ -82,7 +82,7 @@ fun LicensesScreen(onDismiss: () -> Unit) {
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(c.name, style = MaterialTheme.typography.titleMedium)
-                            Text(c.use, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(c.use), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(c.copyright, style = MaterialTheme.typography.bodySmall)
                             Text(c.license, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         }
@@ -96,7 +96,7 @@ fun LicensesScreen(onDismiss: () -> Unit) {
         AlertDialog(
             onDismissRequest = { open = null },
             modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
-            confirmButton = { StrokedTextButton("Close", onClick = { open = null }) },
+            confirmButton = { StrokedTextButton(stringResource(R.string.licenses_dialog_close), onClick = { open = null }) },
             title = { Text(c.name) },
             text = {
                 Text(

@@ -58,7 +58,7 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     override suspend fun doWork(): Result {
         val jobId = inputData.getString(ExportQueue.KEY_JOB) ?: return Result.failure()
         val uris = ExportQueue.readJob(applicationContext, jobId)
-        if (uris.isEmpty()) return Result.failure(workDataOf(ExportQueue.KEY_FAILED_NAMES to "the export's file list is missing"))
+        if (uris.isEmpty()) return Result.failure(workDataOf(ExportQueue.KEY_FAILED_NAMES to applicationContext.getString(R.string.export_job_missing)))
         // Promote to a foreground service; if the platform refuses (rare background-start
         // restrictions) the work still runs, just without the guarantee.
         runCatching { setForeground(foregroundInfo(0, 0f, null)) }
@@ -66,18 +66,20 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         var ok = 0
         val failedNames = ArrayList<String>()
         if (stack) {
-            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uris[0]).name }.getOrDefault("photo")
+            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uris[0]).name }
+                .getOrDefault(applicationContext.getString(R.string.export_default_name))
             try {
-                withContext(Dispatchers.Default) { stackAll(uris) { k, f -> reportAsync(k, f, "Focus stack · $name") } }
+                withContext(Dispatchers.Default) { stackAll(uris) { k, f -> reportAsync(k, f, applicationContext.getString(R.string.export_focus_stack, name)) } }
                 ok = 1
             } catch (e: Throwable) {
-                failedNames += "focus stack of $name (${e.message ?: e.javaClass.simpleName})"
+                failedNames += applicationContext.getString(R.string.export_focus_stack_failed, name, e.message ?: e.javaClass.simpleName)
             }
         }
         for ((i, uri) in uris.withIndex()) {
             if (stack) break
             if (isStopped) break
-            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uri).name }.getOrDefault("photo")
+            val name = runCatching { RawRepository.describe(applicationContext.contentResolver, uri).name }
+                .getOrDefault(applicationContext.getString(R.string.export_default_name))
             report(i, 0f, name)
             try {
                 withContext(Dispatchers.Default) { exportOne(uri) { f -> reportAsync(i, f, name) } }
@@ -190,7 +192,8 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 meta = m; ctx = c; params = p; pvSize = pv.width to pv.height
                 merger = FocusStack.Merger(m.crop.width, m.crop.height)
             } else if (m.crop.width != meta!!.crop.width || m.crop.height != meta.crop.height || pv.width != pvSize.first) {
-                throw IllegalArgumentException("${RawRepository.describe(context.contentResolver, uri).name} is a different size")
+                // The message is shown to the user as the reason the stack failed.
+                throw IllegalArgumentException(context.getString(R.string.export_stack_different_size, RawRepository.describe(context.contentResolver, uri).name))
             }
             val lum = FloatArray(pv.width * pv.height) { i ->
                 kotlin.math.sqrt(maxOf(0f, 0.25f * pv.r[i] + 0.5f * pv.g[i] + 0.25f * pv.b[i]))
@@ -269,13 +272,14 @@ class ExportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     private fun foregroundInfo(index: Int, fraction: Float, name: String?): ForegroundInfo {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm.getNotificationChannel(CHANNEL) == null) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, "Exports", NotificationManager.IMPORTANCE_LOW))
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, applicationContext.getString(R.string.export_channel), NotificationManager.IMPORTANCE_LOW))
         }
-        val title = if (total > 1) "Exporting ${index + 1} of $total" else "Exporting"
+        val title = if (total > 1) applicationContext.getString(R.string.export_notification_of, index + 1, total)
+            else applicationContext.getString(R.string.export_notification)
         val notification: Notification = NotificationCompat.Builder(applicationContext, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_export)
             .setContentTitle(title)
-            .setContentText(name ?: "Preparing…")
+            .setContentText(name ?: applicationContext.getString(R.string.export_preparing))
             .setProgress(1000, (((index + fraction) / total) * 1000).toInt().coerceIn(0, 1000), false)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

@@ -34,7 +34,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.core.develop.Crop
 import com.verdictzero.darkhall.core.develop.CropAspect
 import com.verdictzero.darkhall.core.develop.CropRect
@@ -64,10 +66,11 @@ fun CropOverlay(
     var start by remember { mutableStateOf<CropRect?>(null) }
     var handle by remember { mutableStateOf<Crop.Handle?>(null) }
     var moved by remember { mutableStateOf(Offset.Zero) }
+    val description = stringResource(R.string.editor_crop_overlay)
     Canvas(
         modifier
             .fillMaxSize()
-            .semantics { contentDescription = "Crop" }
+            .semantics { contentDescription = description }
             .pointerInput(imageWidth, imageHeight, fullWidth, fullHeight) {
                 fun image(): Rect {
                     val fit = min(size.width.toFloat() / imageWidth, size.height.toFloat() / imageHeight)
@@ -163,11 +166,12 @@ private fun DrawScope.drawCrop(r: Rect, img: Rect, accent: Color, px: Float) {
 }
 
 /** "Crop 4:5 · 3,000 × 3,750 px" for the label over the photo. */
+@Composable
 fun cropLabel(crop: CropRect, aspect: CropAspect, fullWidth: Int, fullHeight: Int): String {
     val w = (crop.width * fullWidth).roundToInt()
     val h = (crop.height * fullHeight).roundToInt()
-    val shape = if (aspect == CropAspect.FREE || aspect == CropAspect.ORIGINAL) aspect.label else aspect.label(h > w)
-    return "%s · %,d × %,d px".format(shape, w, h)
+    val shape = if (aspect == CropAspect.FREE || aspect == CropAspect.ORIGINAL) aspect.title() else aspect.label(h > w)
+    return stringResource(R.string.editor_crop_size, shape, "%,d".format(w), "%,d".format(h))
 }
 
 /** The Crop section: ratio choices, turning the crop, and its size. */
@@ -177,6 +181,7 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
     val aspect = Crop.aspect(state.params)
     val portrait = crop.height * state.fullHeight > crop.width * state.fullWidth
     val ink = LocalStrokes.current.action
+    val rotateDescription = stringResource(if (portrait) R.string.editor_crop_landscape else R.string.editor_crop_portrait)
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp)) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -184,7 +189,7 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StrokedIconButton(onClick = { vm.setCropping(true); vm.rotateCrop() }) {
-                Canvas(Modifier.size(22.dp).semantics { contentDescription = if (portrait) "Make the crop landscape" else "Make the crop portrait" }) {
+                Canvas(Modifier.size(22.dp).semantics { contentDescription = rotateDescription }) {
                     val sw = 1.5.dp.toPx()
                     // A landscape frame and a portrait one, the one it would become drawn bold.
                     val land = Rect(Offset(1.dp.toPx(), 6.dp.toPx()), Size(18.dp.toPx(), 11.dp.toPx()))
@@ -195,7 +200,7 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
             }
             for (a in CropAspect.entries) {
                 StrokedTextButton(
-                    a.label(portrait),
+                    if (a == CropAspect.FREE || a == CropAspect.ORIGINAL) a.title() else a.label(portrait),
                     onClick = { vm.setCropping(true); vm.setCropAspect(a) },
                     selected = a == aspect,
                     modifier = Modifier.testTag("crop-${a.name}"),
@@ -203,8 +208,8 @@ fun CropControls(state: DevelopState, vm: DevelopViewModel) {
             }
         }
         Text(
-            if (crop.isFull) "Not cropped · ${"%,d × %,d px".format(state.fullWidth, state.fullHeight)}"
-            else "Cropped to " + cropLabel(crop, aspect, state.fullWidth, state.fullHeight),
+            if (crop.isFull) stringResource(R.string.editor_not_cropped, "%,d".format(state.fullWidth), "%,d".format(state.fullHeight))
+            else stringResource(R.string.editor_cropped_to, cropLabel(crop, aspect, state.fullWidth, state.fullHeight)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),

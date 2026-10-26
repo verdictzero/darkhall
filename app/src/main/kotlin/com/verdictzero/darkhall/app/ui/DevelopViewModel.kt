@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.EditsStore
 import com.verdictzero.darkhall.app.data.ExportQueue
 import com.verdictzero.darkhall.app.data.LookLibrary
@@ -87,6 +88,8 @@ data class DevelopState(
     val params: DevelopParams = DevelopParams.NEUTRAL,
     val defaults: DevelopParams = DevelopParams.NEUTRAL,
     val message: String? = null,
+    /** The message reports an automatic change (Auto, Draw level) that its Undo reverts. */
+    val messageUndoable: Boolean = false,
     val renderMs: Long = 0,
     val loupe: Loupe? = null,
     val loupeBusy: Boolean = false,
@@ -177,7 +180,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
-                    _state.update { it.copy(message = "Render failed: ${e.message ?: e.javaClass.simpleName}") }
+                    _state.update { it.copy(message = str(R.string.develop_render_failed, e.message ?: e.javaClass.simpleName)) }
                     return@collectLatest
                 }
                 _state.update { it.copy(preview = result.bitmap, previewParams = p, histogram = result.histogram, renderMs = result.ms, engine = result.engine) }
@@ -211,7 +214,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: OutOfMemoryError) {
                 close()
-                _state.update { it.copy(loading = false, error = "Not enough memory to open this file. Close other apps and try again.") }
+                _state.update { it.copy(loading = false, error = str(R.string.develop_out_of_memory)) }
             } catch (e: Throwable) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
             }
@@ -286,7 +289,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         _state.update {
             it.copy(
                 fileName = file.name,
-                info = m.describe() + if (c.noise.measured) "  noise ≈ ISO ${roundIso(c.noise.effectiveIso)}" else "",
+                info = if (c.noise.measured) str(R.string.develop_info_noise, m.describe(), roundIso(c.noise.effectiveIso)) else m.describe(),
                 loading = false,
                 defaults = defaults,
                 params = saved ?: defaults,
@@ -328,7 +331,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 } catch (e: Throwable) {
                     // The renderer has already switched itself off; finish this frame on the CPU.
                     useGpu = false
-                    _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason.orEmpty(), message = "GPU rendering stopped; using the CPU") }
+                    _state.update { it.copy(gpuLabel = GpuRenderer.unavailableLabel(getApplication()).orEmpty(), message = str(R.string.develop_gpu_stopped)) }
                     Geometry.apply(developer.render(pv, c, p, f), pv.width, pv.height, p, c.lens)
                 }
             } else {
@@ -372,16 +375,16 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun setUpGpu(pv: LinearImage, c: RenderContext, f: Frame, defaults: DevelopParams) {
         useGpu = false
         if (!prefs.gpuEnabled) {
-            _state.update { it.copy(gpuEnabled = false, gpuLabel = "Off") }
+            _state.update { it.copy(gpuEnabled = false, gpuLabel = str(R.string.develop_gpu_off)) }
             return
         }
         if (!GpuRenderer.ensureReady()) {
-            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason ?: "Unavailable") }
+            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableLabel(getApplication()) ?: str(R.string.develop_gpu_unavailable)) }
             return
         }
         val name = GpuRenderer.description.orEmpty()
         if (prefs.gpuRejected == name) {
-            _state.update { it.copy(gpuLabel = "Off: did not match the CPU on this driver") }
+            _state.update { it.copy(gpuLabel = str(R.string.develop_gpu_rejected)) }
             return
         }
         try {
@@ -401,7 +404,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                     val cmp = ImageCompare.of(cpu, gpu)
                     if (!cmp.acceptable) {
                         prefs.gpuRejected = name
-                        _state.update { it.copy(gpuLabel = "Off: did not match the CPU ($cmp)", message = "This GPU's output didn't match; using the CPU") }
+                        _state.update { it.copy(gpuLabel = str(R.string.develop_gpu_mismatch, cmp.toString()), message = str(R.string.develop_gpu_mismatch_message)) }
                         return
                     }
                 }
@@ -410,7 +413,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             useGpu = true
             _state.update { it.copy(gpuEnabled = true, gpuLabel = shortGpuName(name)) }
         } catch (e: Throwable) {
-            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableReason ?: (e.message ?: "GPU error")) }
+            _state.update { it.copy(gpuLabel = GpuRenderer.unavailableLabel(getApplication()) ?: (e.message ?: str(R.string.develop_gpu_error))) }
         }
     }
 
@@ -425,7 +428,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 setUpGpu(pv, c, f, _state.value.defaults)
             } else {
                 useGpu = false
-                _state.update { it.copy(gpuEnabled = enabled, gpuLabel = "Off") }
+                _state.update { it.copy(gpuEnabled = enabled, gpuLabel = str(R.string.develop_gpu_off)) }
             }
             _state.update { it.copy(gpuEnabled = enabled) }
             lastFull = null // the other engine draws it next
@@ -616,7 +619,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             val result = withContext(Dispatchers.Default) { AutoTone.solve(pv, c, before, f) }
             val p = result.params
             _state.update {
-                it.copy(params = p, beforeAuto = before, autoBusy = false, message = "Auto: " + describeAuto(before, p))
+                it.copy(params = p, beforeAuto = before, autoBusy = false, message = str(R.string.develop_auto, describeAuto(before, p)), messageUndoable = true)
             }
             paramsFlow.value = p
             record(p)
@@ -652,7 +655,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
                 withContext(Dispatchers.Default) { SceneDetector.detect(getApplication(), key, pv, c, asShot, m) }
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
-                _state.update { it.copy(scene = SceneStatus.UNKNOWN, message = "Couldn't look for the sky, water and people: ${e.message ?: e.javaClass.simpleName}") }
+                _state.update { it.copy(scene = SceneStatus.UNKNOWN, message = str(R.string.develop_masks_failed, e.message ?: e.javaClass.simpleName)) }
                 return@launch
             }
             if (ctx !== c) return@launch // another photo by now
@@ -706,11 +709,11 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             }
             _state.update { it.copy(straightenBusy = false) }
             if (result == null) {
-                _state.update { it.copy(message = "No clear horizon or upright lines to level by") }
+                _state.update { it.copy(message = str(R.string.develop_no_lines)) }
                 return@launch
             }
-            val by = if (result.fromVerticals) "the upright lines" else "the horizon"
-            straightenBy(result.degrees, shownWith, "Auto", "from $by")
+            val how = str(if (result.fromVerticals) R.string.develop_by_verticals else R.string.develop_by_horizon)
+            straightenBy(result.degrees, shownWith, str(R.string.develop_source_auto), how)
         }
     }
 
@@ -728,7 +731,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
             else -> a + 90f
         }
         val shownWith = _state.value.previewParams ?: return
-        straightenBy(tilt, shownWith, "Level", if (abs(a) <= 45f) "to level" else "to upright")
+        straightenBy(tilt, shownWith, str(R.string.develop_source_level), str(if (abs(a) <= 45f) R.string.develop_to_level else R.string.develop_to_upright))
     }
 
     /**
@@ -745,12 +748,12 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val next = (wanted * 10f).roundToInt() / 10f
         val clamped = next.coerceIn(a.min, a.max)
         val msg = when {
-            abs(clamped - before[a]) < 0.05f -> "$source: already level"
-            clamped != next -> "$source: Straighten ${a.format(clamped)} (as far as it goes; the line is ${"%.1f".format(abs(wanted))}° off)"
-            else -> "$source: Straighten ${a.format(clamped)} $how"
+            abs(clamped - before[a]) < 0.05f -> str(R.string.develop_already_level, source)
+            clamped != next -> str(R.string.develop_straighten_limit, source, a.format(clamped), "%.1f".format(abs(wanted)))
+            else -> str(R.string.develop_straighten, source, a.format(clamped), how)
         }
         val p = before.with(a, clamped)
-        _state.update { it.copy(params = p, beforeAuto = before, message = msg) }
+        _state.update { it.copy(params = p, beforeAuto = before, message = msg, messageUndoable = true) }
         paramsFlow.value = p
         record(p)
     }
@@ -812,8 +815,8 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun describeAuto(before: DevelopParams, after: DevelopParams): String {
         val changed = AutoTone.SLIDERS.filter { abs(after[it] - before[it]) > 1e-3f }
-        if (changed.isEmpty()) return "already balanced"
-        return changed.joinToString(", ") { "${it.label} ${it.format(after[it])}" }
+        if (changed.isEmpty()) return str(R.string.develop_auto_balanced)
+        return changed.joinToString(", ") { str(R.string.develop_auto_change, it.title(getApplication()), it.format(after[it])) }
     }
 
     // ---- looks -------------------------------------------------------------------------------
@@ -887,14 +890,14 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
 
     fun copySettings() {
         prefs.copiedSettings = EditsStore.toJson(_state.value.params)
-        _state.update { it.copy(canPaste = true, message = "Settings copied. Paste them onto other photos from the library.") }
+        _state.update { it.copy(canPaste = true, message = str(R.string.develop_settings_copied)) }
     }
 
     fun pasteSettings() {
         val json = prefs.copiedSettings ?: return
         val copied = EditsStore.fromJson(json, _state.value.defaults) ?: return
         val next = EditsStore.keepPerShot(copied, _state.value.params)
-        _state.update { it.copy(params = next, message = "Settings pasted") }
+        _state.update { it.copy(params = next, message = str(R.string.develop_settings_pasted)) }
         paramsFlow.value = next
         record(next)
     }
@@ -903,12 +906,12 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     fun savePreset(name: String) {
         val clean = name.trim().ifEmpty { return }
         val list = PresetStore.save(getApplication(), clean, _state.value.params)
-        _state.update { it.copy(presets = list, message = "Saved preset \"$clean\"") }
+        _state.update { it.copy(presets = list, message = str(R.string.develop_preset_saved, clean)) }
     }
 
     fun applyPreset(preset: Preset) {
         val next = EditsStore.keepPerShot(preset.params, _state.value.params)
-        _state.update { it.copy(params = next, message = "Applied \"${preset.name}\"") }
+        _state.update { it.copy(params = next, message = str(R.string.develop_preset_applied, preset.name)) }
         paramsFlow.value = next
         record(next)
         if (next.usesMasks()) ensureMasks()
@@ -925,7 +928,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { RatingsStore.set(getApplication(), listOf(key), stars) }
     }
 
-    fun clearMessage() = _state.update { it.copy(message = null) }
+    fun clearMessage() = _state.update { it.copy(message = null, messageUndoable = false) }
 
     fun export(settings: ExportSettings) {
         val uri = loadedUri ?: return
@@ -934,9 +937,12 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { runCatching { EditsStore.save(getApplication(), key, p) } }
             ExportQueue.enqueue(getApplication(), listOf(uri), settings)
-            _state.update { it.copy(message = "Export started. It keeps running if you leave the app.") }
+            _state.update { it.copy(message = str(R.string.develop_export_started)) }
         }
     }
+
+    /** A user-facing text from the app's string resources. */
+    private fun str(id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
 
     /** Rounds to the nearest third-stop ISO value, the way cameras label them. */
     private fun roundIso(iso: Float): Int {

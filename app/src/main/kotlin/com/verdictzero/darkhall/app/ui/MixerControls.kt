@@ -50,12 +50,13 @@ fun MixerControls(state: DevelopState, vm: DevelopViewModel) {
         ) {
             for (band in MixBand.entries) {
                 val selected = band == picked
+                val name = band.title()
                 val changed = Adjustment.mixer(band).any { !state.params.isDefault(it, state.defaults) }
                 // The whole column width and 48 dp of height take the tap, not just the swatch.
                 Column(
                     Modifier
                         .weight(1f)
-                        .semantics(mergeDescendants = true) { contentDescription = band.label; this.selected = selected }
+                        .semantics(mergeDescendants = true) { contentDescription = name; this.selected = selected }
                         .testTag("mix-${band.name}")
                         .clickable(role = Role.Tab) { picked = band },
                     horizontalAlignment = Alignment.CenterHorizontally,

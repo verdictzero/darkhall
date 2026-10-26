@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [36])
@@ -28,7 +29,7 @@ class LibraryFilterTest {
     )
     private val ratings = mapOf(a.key to 5, c.key to 2)
 
-    private fun names(groups: List<LibraryFilter.Group>) = groups.map { g -> g.title to g.files.map { it.name } }
+    private fun names(groups: List<LibraryFilter.Group>) = groups.map { g -> g.heading to g.files.map { it.name } }
 
     @Test
     fun filters() {
@@ -46,11 +47,11 @@ class LibraryFilterTest {
     @Test
     fun groupsByDayNewestFirst() {
         val groups = LibraryFilter(byDate = true).apply(files, facts, ratings, emptySet())
-        val titles = groups.map { it.title!! }
+        val days = groups.map { it.heading!!.day }
         assertEquals(3, groups.size)
-        assertEquals(true, titles[0].contains("15"))
-        assertEquals(true, titles[1].contains("14"))
-        assertEquals("Date unknown", titles[2])
+        assertEquals(LocalDate.of(2025, 8, 15), days[0])
+        assertEquals(LocalDate.of(2025, 8, 14), days[1])
+        assertEquals(null, days[2]) // "Date unknown"
         // Within a day, in the order taken.
         assertEquals(listOf("P2.ORF", "P1.ORF"), groups[1].files.map { it.name })
         assertEquals(listOf(null to listOf("P1.ORF", "P2.ORF", "P3.ORF", "IMG.CR2")), names(LibraryFilter().apply(files, facts, ratings, emptySet())))

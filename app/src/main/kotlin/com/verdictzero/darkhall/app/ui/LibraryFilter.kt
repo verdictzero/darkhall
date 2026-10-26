@@ -3,8 +3,6 @@ package com.verdictzero.darkhall.app.ui
 import com.verdictzero.darkhall.app.data.RawFile
 import com.verdictzero.darkhall.core.raw.ShotFacts
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** What the library shows: filters, and whether it is grouped by the day the photos were taken. */
 data class LibraryFilter(
@@ -19,8 +17,11 @@ data class LibraryFilter(
 ) {
     val active: Boolean get() = minRating > 0 || edited != null || underwaterOnly || camera != null
 
-    /** One block of the grid: a day's photos under [title], or all of them (title null). */
-    data class Group(val title: String?, val files: List<RawFile>)
+    /** One block of the grid: a day's photos under [heading], or all of them (heading null). */
+    data class Group(val heading: Heading?, val files: List<RawFile>)
+
+    /** A day's heading; [day] null for the photos with no readable date. The screen words it. */
+    data class Heading(val day: LocalDate?)
 
     /**
      * The files to show, in groups. Files whose facts haven't been read yet pass the facts-based
@@ -37,19 +38,17 @@ data class LibraryFilter(
         if (!byDate) return listOf(Group(null, shown))
         val byDay = shown.groupBy { f -> facts[f.key]?.let { day(it) } }
         val days = byDay.keys.filterNotNull().sortedDescending()
-        return days.map { d -> Group(title(d), byDay.getValue(d).sortedBy { facts[it.key]?.dateTime }) } +
-            listOfNotNull(byDay[null]?.let { Group("Date unknown", it) })
+        return days.map { d -> Group(Heading(d), byDay.getValue(d).sortedBy { facts[it.key]?.dateTime }) } +
+            listOfNotNull(byDay[null]?.let { Group(Heading(null), it) })
     }
 
     companion object {
-        fun cameraOf(f: ShotFacts): String = listOf(f.make, f.model).filter { it.isNotBlank() }.distinct().joinToString(" ").ifBlank { "Unknown camera" }
+        /** "Make Model", or "" when the file names no camera (the screen shows "Unknown camera"). */
+        fun cameraOf(f: ShotFacts): String = listOf(f.make, f.model).filter { it.isNotBlank() }.distinct().joinToString(" ")
 
-        /** "YYYY-MM-DD" from EXIF "YYYY:MM:DD HH:MM:SS", or null. */
-        private fun day(f: ShotFacts): String? =
-            f.dateTime.takeIf { it.length >= 10 && it[4] == ':' && it[7] == ':' }?.take(10)?.replace(':', '-')
-
-        private fun title(day: String): String = runCatching {
-            LocalDate.parse(day).format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.getDefault()))
-        }.getOrDefault(day)
+        /** The day from EXIF "YYYY:MM:DD HH:MM:SS", or null. */
+        private fun day(f: ShotFacts): LocalDate? =
+            f.dateTime.takeIf { it.length >= 10 && it[4] == ':' && it[7] == ':' }
+                ?.let { runCatching { LocalDate.parse(it.take(10).replace(':', '-')) }.getOrNull() }
     }
 }

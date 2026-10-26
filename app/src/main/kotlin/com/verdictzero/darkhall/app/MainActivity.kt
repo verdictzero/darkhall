@@ -29,8 +29,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.verdictzero.darkhall.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdictzero.darkhall.app.ui.DarkhallTheme
 import com.verdictzero.darkhall.app.ui.DevelopScreen
@@ -114,10 +116,12 @@ private fun CrashDialog(text: String) {
     if (!open) return
     val dismiss = { CrashLog.clear(context); open = false }
     val strokes = LocalStrokes.current
+    val clipLabel = stringResource(R.string.app_crash_clip_label)
+    val shareTitle = stringResource(R.string.app_crash_share_title)
     AlertDialog(
         onDismissRequest = dismiss,
         modifier = Modifier.border(strokes.width, strokes.container, AlertDialogDefaults.shape),
-        title = { Text("Darkhall crashed last time") },
+        title = { Text(stringResource(R.string.app_crash_title)) },
         text = {
             Text(
                 text,
@@ -127,16 +131,16 @@ private fun CrashDialog(text: String) {
             )
         },
         confirmButton = {
-            StrokedTextButton("Copy", onClick = {
+            StrokedTextButton(stringResource(R.string.app_crash_copy), onClick = {
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("Darkhall crash", text))
+                cm.setPrimaryClip(ClipData.newPlainText(clipLabel, text))
                 dismiss()
             })
         },
         dismissButton = {
-            StrokedTextButton("Share", onClick = {
+            StrokedTextButton(stringResource(R.string.app_crash_share), onClick = {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-                runCatching { context.startActivity(Intent.createChooser(send, "Share crash report")) }
+                runCatching { context.startActivity(Intent.createChooser(send, shareTitle)) }
                 dismiss()
             })
         },

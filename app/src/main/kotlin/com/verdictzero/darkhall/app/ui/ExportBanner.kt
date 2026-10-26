@@ -1,5 +1,6 @@
 package com.verdictzero.darkhall.app.ui
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -31,7 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.verdictzero.darkhall.R
 import com.verdictzero.darkhall.app.data.ExportQueue
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -40,6 +43,7 @@ import java.util.UUID
 @Composable
 fun ExportBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val flow = remember(context) { ExportQueue.status(context) }
     val status by flow.collectAsState(initial = null)
     var reported by remember { mutableStateOf<Set<UUID>?>(null) }
@@ -62,9 +66,10 @@ fun ExportBanner(modifier: Modifier = Modifier) {
             val names = fresh.map { it.failedNames }.filter { it.isNotEmpty() }.joinToString(", ")
             shareable = fresh.flatMap { it.uris }
             summary = when {
-                failed == 0 -> "Saved $ok ${if (ok == 1) "photo" else "photos"} to ${fresh.last().folder}"
-                ok == 0 -> "Export failed" + if (names.isNotEmpty()) ": $names" else ""
-                else -> "Saved $ok, failed $failed" + if (names.isNotEmpty()) ": $names" else ""
+                failed == 0 -> resources.getQuantityString(R.plurals.export_saved_photos, ok, ok, fresh.last().folder)
+                ok == 0 -> if (names.isNotEmpty()) resources.getString(R.string.export_failed_names, names) else resources.getString(R.string.export_failed)
+                else -> if (names.isNotEmpty()) resources.getString(R.string.export_saved_failed_names, ok, failed, names)
+                    else resources.getString(R.string.export_saved_failed, ok, failed)
             }
         }
     }
@@ -77,7 +82,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
         s != null && s.running -> {
             val total = s.total + s.queued
             val pct = (s.fraction * 100).toInt()
-            if (total > 1) "Exporting ${s.done + 1} of $total · $pct%" else "Exporting · $pct%"
+            if (total > 1) stringResource(R.string.export_progress_of, s.done + 1, total, pct) else stringResource(R.string.export_progress, pct)
         }
         summary != null -> summary
         else -> null
@@ -98,7 +103,7 @@ fun ExportBanner(modifier: Modifier = Modifier) {
                     Text(text.orEmpty(), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
                     if (summary != null && shareable.isNotEmpty() && !(s?.running ?: false)) {
                         Spacer(Modifier.width(10.dp))
-                        StrokedTextButton("Share", onClick = { share(context, shareable) })
+                        StrokedTextButton(stringResource(R.string.export_share), onClick = { share(context, shareable) })
                     }
                 }
                 if (s != null && s.running) {
@@ -119,6 +124,6 @@ private fun share(context: Context, uris: List<Uri>) {
     send.type = context.contentResolver.getType(uris[0]) ?: "image/*"
     send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     runCatching {
-        context.startActivity(Intent.createChooser(send, if (uris.size == 1) "Share photo" else "Share ${uris.size} photos").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(send, context.resources.getQuantityString(R.plurals.export_share_chooser, uris.size, uris.size)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }
