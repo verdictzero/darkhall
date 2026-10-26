@@ -329,6 +329,31 @@ class ScreenshotTest {
         }
     }
 
+    /** The editor in German, the language with the longest labels, renders from its translation. */
+    @Test
+    @Config(qualifiers = "de-w411dp-h891dp-xxhdpi")
+    fun germanEditor() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            assertTrue(compose.onAllNodesWithText("Belichtung").fetchSemanticsNodes().isNotEmpty())
+            shot("editor_de")
+        }
+    }
+
+    /** Japanese, with its own script and no plural forms. */
+    @Test
+    @Config(qualifiers = "ja-w411dp-h891dp-xxhdpi")
+    fun japaneseLibrary() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists() && outDir.isNotEmpty())
+        com.verdictzero.darkhall.app.data.Prefs(app).extraFiles = listOf(Uri.fromFile(File(samplePath)))
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitFor { compose.onAllNodesWithText(File(samplePath).name).fetchSemanticsNodes().isNotEmpty() }
+            shot("library_ja")
+        }
+    }
+
     /** Tapping the title shows the shooting info. */
     @Test
     fun shotInfo() {

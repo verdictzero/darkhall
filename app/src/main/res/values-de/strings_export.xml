@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Export dialog, progress pill, export notifications and the editor's messages. -->
+<resources>
+    <!-- Export dialog -->
+    <plurals name="export_dialog_title">
+        <item quantity="one">Exportieren</item>
+        <item quantity="other">%1$d Fotos exportieren</item>
+    </plurals>
+    <string name="export_format">Format</string>
+    <string name="export_purpose_jpeg">Kleine Dateien zum Teilen und für Druckdienste. 8 Bit.</string>
+    <string name="export_purpose_png">Verlustfrei. Mit 16 Bit bleibt jeder Tonwert für die Bearbeitung in anderen Apps erhalten.</string>
+    <string name="export_purpose_tiff">Verlustfrei, für Druck und andere Editoren. Behält Aufnahmedaten und GPS.</string>
+    <string name="export_purpose_webp">Verlustfrei und kleiner als PNG. 8 Bit.</string>
+    <string name="export_purpose_tga">8 Bit, für Game-Engines und ältere Tools. Ohne Aufnahmedaten.</string>
+    <string name="export_quality">Qualität</string>
+    <string name="export_bit_depth">Farbtiefe</string>
+    <string name="export_8_bit">8 Bit</string>
+    <string name="export_16_bit">16 Bit</string>
+    <string name="export_compression">Komprimierung</string>
+    <!-- No TIFF compression -->
+    <string name="export_compression_none">Keine</string>
+    <string name="export_size">Größe (lange Kante)</string>
+    <!-- Export at the photo's full size -->
+    <string name="export_size_full">Voll</string>
+    <string name="export_size_px">%1$d px</string>
+    <string name="export_start">Export starten</string>
+    <string name="export_cancel">Abbrechen</string>
+
+    <!-- Progress pill -->
+    <string name="export_progress_of">Export %1$d von %2$d · %3$d %%</string>
+    <string name="export_progress">Export · %1$d %%</string>
+    <!-- %2$s is the folder, e.g. Pictures/Darkhall -->
+    <plurals name="export_saved_photos">
+        <item quantity="one">%1$d Foto in %2$s gespeichert</item>
+        <item quantity="other">%1$d Fotos in %2$s gespeichert</item>
+    </plurals>
+    <string name="export_failed">Export fehlgeschlagen</string>
+    <!-- %1$s lists the files that failed -->
+    <string name="export_failed_names">Export fehlgeschlagen: %1$s</string>
+    <string name="export_saved_failed">%1$d gespeichert, %2$d fehlgeschlagen</string>
+    <string name="export_saved_failed_names">%1$d gespeichert, %2$d fehlgeschlagen: %3$s</string>
+    <string name="export_share">Teilen</string>
+    <plurals name="export_share_chooser">
+        <item quantity="one">Foto teilen</item>
+        <item quantity="other">%1$d Fotos teilen</item>
+    </plurals>
+
+    <!-- Export notification and results -->
+    <string name="export_channel">Exporte</string>
+    <string name="export_notification_of">Export %1$d von %2$d</string>
+    <string name="export_notification">Export läuft</string>
+    <string name="export_preparing">Wird vorbereitet…</string>
+    <!-- Stands in for a file name that could not be read -->
+    <string name="export_default_name">Foto</string>
+    <string name="export_focus_stack">Fokus-Stack · %1$s</string>
+    <!-- %2$s is the reason -->
+    <string name="export_focus_stack_failed">Fokus-Stack aus %1$s (%2$s)</string>
+    <string name="export_stack_different_size">%1$s hat eine andere Größe</string>
+    <string name="export_job_missing">die Dateiliste des Exports fehlt</string>
+
+    <!-- Editor messages -->
+    <string name="develop_render_failed">Rendern fehlgeschlagen: %1$s</string>
+    <string name="develop_out_of_memory">Nicht genug Speicher, um diese Datei zu öffnen. Schließe andere Apps und versuche es erneut.</string>
+    <!-- Appended to the photo's description; the two leading spaces are kept -->
+    <string name="develop_info_noise">"%1$s  Rauschen ≈ ISO %2$d"</string>
+    <string name="develop_gpu_stopped">GPU-Rendering gestoppt; CPU wird verwendet</string>
+    <string name="develop_gpu_off">Aus</string>
+    <string name="develop_gpu_unavailable">Nicht verfügbar</string>
+    <string name="develop_gpu_rejected">Aus: weicht bei diesem Treiber von der CPU ab</string>
+    <!-- %1$s is a technical measure of the difference -->
+    <string name="develop_gpu_mismatch">Aus: weicht von der CPU ab (%1$s)</string>
+    <string name="develop_gpu_mismatch_message">Ausgabe dieser GPU wich ab; CPU wird verwendet</string>
+    <string name="develop_gpu_error">GPU-Fehler</string>
+    <!-- %1$s lists the changed sliders, or says nothing changed -->
+    <string name="develop_auto">Auto: %1$s</string>
+    <string name="develop_auto_balanced">bereits ausgewogen</string>
+    <!-- A slider and its new value, e.g. Exposure +0.50 -->
+    <string name="develop_auto_change">%1$s %2$s</string>
+    <string name="develop_masks_failed">Suche nach Himmel, Wasser und Menschen fehlgeschlagen: %1$s</string>
+    <string name="develop_no_lines">Kein klarer Horizont und keine senkrechten Linien zum Ausrichten</string>
+    <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
+    <string name="develop_source_auto">Auto</string>
+    <string name="develop_source_level">Linie</string>
+    <string name="develop_already_level">%1$s: bereits gerade</string>
+    <!-- %2$s is the Straighten value, %3$s the tilt in degrees -->
+    <string name="develop_straighten_limit">%1$s: Begradigen %2$s (Maximum erreicht; die Linie ist %3$s° schief)</string>
+    <!-- %3$s says how it was levelled, e.g. from the horizon -->
+    <string name="develop_straighten">%1$s: Begradigen %2$s %3$s</string>
+    <string name="develop_by_verticals">anhand der senkrechten Linien</string>
+    <string name="develop_by_horizon">anhand des Horizonts</string>
+    <string name="develop_to_level">auf die Waagerechte</string>
+    <string name="develop_to_upright">auf die Senkrechte</string>
+    <string name="develop_settings_copied">Einstellungen kopiert. Füge sie in der Bibliothek auf andere Fotos ein.</string>
+    <string name="develop_settings_pasted">Einstellungen eingefügt</string>
+    <string name="develop_preset_saved">Preset „%1$s“ gespeichert</string>
+    <string name="develop_preset_applied">„%1$s“ angewendet</string>
+    <string name="develop_export_started">Export gestartet. Er läuft weiter, auch wenn du die App verlässt.</string>
+</resources>

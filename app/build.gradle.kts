@@ -42,6 +42,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Lists the translated languages for Android 13's per-app language setting.
+    androidResources {
+        generateLocaleConfig = true
+    }
     buildFeatures {
         compose = true
     }

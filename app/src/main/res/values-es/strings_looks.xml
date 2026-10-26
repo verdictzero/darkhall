@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Look browser, open-source licences, crash dialog and GPU status texts. -->
+<resources>
+    <!-- Look browser -->
+    <string name="looks_close">Cerrar looks</string>
+    <string name="looks_title">Looks</string>
+    <string name="looks_credits">Créditos</string>
+    <string name="looks_search_placeholder">Buscar películas y looks</string>
+    <string name="looks_all">Todos</string>
+    <string name="looks_favorites">Favoritos</string>
+    <string name="looks_favorites_chip">♥ Favoritos</string>
+    <string name="looks_favorites_empty">Aún no hay favoritos. Toca el corazón de cualquier look para guardarlo aquí.</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_favorites_no_match">Ningún favorito coincide con “%1$s”.</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_no_match">Ningún look coincide con “%1$s”.</string>
+    <string name="looks_none">Ninguno</string>
+    <!-- Shelf header: %1$s shelf (e.g. Film color), %2$s section inside it (e.g. Slide) -->
+    <string name="looks_shelf_header">%1$s · %2$s</string>
+    <string name="looks_credits_title">Créditos de los looks</string>
+    <string name="looks_credits_close">Cerrar</string>
+    <!-- %1$s: look name -->
+    <string name="looks_cell_description">Look %1$s</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_add">Añadir %1$s a favoritos</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_remove">Quitar %1$s de favoritos</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_strip_description">Look favorito %1$s</string>
+
+    <!-- Look shelves (the "Darkhall" shelf is a proper name and is not translated) -->
+    <string name="looks_group_film_color">Película color</string>
+    <string name="looks_group_film_bw">Película B/N</string>
+    <string name="looks_group_creative">Creativo</string>
+    <!-- Look sections inside the shelves -->
+    <string name="looks_category_instant">Instantánea</string>
+    <string name="looks_category_color_negative">Negativo color</string>
+    <string name="looks_category_slide">Diapositiva</string>
+    <string name="looks_category_cross_process">Proceso cruzado</string>
+    <string name="looks_category_creative_pack">Pack creativo</string>
+    <string name="looks_category_modern">Moderno</string>
+    <string name="looks_category_classic">Clásico</string>
+    <string name="looks_category_special">Especial</string>
+    <string name="looks_category_black_white">Blanco y negro</string>
+    <string name="looks_category_cinematic">Cinematográfico</string>
+    <string name="looks_category_split_tone">Tonos divididos</string>
+    <string name="looks_category_underwater">Subacuático</string>
+    <string name="looks_category_faded">Desvaído</string>
+    <string name="looks_category_duotone">Duotono</string>
+
+    <!-- Open-source licences -->
+    <string name="licenses_close">Cerrar licencias</string>
+    <string name="licenses_title">Licencias de código abierto</string>
+    <!-- %1$s: URL of the app's source code -->
+    <string name="licenses_intro">Darkhall © 2026 verdictzero. Incluye los componentes siguientes, cada uno con su propia licencia. Los decodificadores RAW están sujetos a la CDDL 1.0; su código fuente está en %1$s.</string>
+    <string name="licenses_dialog_close">Cerrar</string>
+    <!-- What each third-party component is used for -->
+    <string name="licenses_use_libraw">Decodificadores RAW, color de cámara y tablas de modelos Canon</string>
+    <string name="licenses_use_dng_sdk">Decodificación de DNG en coma flotante</string>
+    <string name="licenses_use_film_simulation">Looks de película, remuestreados a tablas 33³</string>
+    <string name="licenses_use_lensfun">Coeficientes de distorsión y aberración cromática del objetivo de las TG-5/6/7</string>
+    <string name="licenses_use_deeplab">Modelo de detección del cielo</string>
+    <string name="licenses_use_androidx">Core, SplashScreen, Activity, Lifecycle, Compose UI, Foundation, Material 3, Material Icons, DocumentFile, ExifInterface, WorkManager</string>
+    <string name="licenses_use_kotlin">Entorno de ejecución del lenguaje</string>
+
+    <!-- Crash report shown on the next launch -->
+    <string name="app_crash_title">Darkhall se cerró inesperadamente la última vez</string>
+    <string name="app_crash_copy">Copiar</string>
+    <string name="app_crash_share">Compartir</string>
+    <string name="app_crash_clip_label">Fallo de Darkhall</string>
+    <string name="app_crash_share_title">Compartir informe de fallo</string>
+
+    <!-- Why GPU rendering is off; %1$s: the technical reason from the driver -->
+    <string name="gpu_unavailable">GPU no disponible: %1$s</string>
+    <string name="gpu_error">Error de GPU: %1$s</string>
+</resources>

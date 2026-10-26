@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The library screen: grid, filters, selection actions, rating and presets dialogs. -->
+<resources>
+    <!-- Top bar -->
+    <string name="library_folder">Dossier</string>
+    <string name="library_files">Fichiers</string>
+    <string name="library_more">Plus</string>
+    <string name="library_licences">Licences open source</string>
+
+    <!-- Selection -->
+    <plurals name="library_selected_count">
+        <item quantity="one">%1$d sélectionnée</item>
+        <item quantity="many">%1$d sélectionnées</item>
+        <item quantity="other">%1$d sélectionnées</item>
+    </plurals>
+    <string name="library_cancel_selection">Annuler la sélection</string>
+    <string name="library_paste">Coller</string>
+    <string name="library_auto">Auto</string>
+    <string name="library_export">Exporter</string>
+    <string name="library_select_all">Tout sélectionner</string>
+    <string name="library_rate_menu">Noter…</string>
+    <string name="library_apply_preset_menu">Appliquer un préréglage…</string>
+    <string name="library_focus_stack_menu">Empilement de mise au point…</string>
+    <plurals name="library_apply_preset_title">
+        <item quantity="one">Appliquer un préréglage à %1$d photo</item>
+        <item quantity="many">Appliquer un préréglage à %1$d photos</item>
+        <item quantity="other">Appliquer un préréglage à %1$d photos</item>
+    </plurals>
+    <plurals name="library_focus_stack_title">
+        <item quantity="one">Empilement de mise au point de %1$d photo</item>
+        <item quantity="many">Empilement de mise au point de %1$d photos</item>
+        <item quantity="other">Empilement de mise au point de %1$d photos</item>
+    </plurals>
+
+    <!-- Above the grid -->
+    <string name="library_hint_selecting">Touchez pour ajouter ou retirer des photos</string>
+    <string name="library_hint_browsing">Appui long pour sélectionner des photos (coller, tons auto ou export par lot)</string>
+    <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
+    <plurals name="library_folder_summary">
+        <item quantity="one">"%1$s  ·  %2$d fichier RAW  ·  %3$s"</item>
+        <item quantity="many">"%1$s  ·  %2$d fichiers RAW  ·  %3$s"</item>
+        <item quantity="other">"%1$s  ·  %2$d fichiers RAW  ·  %3$s"</item>
+    </plurals>
+    <string name="library_showing">%1$d affichées sur %2$d</string>
+    <!-- Name for a picked folder whose own name can't be read. -->
+    <string name="library_folder_unnamed">Dossier</string>
+
+    <!-- Empty library -->
+    <string name="library_empty_title">Aucun fichier RAW pour l\'instant</string>
+    <string name="library_empty_body">Choisissez un dossier de fichiers RAW (le DCIM/100OLYMP de votre TG-7, la carte d\'un autre appareil ou les DNG de votre téléphone), ou ouvrez des fichiers un par un. Formats lus : ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF et RAF.</string>
+    <string name="library_choose_folder">Choisir un dossier</string>
+    <string name="library_open_files">Ouvrir des fichiers</string>
+
+    <!-- Grid cells -->
+    <string name="library_cell_selected">sélectionnée</string>
+    <string name="library_cell_edited">retouchée</string>
+    <string name="library_action_open">Ouvrir</string>
+    <string name="library_action_select">Sélectionner</string>
+    <string name="library_action_deselect">Désélectionner</string>
+    <string name="library_selected">Sélectionnée</string>
+    <string name="library_badge_edited">RETOUCHÉE</string>
+    <plurals name="library_stars">
+        <item quantity="one">%1$d étoile</item>
+        <item quantity="many">%1$d étoiles</item>
+        <item quantity="other">%1$d étoiles</item>
+    </plurals>
+
+    <!-- Day headings -->
+    <string name="library_date_unknown">Date inconnue</string>
+
+    <!-- Filters -->
+    <string name="library_filter_by_date">Par date</string>
+    <string name="library_filter_rating_any">★ Toutes</string>
+    <string name="library_filter_rating_five">★★★★★</string>
+    <string name="library_filter_rating_min">★ %1$d+</string>
+    <string name="library_filter_edited">Retouchées</string>
+    <string name="library_filter_not_edited">Non retouchées</string>
+    <string name="library_filter_edited_any">Retouchées ou non</string>
+    <string name="library_filter_underwater">Subaquatique</string>
+    <string name="library_filter_all_cameras">Tous les appareils</string>
+    <string name="library_unknown_camera">Appareil inconnu</string>
+
+    <!-- Rate dialog -->
+    <plurals name="library_rate_title">
+        <item quantity="one">Noter %1$d photo</item>
+        <item quantity="many">Noter %1$d photos</item>
+        <item quantity="other">Noter %1$d photos</item>
+    </plurals>
+    <string name="library_rate_hint">Touchez une étoile pour toutes les noter.</string>
+    <string name="library_clear_rating">Effacer la note</string>
+    <string name="library_cancel">Annuler</string>
+
+    <!-- Messages -->
+    <plurals name="library_pasted">
+        <item quantity="one">Réglages collés sur %1$d photo</item>
+        <item quantity="many">Réglages collés sur %1$d photos</item>
+        <item quantity="other">Réglages collés sur %1$d photos</item>
+    </plurals>
+    <!-- %1$s preset name, %2$d number of photos. -->
+    <plurals name="library_preset_applied">
+        <item quantity="one">« %1$s » appliqué à %2$d photo</item>
+        <item quantity="many">« %1$s » appliqué à %2$d photos</item>
+        <item quantity="other">« %1$s » appliqué à %2$d photos</item>
+    </plurals>
+    <plurals name="library_stacking">
+        <item quantity="one">Empilement de %1$d photo. Il se poursuit même si vous quittez l\'app.</item>
+        <item quantity="many">Empilement de %1$d photos. Il se poursuit même si vous quittez l\'app.</item>
+        <item quantity="other">Empilement de %1$d photos. Il se poursuit même si vous quittez l\'app.</item>
+    </plurals>
+    <string name="library_auto_progress">Tons auto %1$d sur %2$d</string>
+    <plurals name="library_auto_done">
+        <item quantity="one">Tons auto appliqués à %1$d photo</item>
+        <item quantity="many">Tons auto appliqués à %1$d photos</item>
+        <item quantity="other">Tons auto appliqués à %1$d photos</item>
+    </plurals>
+    <string name="library_auto_partial">Tons auto appliqués à %1$d sur %2$d ; certains fichiers n\'ont pas pu être lus</string>
+    <string name="library_folder_lost">Le dossier n\'est plus accessible ; sélectionnez-le à nouveau.</string>
+
+    <!-- Presets dialog -->
+    <string name="presets_title">Préréglages</string>
+    <string name="presets_empty">Aucun préréglage pour l\'instant. Enregistrez les réglages de cette photo pour les réutiliser sur d\'autres ; le redressement et le recadrage restent propres à chaque photo.</string>
+    <string name="presets_delete">Supprimer le préréglage %1$s</string>
+    <string name="presets_name_hint">Nom du préréglage</string>
+    <string name="presets_save">Enregistrer</string>
+    <string name="presets_close">Fermer</string>
+</resources>

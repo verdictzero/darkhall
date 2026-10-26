@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The library screen: grid, filters, selection actions, rating and presets dialogs. -->
+<resources>
+    <!-- Top bar -->
+    <string name="library_folder">Carpeta</string>
+    <string name="library_files">Archivos</string>
+    <string name="library_more">Más</string>
+    <string name="library_licences">Licencias de código abierto</string>
+
+    <!-- Selection -->
+    <plurals name="library_selected_count">
+        <item quantity="one">%1$d seleccionada</item>
+        <item quantity="many">%1$d seleccionadas</item>
+        <item quantity="other">%1$d seleccionadas</item>
+    </plurals>
+    <string name="library_cancel_selection">Cancelar selección</string>
+    <string name="library_paste">Pegar</string>
+    <string name="library_auto">Auto</string>
+    <string name="library_export">Exportar</string>
+    <string name="library_select_all">Seleccionar todo</string>
+    <string name="library_rate_menu">Valorar…</string>
+    <string name="library_apply_preset_menu">Aplicar preajuste…</string>
+    <string name="library_focus_stack_menu">Apilado de enfoque…</string>
+    <plurals name="library_apply_preset_title">
+        <item quantity="one">Aplicar un preajuste a %1$d foto</item>
+        <item quantity="many">Aplicar un preajuste a %1$d fotos</item>
+        <item quantity="other">Aplicar un preajuste a %1$d fotos</item>
+    </plurals>
+    <plurals name="library_focus_stack_title">
+        <item quantity="one">Apilado de enfoque de %1$d foto</item>
+        <item quantity="many">Apilado de enfoque de %1$d fotos</item>
+        <item quantity="other">Apilado de enfoque de %1$d fotos</item>
+    </plurals>
+
+    <!-- Above the grid -->
+    <string name="library_hint_selecting">Toca para añadir o quitar fotos</string>
+    <string name="library_hint_browsing">Mantén pulsada una foto para seleccionar y pegar ajustes, aplicar tono automático o exportar en lote</string>
+    <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
+    <plurals name="library_folder_summary">
+        <item quantity="one">"%1$s  ·  %2$d archivo RAW  ·  %3$s"</item>
+        <item quantity="many">"%1$s  ·  %2$d archivos RAW  ·  %3$s"</item>
+        <item quantity="other">"%1$s  ·  %2$d archivos RAW  ·  %3$s"</item>
+    </plurals>
+    <string name="library_showing">Mostrando %1$d de %2$d</string>
+    <!-- Name for a picked folder whose own name can't be read. -->
+    <string name="library_folder_unnamed">Carpeta</string>
+
+    <!-- Empty library -->
+    <string name="library_empty_title">Aún no hay archivos RAW</string>
+    <string name="library_empty_body">Elige una carpeta de archivos RAW (la DCIM/100OLYMP de tu TG-7, la tarjeta de otra cámara o los DNG de tu móvil) o abre archivos sueltos. Lee ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF y RAF.</string>
+    <string name="library_choose_folder">Elegir carpeta</string>
+    <string name="library_open_files">Abrir archivos</string>
+
+    <!-- Grid cells -->
+    <string name="library_cell_selected">seleccionada</string>
+    <string name="library_cell_edited">editada</string>
+    <string name="library_action_open">Abrir</string>
+    <string name="library_action_select">Seleccionar</string>
+    <string name="library_action_deselect">Deseleccionar</string>
+    <string name="library_selected">Seleccionada</string>
+    <string name="library_badge_edited">EDITADA</string>
+    <plurals name="library_stars">
+        <item quantity="one">%1$d estrella</item>
+        <item quantity="many">%1$d estrellas</item>
+        <item quantity="other">%1$d estrellas</item>
+    </plurals>
+
+    <!-- Day headings -->
+    <string name="library_date_unknown">Fecha desconocida</string>
+
+    <!-- Filters -->
+    <string name="library_filter_by_date">Por fecha</string>
+    <string name="library_filter_rating_any">★ Todas</string>
+    <string name="library_filter_rating_five">★★★★★</string>
+    <string name="library_filter_rating_min">★ %1$d+</string>
+    <string name="library_filter_edited">Editadas</string>
+    <string name="library_filter_not_edited">Sin editar</string>
+    <string name="library_filter_edited_any">Editadas o no</string>
+    <string name="library_filter_underwater">Subacuáticas</string>
+    <string name="library_filter_all_cameras">Todas las cámaras</string>
+    <string name="library_unknown_camera">Cámara desconocida</string>
+
+    <!-- Rate dialog -->
+    <plurals name="library_rate_title">
+        <item quantity="one">Valorar %1$d foto</item>
+        <item quantity="many">Valorar %1$d fotos</item>
+        <item quantity="other">Valorar %1$d fotos</item>
+    </plurals>
+    <string name="library_rate_hint">Toca una estrella para valorarlas todas.</string>
+    <string name="library_clear_rating">Quitar valoración</string>
+    <string name="library_cancel">Cancelar</string>
+
+    <!-- Messages -->
+    <plurals name="library_pasted">
+        <item quantity="one">Ajustes pegados en %1$d foto</item>
+        <item quantity="many">Ajustes pegados en %1$d fotos</item>
+        <item quantity="other">Ajustes pegados en %1$d fotos</item>
+    </plurals>
+    <!-- %1$s preset name, %2$d number of photos. -->
+    <plurals name="library_preset_applied">
+        <item quantity="one">\"%1$s\" aplicado a %2$d foto</item>
+        <item quantity="many">\"%1$s\" aplicado a %2$d fotos</item>
+        <item quantity="other">\"%1$s\" aplicado a %2$d fotos</item>
+    </plurals>
+    <plurals name="library_stacking">
+        <item quantity="one">Apilando %1$d foto. Continúa aunque salgas de la app.</item>
+        <item quantity="many">Apilando %1$d fotos. Continúa aunque salgas de la app.</item>
+        <item quantity="other">Apilando %1$d fotos. Continúa aunque salgas de la app.</item>
+    </plurals>
+    <string name="library_auto_progress">Tono automático: %1$d de %2$d</string>
+    <plurals name="library_auto_done">
+        <item quantity="one">Tono automático aplicado a %1$d foto</item>
+        <item quantity="many">Tono automático aplicado a %1$d fotos</item>
+        <item quantity="other">Tono automático aplicado a %1$d fotos</item>
+    </plurals>
+    <string name="library_auto_partial">Tono automático aplicado a %1$d de %2$d; no se pudieron leer algunos archivos</string>
+    <string name="library_folder_lost">Ya no se puede acceder a la carpeta; vuelve a elegirla.</string>
+
+    <!-- Presets dialog -->
+    <string name="presets_title">Preajustes</string>
+    <string name="presets_empty">Aún no hay preajustes. Guarda los ajustes de esta foto para usarlos en otras; Enderezar y el recorte se quedan en cada foto.</string>
+    <string name="presets_delete">Eliminar el preajuste %1$s</string>
+    <string name="presets_name_hint">Nombre del preajuste</string>
+    <string name="presets_save">Guardar</string>
+    <string name="presets_close">Cerrar</string>
+</resources>

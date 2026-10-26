@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Look browser, open-source licences, crash dialog and GPU status texts. -->
+<resources>
+    <!-- Look browser -->
+    <string name="looks_close">ルックを閉じる</string>
+    <string name="looks_title">ルック</string>
+    <string name="looks_credits">クレジット</string>
+    <string name="looks_search_placeholder">フィルムやルックを検索</string>
+    <string name="looks_all">すべて</string>
+    <string name="looks_favorites">お気に入り</string>
+    <string name="looks_favorites_chip">♥ お気に入り</string>
+    <string name="looks_favorites_empty">お気に入りはまだありません。ルックのハートをタップすると、ここに追加されます。</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_favorites_no_match">「%1$s」に一致するお気に入りはありません。</string>
+    <!-- %1$s: the search text -->
+    <string name="looks_no_match">「%1$s」に一致するルックはありません。</string>
+    <string name="looks_none">なし</string>
+    <!-- Shelf header: %1$s shelf (e.g. Film color), %2$s section inside it (e.g. Slide) -->
+    <string name="looks_shelf_header">%1$s · %2$s</string>
+    <string name="looks_credits_title">ルックのクレジット</string>
+    <string name="looks_credits_close">閉じる</string>
+    <!-- %1$s: look name -->
+    <string name="looks_cell_description">ルック、%1$s</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_add">%1$sをお気に入りに追加</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_remove">%1$sをお気に入りから削除</string>
+    <!-- %1$s: look name -->
+    <string name="looks_favorite_strip_description">お気に入りのルック、%1$s</string>
+
+    <!-- Look shelves (the "Darkhall" shelf is a proper name and is not translated) -->
+    <string name="looks_group_film_color">カラーフィルム</string>
+    <string name="looks_group_film_bw">モノクロフィルム</string>
+    <string name="looks_group_creative">クリエイティブ</string>
+    <!-- Look sections inside the shelves -->
+    <string name="looks_category_instant">インスタント</string>
+    <string name="looks_category_color_negative">カラーネガ</string>
+    <string name="looks_category_slide">リバーサル</string>
+    <string name="looks_category_cross_process">クロスプロセス</string>
+    <string name="looks_category_creative_pack">クリエイティブパック</string>
+    <string name="looks_category_modern">モダン</string>
+    <string name="looks_category_classic">クラシック</string>
+    <string name="looks_category_special">スペシャル</string>
+    <string name="looks_category_black_white">モノクロ</string>
+    <string name="looks_category_cinematic">シネマティック</string>
+    <string name="looks_category_split_tone">スプリットトーン</string>
+    <string name="looks_category_underwater">水中</string>
+    <string name="looks_category_faded">フェード</string>
+    <string name="looks_category_duotone">デュオトーン</string>
+
+    <!-- Open-source licences -->
+    <string name="licenses_close">ライセンスを閉じる</string>
+    <string name="licenses_title">オープンソースライセンス</string>
+    <!-- %1$s: URL of the app's source code -->
+    <string name="licenses_intro">Darkhall © 2026 verdictzero。以下のコンポーネントを含み、それぞれ独自のライセンスが適用されます。RAWデコーダーにはCDDL 1.0が適用され、ソースコードは %1$s で公開されています。</string>
+    <string name="licenses_dialog_close">閉じる</string>
+    <!-- What each third-party component is used for -->
+    <string name="licenses_use_libraw">RAWデコーダー、カメラのカラー、Canonの機種テーブル</string>
+    <string name="licenses_use_dng_sdk">浮動小数点DNGのデコード</string>
+    <string name="licenses_use_film_simulation">フィルムルック（33³テーブルにリサンプリング）</string>
+    <string name="licenses_use_lensfun">TG-5/6/7のレンズ歪曲と色収差の補正係数</string>
+    <string name="licenses_use_deeplab">空の検出モデル</string>
+    <string name="licenses_use_androidx">Core、SplashScreen、Activity、Lifecycle、Compose UI、Foundation、Material 3、Material Icons、DocumentFile、ExifInterface、WorkManager</string>
+    <string name="licenses_use_kotlin">言語ランタイム</string>
+
+    <!-- Crash report shown on the next launch -->
+    <string name="app_crash_title">前回Darkhallがクラッシュしました</string>
+    <string name="app_crash_copy">コピー</string>
+    <string name="app_crash_share">共有</string>
+    <string name="app_crash_clip_label">Darkhallのクラッシュ</string>
+    <string name="app_crash_share_title">クラッシュレポートを共有</string>
+
+    <!-- Why GPU rendering is off; %1$s: the technical reason from the driver -->
+    <string name="gpu_unavailable">GPUを利用できません: %1$s</string>
+    <string name="gpu_error">GPUエラー: %1$s</string>
+</resources>

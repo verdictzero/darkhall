@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The editor: top bar and menu, preview labels, section buttons, crop, straighten and shot info. -->
+<resources>
+    <!-- Top bar and overflow menu -->
+    <string name="editor_develop">現像</string>
+    <string name="editor_shooting_info">撮影情報</string>
+    <string name="editor_back">戻る</string>
+    <string name="editor_undo">取り消し</string>
+    <string name="editor_redo">やり直し</string>
+    <string name="editor_export">書き出し</string>
+    <string name="editor_more">その他</string>
+    <string name="editor_presets">プリセット…</string>
+    <string name="editor_copy_settings">設定をコピー</string>
+    <string name="editor_paste_settings">設定をペースト</string>
+    <string name="editor_reset_all">すべてのスライダーをリセット</string>
+    <string name="editor_auto_tone_new">新しい写真を自動補正</string>
+    <string name="editor_gpu_rendering">GPUレンダリング</string>
+    <string name="editor_licences">オープンソースライセンス</string>
+
+    <!-- Loading and errors -->
+    <string name="editor_decoding">RAWをデコード中…</string>
+    <string name="editor_open_failed">このファイルを開けませんでした</string>
+    <string name="editor_back_to_library">ライブラリに戻る</string>
+
+    <!-- Preview -->
+    <string name="editor_preview">プレビュー</string>
+    <string name="editor_original">補正前</string>
+    <string name="editor_edited">補正後</string>
+    <!-- %1$s: a region's name, e.g. Sky -->
+    <string name="editor_mask_label">%1$sのマスク</string>
+    <string name="editor_hold_for_original">長押しで補正前を表示</string>
+    <string name="editor_rendering_detail">ディテールをレンダリング中…</string>
+    <string name="editor_full_resolution">フル解像度</string>
+    <!-- %1$d: milliseconds the last render took; %2$s: GPU or CPU -->
+    <string name="editor_render_time">%1$d ms · %2$s</string>
+    <string name="editor_single_view">1枚表示</string>
+    <string name="editor_side_by_side">補正前と左右に並べて表示</string>
+    <string name="editor_top_bottom">上に補正前、下に補正後を表示</string>
+
+    <!-- Straighten guides -->
+    <string name="editor_draw_line_to_level">線を引いて水平にする</string>
+    <string name="editor_level_hint">水平線か垂直な輪郭に沿ってドラッグ</string>
+    <!-- %1$s: the straighten angle, e.g. 1.5° -->
+    <string name="editor_straighten_value">角度補正 %1$s</string>
+    <!-- %1$s: degrees, e.g. 2.3 -->
+    <string name="editor_off_upright">垂直から%1$s°ずれ</string>
+    <!-- %1$s: degrees, e.g. 2.3 -->
+    <string name="editor_off_level">水平から%1$s°ずれ</string>
+
+    <!-- Section buttons -->
+    <string name="editor_auto">自動</string>
+    <string name="editor_auto_busy">自動…</string>
+    <string name="editor_show_mask">マスクを表示</string>
+    <string name="editor_reset">リセット</string>
+    <string name="editor_crop">切り抜き</string>
+    <string name="editor_done">完了</string>
+    <string name="editor_draw_level">線で水平</string>
+    <string name="editor_auto_straighten">自動角度補正</string>
+    <string name="editor_straightening">角度補正中…</string>
+    <!-- %1$s: a slider's name -->
+    <string name="editor_reset_slider">%1$sをリセット</string>
+
+    <!-- Masked regions -->
+    <string name="editor_finding_regions">空、水、人物、草木を検出中…（写真ごとに1回、1〜2秒かかります）</string>
+    <!-- %1$s: region name (Sky); %2$d: percent of the picture; %3$s: region noun (sky) -->
+    <string name="editor_region_coverage">%1$s: 写真の%2$d%%。このスライダーは%3$sだけを調整します。</string>
+    <!-- %1$s: region noun, e.g. sky -->
+    <string name="editor_region_absent">この写真には%1$sが見つかりません。</string>
+
+    <!-- Looks -->
+    <string name="editor_unknown_look">不明なルック</string>
+    <string name="editor_no_look">なし</string>
+    <string name="editor_looks_hint">フィルムシミュレーションとクリエイティブルック</string>
+    <string name="editor_browse">一覧</string>
+    <string name="editor_browse_looks">ルックの一覧を表示</string>
+
+    <!-- Crop -->
+    <string name="editor_crop_overlay">切り抜き</string>
+    <string name="editor_crop_landscape">切り抜きを横向きにする</string>
+    <string name="editor_crop_portrait">切り抜きを縦向きにする</string>
+    <!-- %1$s: shape (4:5, Free, Original); %2$s × %3$s: width and height in pixels -->
+    <string name="editor_crop_size">%1$s · %2$s × %3$s px</string>
+    <!-- %1$s: what cropLabel gives, e.g. 4:5 · 3,000 × 3,750 px -->
+    <string name="editor_cropped_to">切り抜き: %1$s</string>
+    <!-- %1$s × %2$s: width and height in pixels -->
+    <string name="editor_not_cropped">切り抜きなし · %1$s × %2$s px</string>
+
+    <!-- Shot info -->
+    <string name="editor_close">閉じる</string>
+    <string name="editor_show_on_map">地図で表示</string>
+    <string name="editor_info_camera">カメラ</string>
+    <string name="editor_info_taken">撮影日時</string>
+    <string name="editor_info_exposure">露出</string>
+    <string name="editor_info_size">サイズ</string>
+    <string name="editor_info_depth">水深</string>
+    <string name="editor_info_water_temperature">水温</string>
+    <string name="editor_info_temperature">気温</string>
+    <string name="editor_info_pressure">気圧</string>
+    <string name="editor_info_altitude">高度</string>
+    <string name="editor_info_location">撮影地</string>
+    <string name="editor_info_unknown_camera">不明</string>
+</resources>

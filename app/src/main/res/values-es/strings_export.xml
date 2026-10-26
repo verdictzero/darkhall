@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Export dialog, progress pill, export notifications and the editor's messages. -->
+<resources>
+    <!-- Export dialog -->
+    <plurals name="export_dialog_title">
+        <item quantity="one">Exportar</item>
+        <item quantity="many">Exportar %1$d fotos</item>
+        <item quantity="other">Exportar %1$d fotos</item>
+    </plurals>
+    <string name="export_format">Formato</string>
+    <string name="export_purpose_jpeg">Archivos pequeños para compartir y para servicios de impresión. 8 bits.</string>
+    <string name="export_purpose_png">Sin pérdida. A 16 bits conserva todos los tonos para editar en otras apps.</string>
+    <string name="export_purpose_tiff">Sin pérdida, para imprimir y para otros editores. Conserva los datos de la toma y el GPS.</string>
+    <string name="export_purpose_webp">Sin pérdida y más pequeño que PNG. 8 bits.</string>
+    <string name="export_purpose_tga">8 bits, para motores de juegos y herramientas antiguas. Sin datos de la toma.</string>
+    <string name="export_quality">Calidad</string>
+    <string name="export_bit_depth">Profundidad de bits</string>
+    <string name="export_8_bit">8 bits</string>
+    <string name="export_16_bit">16 bits</string>
+    <string name="export_compression">Compresión</string>
+    <!-- No TIFF compression -->
+    <string name="export_compression_none">Ninguna</string>
+    <string name="export_size">Tamaño (lado largo)</string>
+    <!-- Export at the photo's full size -->
+    <string name="export_size_full">Completo</string>
+    <string name="export_size_px">%1$d px</string>
+    <string name="export_start">Exportar</string>
+    <string name="export_cancel">Cancelar</string>
+
+    <!-- Progress pill -->
+    <string name="export_progress_of">Exportando %1$d de %2$d · %3$d%%</string>
+    <string name="export_progress">Exportando · %1$d%%</string>
+    <!-- %2$s is the folder, e.g. Pictures/Darkhall -->
+    <plurals name="export_saved_photos">
+        <item quantity="one">%1$d foto guardada en %2$s</item>
+        <item quantity="many">%1$d fotos guardadas en %2$s</item>
+        <item quantity="other">%1$d fotos guardadas en %2$s</item>
+    </plurals>
+    <string name="export_failed">Error al exportar</string>
+    <!-- %1$s lists the files that failed -->
+    <string name="export_failed_names">Error al exportar: %1$s</string>
+    <string name="export_saved_failed">Guardadas: %1$d · con error: %2$d</string>
+    <string name="export_saved_failed_names">Guardadas: %1$d · con error: %2$d (%3$s)</string>
+    <string name="export_share">Compartir</string>
+    <plurals name="export_share_chooser">
+        <item quantity="one">Compartir foto</item>
+        <item quantity="many">Compartir %1$d fotos</item>
+        <item quantity="other">Compartir %1$d fotos</item>
+    </plurals>
+
+    <!-- Export notification and results -->
+    <string name="export_channel">Exportaciones</string>
+    <string name="export_notification_of">Exportando %1$d de %2$d</string>
+    <string name="export_notification">Exportando</string>
+    <string name="export_preparing">Preparando…</string>
+    <!-- Stands in for a file name that could not be read -->
+    <string name="export_default_name">foto</string>
+    <string name="export_focus_stack">Apilado de enfoque · %1$s</string>
+    <!-- %2$s is the reason -->
+    <string name="export_focus_stack_failed">apilado de enfoque de %1$s (%2$s)</string>
+    <string name="export_stack_different_size">%1$s tiene otro tamaño</string>
+    <string name="export_job_missing">falta la lista de archivos de la exportación</string>
+
+    <!-- Editor messages -->
+    <string name="develop_render_failed">Error de renderizado: %1$s</string>
+    <string name="develop_out_of_memory">No hay memoria suficiente para abrir este archivo. Cierra otras apps y vuelve a intentarlo.</string>
+    <!-- Appended to the photo's description; the two leading spaces are kept -->
+    <string name="develop_info_noise">"%1$s  ruido ≈ ISO %2$d"</string>
+    <string name="develop_gpu_stopped">El renderizado por GPU se ha detenido; se usa la CPU</string>
+    <string name="develop_gpu_off">Desactivado</string>
+    <string name="develop_gpu_unavailable">No disponible</string>
+    <string name="develop_gpu_rejected">Desactivado: no coincide con la CPU con este controlador</string>
+    <!-- %1$s is a technical measure of the difference -->
+    <string name="develop_gpu_mismatch">Desactivado: no coincide con la CPU (%1$s)</string>
+    <string name="develop_gpu_mismatch_message">El resultado de esta GPU no coincidía; se usa la CPU</string>
+    <string name="develop_gpu_error">Error de GPU</string>
+    <!-- %1$s lists the changed sliders, or says nothing changed -->
+    <string name="develop_auto">Auto: %1$s</string>
+    <string name="develop_auto_balanced">ya está equilibrada</string>
+    <!-- A slider and its new value, e.g. Exposure +0.50 -->
+    <string name="develop_auto_change">%1$s %2$s</string>
+    <string name="develop_masks_failed">No se pudo buscar el cielo, el agua y las personas: %1$s</string>
+    <string name="develop_no_lines">No hay horizonte ni líneas verticales claras para nivelar</string>
+    <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
+    <string name="develop_source_auto">Auto</string>
+    <string name="develop_source_level">Nivel</string>
+    <string name="develop_already_level">%1$s: ya está nivelada</string>
+    <!-- %2$s is the Straighten value, %3$s the tilt in degrees -->
+    <string name="develop_straighten_limit">%1$s: Enderezar %2$s (al máximo; la línea está desviada %3$s°)</string>
+    <!-- %3$s says how it was levelled, e.g. from the horizon -->
+    <string name="develop_straighten">%1$s: Enderezar %2$s %3$s</string>
+    <string name="develop_by_verticals">según las líneas verticales</string>
+    <string name="develop_by_horizon">según el horizonte</string>
+    <string name="develop_to_level">para nivelar</string>
+    <string name="develop_to_upright">para poner vertical</string>
+    <string name="develop_settings_copied">Ajustes copiados. Pégalos en otras fotos desde la biblioteca.</string>
+    <string name="develop_settings_pasted">Ajustes pegados</string>
+    <string name="develop_preset_saved">Preajuste \"%1$s\" guardado</string>
+    <string name="develop_preset_applied">\"%1$s\" aplicado</string>
+    <string name="develop_export_started">Exportación iniciada. Continúa aunque salgas de la app.</string>
+</resources>

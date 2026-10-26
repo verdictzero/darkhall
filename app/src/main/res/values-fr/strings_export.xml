@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Export dialog, progress pill, export notifications and the editor's messages. -->
+<resources>
+    <!-- Export dialog -->
+    <plurals name="export_dialog_title">
+        <item quantity="one">Exporter %1$d photo</item>
+        <item quantity="many">Exporter %1$d photos</item>
+        <item quantity="other">Exporter %1$d photos</item>
+    </plurals>
+    <string name="export_format">Format</string>
+    <string name="export_purpose_jpeg">Fichiers légers pour le partage et les services d\'impression. 8 bits.</string>
+    <string name="export_purpose_png">Sans perte. En 16 bits, conserve toutes les nuances pour retoucher dans d\'autres apps.</string>
+    <string name="export_purpose_tiff">Sans perte, pour l\'impression et d\'autres logiciels. Conserve les données de prise de vue et le GPS.</string>
+    <string name="export_purpose_webp">Sans perte et plus léger que le PNG. 8 bits.</string>
+    <string name="export_purpose_tga">8 bits, pour les moteurs de jeu et les outils anciens. Sans données de prise de vue.</string>
+    <string name="export_quality">Qualité</string>
+    <string name="export_bit_depth">Profondeur</string>
+    <string name="export_8_bit">8 bits</string>
+    <string name="export_16_bit">16 bits</string>
+    <string name="export_compression">Compression</string>
+    <!-- No TIFF compression -->
+    <string name="export_compression_none">Aucune</string>
+    <string name="export_size">Taille (grand côté)</string>
+    <!-- Export at the photo's full size -->
+    <string name="export_size_full">Pleine</string>
+    <string name="export_size_px">%1$d px</string>
+    <string name="export_start">Lancer l\'export</string>
+    <string name="export_cancel">Annuler</string>
+
+    <!-- Progress pill -->
+    <string name="export_progress_of">Export de %1$d sur %2$d · %3$d %%</string>
+    <string name="export_progress">Export · %1$d %%</string>
+    <!-- %2$s is the folder, e.g. Pictures/Darkhall -->
+    <plurals name="export_saved_photos">
+        <item quantity="one">%1$d photo enregistrée dans %2$s</item>
+        <item quantity="many">%1$d photos enregistrées dans %2$s</item>
+        <item quantity="other">%1$d photos enregistrées dans %2$s</item>
+    </plurals>
+    <string name="export_failed">Échec de l\'export</string>
+    <!-- %1$s lists the files that failed -->
+    <string name="export_failed_names">Échec de l\'export : %1$s</string>
+    <string name="export_saved_failed">Enregistrées : %1$d, échecs : %2$d</string>
+    <string name="export_saved_failed_names">Enregistrées : %1$d, échecs : %2$d (%3$s)</string>
+    <string name="export_share">Partager</string>
+    <plurals name="export_share_chooser">
+        <item quantity="one">Partager %1$d photo</item>
+        <item quantity="many">Partager %1$d photos</item>
+        <item quantity="other">Partager %1$d photos</item>
+    </plurals>
+
+    <!-- Export notification and results -->
+    <string name="export_channel">Exports</string>
+    <string name="export_notification_of">Export de %1$d sur %2$d</string>
+    <string name="export_notification">Export en cours</string>
+    <string name="export_preparing">Préparation…</string>
+    <!-- Stands in for a file name that could not be read -->
+    <string name="export_default_name">photo</string>
+    <string name="export_focus_stack">Empilement de mise au point · %1$s</string>
+    <!-- %2$s is the reason -->
+    <string name="export_focus_stack_failed">empilement de mise au point de %1$s (%2$s)</string>
+    <string name="export_stack_different_size">%1$s n\'a pas la même taille</string>
+    <string name="export_job_missing">la liste des fichiers de l\'export est introuvable</string>
+
+    <!-- Editor messages -->
+    <string name="develop_render_failed">Échec du rendu : %1$s</string>
+    <string name="develop_out_of_memory">Mémoire insuffisante pour ouvrir ce fichier. Fermez d\'autres apps et réessayez.</string>
+    <!-- Appended to the photo's description; the two leading spaces are kept -->
+    <string name="develop_info_noise">"%1$s  bruit ≈ ISO %2$d"</string>
+    <string name="develop_gpu_stopped">Rendu GPU interrompu ; utilisation du CPU</string>
+    <string name="develop_gpu_off">Désactivé</string>
+    <string name="develop_gpu_unavailable">Indisponible</string>
+    <string name="develop_gpu_rejected">Désactivé : résultat différent du CPU avec ce pilote</string>
+    <!-- %1$s is a technical measure of the difference -->
+    <string name="develop_gpu_mismatch">Désactivé : résultat différent du CPU (%1$s)</string>
+    <string name="develop_gpu_mismatch_message">Le rendu de ce GPU ne correspondait pas ; utilisation du CPU</string>
+    <string name="develop_gpu_error">Erreur GPU</string>
+    <!-- %1$s lists the changed sliders, or says nothing changed -->
+    <string name="develop_auto">Auto : %1$s</string>
+    <string name="develop_auto_balanced">déjà équilibrée</string>
+    <!-- A slider and its new value, e.g. Exposure +0.50 -->
+    <string name="develop_auto_change">%1$s %2$s</string>
+    <string name="develop_masks_failed">Impossible de rechercher le ciel, l\'eau et les personnes : %1$s</string>
+    <string name="develop_no_lines">Aucun horizon ni ligne verticale assez net pour redresser</string>
+    <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
+    <string name="develop_source_auto">Auto</string>
+    <string name="develop_source_level">Niveau</string>
+    <string name="develop_already_level">%1$s : déjà droite</string>
+    <!-- %2$s is the Straighten value, %3$s the tilt in degrees -->
+    <string name="develop_straighten_limit">%1$s : redressement %2$s (au maximum ; la ligne est inclinée de %3$s°)</string>
+    <!-- %3$s says how it was levelled, e.g. from the horizon -->
+    <string name="develop_straighten">%1$s : redressement %2$s %3$s</string>
+    <string name="develop_by_verticals">d\'après les lignes verticales</string>
+    <string name="develop_by_horizon">d\'après l\'horizon</string>
+    <string name="develop_to_level">pour mettre à l\'horizontale</string>
+    <string name="develop_to_upright">pour mettre à la verticale</string>
+    <string name="develop_settings_copied">Réglages copiés. Collez-les sur d\'autres photos depuis la bibliothèque.</string>
+    <string name="develop_settings_pasted">Réglages collés</string>
+    <string name="develop_preset_saved">Préréglage « %1$s » enregistré</string>
+    <string name="develop_preset_applied">« %1$s » appliqué</string>
+    <string name="develop_export_started">Export lancé. Il se poursuit même si vous quittez l\'app.</string>
+</resources>

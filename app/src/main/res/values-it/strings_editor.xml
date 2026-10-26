@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The editor: top bar and menu, preview labels, section buttons, crop, straighten and shot info. -->
+<resources>
+    <!-- Top bar and overflow menu -->
+    <string name="editor_develop">Sviluppo</string>
+    <string name="editor_shooting_info">Dati di scatto</string>
+    <string name="editor_back">Indietro</string>
+    <string name="editor_undo">Annulla</string>
+    <string name="editor_redo">Ripeti</string>
+    <string name="editor_export">Esporta</string>
+    <string name="editor_more">Altro</string>
+    <string name="editor_presets">Preset…</string>
+    <string name="editor_copy_settings">Copia impostazioni</string>
+    <string name="editor_paste_settings">Incolla impostazioni</string>
+    <string name="editor_reset_all">Ripristina tutti i cursori</string>
+    <string name="editor_auto_tone_new">Tono auto sulle nuove foto</string>
+    <string name="editor_gpu_rendering">Rendering GPU</string>
+    <string name="editor_licences">Licenze open source</string>
+
+    <!-- Loading and errors -->
+    <string name="editor_decoding">Decodifica RAW…</string>
+    <string name="editor_open_failed">Impossibile aprire questo file</string>
+    <string name="editor_back_to_library">Torna alla libreria</string>
+
+    <!-- Preview -->
+    <string name="editor_preview">Anteprima</string>
+    <string name="editor_original">Originale</string>
+    <string name="editor_edited">Modificata</string>
+    <!-- %1$s: a region's name, e.g. Sky -->
+    <string name="editor_mask_label">Maschera %1$s</string>
+    <string name="editor_hold_for_original">Tieni: originale</string>
+    <string name="editor_rendering_detail">Rendering dei dettagli…</string>
+    <string name="editor_full_resolution">Risoluzione piena</string>
+    <!-- %1$d: milliseconds the last render took; %2$s: GPU or CPU -->
+    <string name="editor_render_time">%1$d ms · %2$s</string>
+    <string name="editor_single_view">Vista singola</string>
+    <string name="editor_side_by_side">Affiancata all\'originale</string>
+    <string name="editor_top_bottom">Originale sopra, modifica sotto</string>
+
+    <!-- Straighten guides -->
+    <string name="editor_draw_line_to_level">Traccia una linea per livellare</string>
+    <string name="editor_level_hint">Trascina lungo l\'orizzonte o un bordo verticale</string>
+    <!-- %1$s: the straighten angle, e.g. 1.5° -->
+    <string name="editor_straighten_value">Raddrizza %1$s</string>
+    <!-- %1$s: degrees, e.g. 2.3 -->
+    <string name="editor_off_upright">%1$s° dalla verticale</string>
+    <!-- %1$s: degrees, e.g. 2.3 -->
+    <string name="editor_off_level">%1$s° dall\'orizzontale</string>
+
+    <!-- Section buttons -->
+    <string name="editor_auto">Auto</string>
+    <string name="editor_auto_busy">Auto…</string>
+    <string name="editor_show_mask">Mostra maschera</string>
+    <string name="editor_reset">Ripristina</string>
+    <string name="editor_crop">Ritaglia</string>
+    <string name="editor_done">Fine</string>
+    <string name="editor_draw_level">Traccia linea</string>
+    <string name="editor_auto_straighten">Raddrizza auto</string>
+    <string name="editor_straightening">Raddrizzamento…</string>
+    <!-- %1$s: a slider's name -->
+    <string name="editor_reset_slider">Ripristina %1$s</string>
+
+    <!-- Masked regions -->
+    <string name="editor_finding_regions">Ricerca di cielo, acqua, persone e vegetazione… (un paio di secondi, una volta per foto)</string>
+    <!-- %1$s: region name (Sky); %2$d: percent of the picture; %3$s: region noun with its article (il cielo) -->
+    <string name="editor_region_coverage">%1$s: %2$d%% dell\'immagine. Questi cursori modificano solo %3$s.</string>
+    <!-- %1$s: region noun with its article, e.g. il cielo -->
+    <string name="editor_region_absent">Impossibile trovare %1$s in questa foto.</string>
+
+    <!-- Looks -->
+    <string name="editor_unknown_look">Look sconosciuto</string>
+    <string name="editor_no_look">Nessuno</string>
+    <string name="editor_looks_hint">Simulazioni pellicola e look creativi</string>
+    <string name="editor_browse">Sfoglia</string>
+    <string name="editor_browse_looks">Sfoglia i look</string>
+
+    <!-- Crop -->
+    <string name="editor_crop_overlay">Ritaglio</string>
+    <string name="editor_crop_landscape">Rendi il ritaglio orizzontale</string>
+    <string name="editor_crop_portrait">Rendi il ritaglio verticale</string>
+    <!-- %1$s: shape (4:5, Free, Original); %2$s × %3$s: width and height in pixels -->
+    <string name="editor_crop_size">%1$s · %2$s × %3$s px</string>
+    <!-- %1$s: what cropLabel gives, e.g. 4:5 · 3,000 × 3,750 px -->
+    <string name="editor_cropped_to">Ritagliata a %1$s</string>
+    <!-- %1$s × %2$s: width and height in pixels -->
+    <string name="editor_not_cropped">Non ritagliata · %1$s × %2$s px</string>
+
+    <!-- Shot info -->
+    <string name="editor_close">Chiudi</string>
+    <string name="editor_show_on_map">Mostra sulla mappa</string>
+    <string name="editor_info_camera">Fotocamera</string>
+    <string name="editor_info_taken">Scattata</string>
+    <string name="editor_info_exposure">Esposizione</string>
+    <string name="editor_info_size">Dimensioni</string>
+    <string name="editor_info_depth">Profondità</string>
+    <string name="editor_info_water_temperature">Temperatura acqua</string>
+    <string name="editor_info_temperature">Temperatura</string>
+    <string name="editor_info_pressure">Pressione</string>
+    <string name="editor_info_altitude">Altitudine</string>
+    <string name="editor_info_location">Posizione</string>
+    <string name="editor_info_unknown_camera">Sconosciuta</string>
+</resources>

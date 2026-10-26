@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The library screen: grid, filters, selection actions, rating and presets dialogs. -->
+<resources>
+    <!-- Top bar -->
+    <string name="library_folder">Ordner</string>
+    <string name="library_files">Dateien</string>
+    <string name="library_more">Mehr</string>
+    <string name="library_licences">Open-Source-Lizenzen</string>
+
+    <!-- Selection -->
+    <plurals name="library_selected_count">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <string name="library_cancel_selection">Auswahl aufheben</string>
+    <string name="library_paste">Einfügen</string>
+    <string name="library_auto">Auto</string>
+    <string name="library_export">Exportieren</string>
+    <string name="library_select_all">Alle auswählen</string>
+    <string name="library_rate_menu">Bewerten…</string>
+    <string name="library_apply_preset_menu">Preset anwenden…</string>
+    <string name="library_focus_stack_menu">Fokus-Stacking…</string>
+    <plurals name="library_apply_preset_title">
+        <item quantity="one">Preset auf %1$d Foto anwenden</item>
+        <item quantity="other">Preset auf %1$d Fotos anwenden</item>
+    </plurals>
+    <plurals name="library_focus_stack_title">
+        <item quantity="one">Fokus-Stacking aus %1$d Foto</item>
+        <item quantity="other">Fokus-Stacking aus %1$d Fotos</item>
+    </plurals>
+
+    <!-- Above the grid -->
+    <string name="library_hint_selecting">Tippe, um Fotos hinzuzufügen oder zu entfernen</string>
+    <string name="library_hint_browsing">Lange drücken, um Fotos zum Einfügen, für Auto-Tonwerte oder den Stapelexport auszuwählen</string>
+    <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
+    <plurals name="library_folder_summary">
+        <item quantity="one">"%1$s  ·  %2$d RAW-Datei  ·  %3$s"</item>
+        <item quantity="other">"%1$s  ·  %2$d RAW-Dateien  ·  %3$s"</item>
+    </plurals>
+    <string name="library_showing">%1$d von %2$d angezeigt</string>
+    <!-- Name for a picked folder whose own name can't be read. -->
+    <string name="library_folder_unnamed">Ordner</string>
+
+    <!-- Empty library -->
+    <string name="library_empty_title">Noch keine RAW-Dateien</string>
+    <string name="library_empty_body">Wähle einen Ordner mit RAW-Dateien (DCIM/100OLYMP deiner TG-7, die Karte einer anderen Kamera oder die DNGs deines Smartphones) oder öffne einzelne Dateien. Liest ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF und RAF.</string>
+    <string name="library_choose_folder">Ordner wählen</string>
+    <string name="library_open_files">Dateien öffnen</string>
+
+    <!-- Grid cells -->
+    <string name="library_cell_selected">ausgewählt</string>
+    <string name="library_cell_edited">bearbeitet</string>
+    <string name="library_action_open">Öffnen</string>
+    <string name="library_action_select">Auswählen</string>
+    <string name="library_action_deselect">Abwählen</string>
+    <string name="library_selected">Ausgewählt</string>
+    <string name="library_badge_edited">BEARBEITET</string>
+    <plurals name="library_stars">
+        <item quantity="one">%1$d Stern</item>
+        <item quantity="other">%1$d Sterne</item>
+    </plurals>
+
+    <!-- Day headings -->
+    <string name="library_date_unknown">Datum unbekannt</string>
+
+    <!-- Filters -->
+    <string name="library_filter_by_date">Nach Datum</string>
+    <string name="library_filter_rating_any">★ Alle</string>
+    <string name="library_filter_rating_five">★★★★★</string>
+    <string name="library_filter_rating_min">★ %1$d+</string>
+    <string name="library_filter_edited">Bearbeitet</string>
+    <string name="library_filter_not_edited">Unbearbeitet</string>
+    <string name="library_filter_edited_any">Bearbeitet oder nicht</string>
+    <string name="library_filter_underwater">Unterwasser</string>
+    <string name="library_filter_all_cameras">Alle Kameras</string>
+    <string name="library_unknown_camera">Unbekannte Kamera</string>
+
+    <!-- Rate dialog -->
+    <plurals name="library_rate_title">
+        <item quantity="one">%1$d Foto bewerten</item>
+        <item quantity="other">%1$d Fotos bewerten</item>
+    </plurals>
+    <string name="library_rate_hint">Tippe auf einen Stern, um alle zu bewerten.</string>
+    <string name="library_clear_rating">Bewertung entfernen</string>
+    <string name="library_cancel">Abbrechen</string>
+
+    <!-- Messages -->
+    <plurals name="library_pasted">
+        <item quantity="one">Einstellungen auf %1$d Foto übertragen</item>
+        <item quantity="other">Einstellungen auf %1$d Fotos übertragen</item>
+    </plurals>
+    <!-- %1$s preset name, %2$d number of photos. -->
+    <plurals name="library_preset_applied">
+        <item quantity="one">„%1$s“ auf %2$d Foto angewendet</item>
+        <item quantity="other">„%1$s“ auf %2$d Fotos angewendet</item>
+    </plurals>
+    <plurals name="library_stacking">
+        <item quantity="one">%1$d Foto wird gestapelt. Das läuft weiter, auch wenn du die App verlässt.</item>
+        <item quantity="other">%1$d Fotos werden gestapelt. Das läuft weiter, auch wenn du die App verlässt.</item>
+    </plurals>
+    <string name="library_auto_progress">Auto-Tonwerte %1$d von %2$d</string>
+    <plurals name="library_auto_done">
+        <item quantity="one">Auto-Tonwerte auf %1$d Foto angewendet</item>
+        <item quantity="other">Auto-Tonwerte auf %1$d Fotos angewendet</item>
+    </plurals>
+    <string name="library_auto_partial">Auto-Tonwerte auf %1$d von %2$d angewendet; einige Dateien konnten nicht gelesen werden</string>
+    <string name="library_folder_lost">Ordner ist nicht mehr zugänglich; bitte erneut auswählen.</string>
+
+    <!-- Presets dialog -->
+    <string name="presets_title">Presets</string>
+    <string name="presets_empty">Noch keine Presets. Speichere die Einstellungen dieses Fotos, um sie auf andere anzuwenden; Begradigen und Zuschnitt bleiben beim jeweiligen Foto.</string>
+    <string name="presets_delete">Preset %1$s löschen</string>
+    <string name="presets_name_hint">Name des Presets</string>
+    <string name="presets_save">Speichern</string>
+    <string name="presets_close">Schließen</string>
+</resources>

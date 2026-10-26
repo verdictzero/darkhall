@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Export dialog, progress pill, export notifications and the editor's messages. -->
+<resources>
+    <!-- Export dialog -->
+    <plurals name="export_dialog_title">
+        <item quantity="other">%1$d枚の写真を書き出し</item>
+    </plurals>
+    <string name="export_format">形式</string>
+    <string name="export_purpose_jpeg">共有やプリントサービス向けの小さいファイル。8ビット。</string>
+    <string name="export_purpose_png">可逆圧縮。16ビットなら全階調を保持し、他のアプリでの編集に使えます。</string>
+    <string name="export_purpose_tiff">可逆圧縮。印刷や他の編集ソフト向け。撮影データとGPS情報を保持します。</string>
+    <string name="export_purpose_webp">可逆圧縮で、PNGより小さいファイル。8ビット。</string>
+    <string name="export_purpose_tga">8ビット。ゲームエンジンや古いツール向け。撮影データは含まれません。</string>
+    <string name="export_quality">画質</string>
+    <string name="export_bit_depth">ビット深度</string>
+    <string name="export_8_bit">8ビット</string>
+    <string name="export_16_bit">16ビット</string>
+    <string name="export_compression">圧縮</string>
+    <!-- No TIFF compression -->
+    <string name="export_compression_none">なし</string>
+    <string name="export_size">サイズ（長辺）</string>
+    <!-- Export at the photo's full size -->
+    <string name="export_size_full">原寸</string>
+    <string name="export_size_px">%1$d px</string>
+    <string name="export_start">書き出し開始</string>
+    <string name="export_cancel">キャンセル</string>
+
+    <!-- Progress pill -->
+    <string name="export_progress_of">書き出し中 %1$d / %2$d · %3$d%%</string>
+    <string name="export_progress">書き出し中 · %1$d%%</string>
+    <!-- %2$s is the folder, e.g. Pictures/Darkhall -->
+    <plurals name="export_saved_photos">
+        <item quantity="other">%1$d枚の写真を%2$sに保存しました</item>
+    </plurals>
+    <string name="export_failed">書き出しに失敗しました</string>
+    <!-- %1$s lists the files that failed -->
+    <string name="export_failed_names">書き出しに失敗しました: %1$s</string>
+    <string name="export_saved_failed">%1$d枚保存、%2$d枚失敗</string>
+    <string name="export_saved_failed_names">%1$d枚保存、%2$d枚失敗: %3$s</string>
+    <string name="export_share">共有</string>
+    <plurals name="export_share_chooser">
+        <item quantity="other">%1$d枚の写真を共有</item>
+    </plurals>
+
+    <!-- Export notification and results -->
+    <string name="export_channel">書き出し</string>
+    <string name="export_notification_of">書き出し中 %1$d / %2$d</string>
+    <string name="export_notification">書き出し中</string>
+    <string name="export_preparing">準備中…</string>
+    <!-- Stands in for a file name that could not be read -->
+    <string name="export_default_name">写真</string>
+    <string name="export_focus_stack">深度合成 · %1$s</string>
+    <!-- %2$s is the reason -->
+    <string name="export_focus_stack_failed">%1$sの深度合成（%2$s）</string>
+    <string name="export_stack_different_size">%1$sはサイズが異なります</string>
+    <string name="export_job_missing">書き出すファイルのリストが見つかりません</string>
+
+    <!-- Editor messages -->
+    <string name="develop_render_failed">レンダリングに失敗しました: %1$s</string>
+    <string name="develop_out_of_memory">メモリが不足しているため、このファイルを開けません。他のアプリを閉じてからもう一度お試しください。</string>
+    <!-- Appended to the photo's description; the two leading spaces are kept -->
+    <string name="develop_info_noise">"%1$s  ノイズ ≈ ISO %2$d"</string>
+    <string name="develop_gpu_stopped">GPUレンダリングを停止しました。CPUを使用します</string>
+    <string name="develop_gpu_off">オフ</string>
+    <string name="develop_gpu_unavailable">利用不可</string>
+    <string name="develop_gpu_rejected">オフ: このドライバーではCPUと結果が一致しません</string>
+    <!-- %1$s is a technical measure of the difference -->
+    <string name="develop_gpu_mismatch">オフ: CPUと結果が一致しません（%1$s）</string>
+    <string name="develop_gpu_mismatch_message">このGPUの出力が一致しないため、CPUを使用します</string>
+    <string name="develop_gpu_error">GPUエラー</string>
+    <!-- %1$s lists the changed sliders, or says nothing changed -->
+    <string name="develop_auto">自動: %1$s</string>
+    <string name="develop_auto_balanced">すでにバランスが取れています</string>
+    <!-- A slider and its new value, e.g. Exposure +0.50 -->
+    <string name="develop_auto_change">%1$s %2$s</string>
+    <string name="develop_masks_failed">空、水、人物を検出できませんでした: %1$s</string>
+    <string name="develop_no_lines">水平の基準になるはっきりした水平線や垂直線がありません</string>
+    <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
+    <string name="develop_source_auto">自動</string>
+    <string name="develop_source_level">線で水平</string>
+    <string name="develop_already_level">%1$s: すでに水平です</string>
+    <!-- %2$s is the Straighten value, %3$s the tilt in degrees -->
+    <string name="develop_straighten_limit">%1$s: 角度補正 %2$s（補正の上限です。線は%3$s°傾いています）</string>
+    <!-- %3$s says how it was levelled, e.g. from the horizon -->
+    <string name="develop_straighten">%1$s: 角度補正 %2$s（%3$s）</string>
+    <string name="develop_by_verticals">垂直線を基準に補正</string>
+    <string name="develop_by_horizon">水平線を基準に補正</string>
+    <string name="develop_to_level">水平に補正</string>
+    <string name="develop_to_upright">垂直に補正</string>
+    <string name="develop_settings_copied">設定をコピーしました。ライブラリから他の写真にペーストできます。</string>
+    <string name="develop_settings_pasted">設定をペーストしました</string>
+    <string name="develop_preset_saved">プリセット「%1$s」を保存しました</string>
+    <string name="develop_preset_applied">「%1$s」を適用しました</string>
+    <string name="develop_export_started">書き出しを開始しました。アプリを閉じても処理は続きます。</string>
+</resources>

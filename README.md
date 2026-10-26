@@ -241,6 +241,11 @@ value, can be stepped with volume keys or swipes, and offers a *Reset* action (t
 on its name); thumbnails read their name, rating, edit and depth in one go, and everything
 tappable has a label and a full-size touch area (checked by `AccessibilityTest`).
 
+The app is in English, German, French, Spanish, Italian, Portuguese and Japanese, following the
+phone's language (or, on Android 13 and later, the app's own language setting); dates in the
+library are written the way the language writes them. Look names, camera data and licence
+texts stay as they are.
+
 ### Export formats
 
 | Format | Depth | Notes |

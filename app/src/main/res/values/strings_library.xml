@@ -43,7 +43,7 @@
 
     <!-- Empty library -->
     <string name="library_empty_title">No raw files yet</string>
-    <string name="library_empty_body">Pick a folder of raw files (your TG-7\'s DCIM/100OLYMP, another camera\'s card, or your phone\'s DNGs), or open individual files. Reads ORF, DNG, ARW, NEF, CR2, RW2, PEF and RAF.</string>
+    <string name="library_empty_body">Pick a folder of raw files (your TG-7\'s DCIM/100OLYMP, another camera\'s card, or your phone\'s DNGs), or open individual files. Reads ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF and RAF.</string>
     <string name="library_choose_folder">Choose folder</string>
     <string name="library_open_files">Open files</string>
 

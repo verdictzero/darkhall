@@ -522,9 +522,12 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The labels give way (ellipsized) before the compare buttons do: longer languages fit.
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             if (!split && !cropping) {
                 Box(
                     Modifier
+                        .weight(1f, fill = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(if (original) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
                         .border(strokes.width, if (original) strokes.selected else strokes.overlay, RoundedCornerShape(16.dp))
@@ -541,6 +544,8 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                         if (original) originalLabel else stringResource(R.string.editor_hold_for_original),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (original) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Spacer(Modifier.width(8.dp))
@@ -559,13 +564,16 @@ private fun PreviewPane(state: DevelopState, vm: DevelopViewModel, guides: Strai
                     color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = FontFamily.Monospace,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
+                        .weight(1f, fill = false)
                         .background(Color(0xB3141416), RoundedCornerShape(10.dp))
                         .border(strokes.width, strokes.overlay, RoundedCornerShape(10.dp))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
             }
-            Spacer(Modifier.weight(1f))
+            }
+            Spacer(Modifier.width(8.dp))
             if (!cropping) CompareModePicker(mode, onPick = { pickedMode = it })
         }
     }
