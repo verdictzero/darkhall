@@ -25,3 +25,6 @@
 *.RW2
 *.pef
 *.PEF
+
+# Python bytecode from tools/
+__pycache__/
