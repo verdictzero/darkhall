@@ -23,6 +23,7 @@ import com.verdictzero.darkhall.core.develop.Developer
 import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.Crop
+import com.verdictzero.darkhall.core.develop.MixBand
 import com.verdictzero.darkhall.core.develop.CropAspect
 import com.verdictzero.darkhall.core.develop.CropRect
 import com.verdictzero.darkhall.core.develop.PixelRect
@@ -568,6 +569,15 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun resetOne(a: Adjustment) = set(a, _state.value.defaults[a], slider = null)
+
+    /** Puts every colour mixer slider back, as one undo step. */
+    fun resetMixer() {
+        val d = _state.value.defaults
+        val next = MixBand.entries.flatMap { Adjustment.mixer(it) }.fold(_state.value.params) { p, a -> p.with(a, d[a]) }
+        _state.update { it.copy(params = next) }
+        paramsFlow.value = next
+        record(next)
+    }
 
     fun resetAll() {
         val d = _state.value.defaults

@@ -60,6 +60,13 @@ No curves, no masks, no presets: open a raw, drag sliders, export a JPEG.
 | | Whites | Saturation | Color NR | Crop |
 | | Blacks | | | |
 
+**Color mixer**: pick one of eight hue bands (red, orange, yellow, green, aqua, blue,
+purple, magenta) and turn its hue (up to 30° towards a neighbour), saturation and luminance
+(up to a stop). Bands blend smoothly into each other, and greys are never touched, so pulling
+down aqua and blue or reviving a faded red changes only those colours. A dot under a band
+marks it as changed; **Reset** clears all eight. It runs after saturation and before the
+look, on the GPU as well as the CPU.
+
 Double-tap a slider's label to reset it; the ⋮ menu resets everything. **Undo** and
 **Redo** in the top bar step through every change made since the photo was opened (a whole
 slider drag counts as one step).

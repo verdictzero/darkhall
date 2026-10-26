@@ -3,7 +3,9 @@ package com.verdictzero.darkhall.core.develop
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_B
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_G
 import com.verdictzero.darkhall.core.develop.ColorScience.LUM_R
+import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.sin
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
@@ -58,6 +60,10 @@ object ToneStage {
             dg = clamp01(yv + (dg - yv) * k)
             db = clamp01(yv + (db - yv) * k)
         }
+        if (plan.mixerOn) {
+            mix(plan.mix, dr, dg, db, scratch)
+            dr = scratch[0]; dg = scratch[1]; db = scratch[2]
+        }
         val look = plan.look
         if (plan.lookOn && look != null) {
             look.sample(dr, dg, db, scratch)
@@ -68,6 +74,59 @@ object ToneStage {
         }
         out[0] = dr; out[1] = dg; out[2] = db
     }
+
+    /**
+     * The colour mixer on display-encoded [r], [g], [b] into [out]: the pixel's HSV hue picks
+     * its place between the two nearest band centres (smoothly), and that blend of the two
+     * bands' settings turns its hue about the grey axis, scales its saturation and brightens or
+     * darkens it in proportion to how saturated it is, so greys never change. The GPU's TONE
+     * shader does exactly the same.
+     */
+    fun mix(m: FloatArray, r: Float, g: Float, b: Float, out: FloatArray) {
+        val mx = max(r, max(g, b)); val mn = min(r, min(g, b))
+        val c = mx - mn
+        if (c < 1e-5f) { out[0] = r; out[1] = g; out[2] = b; return }
+        var h = 60f * when {
+            mx == r -> (g - b) / c
+            mx == g -> (b - r) / c + 2f
+            else -> (r - g) / c + 4f
+        }
+        if (h < 0f) h += 360f
+        val centres = RenderPlan.MIX_CENTRES
+        var i = 0
+        while (i < 7 && h >= centres[i + 1]) i++
+        var t = (h - centres[i]) / (centres[i + 1] - centres[i])
+        t = t * t * (3f - 2f * t)
+        val j = (i + 1) % 8
+        val turn = m[3 * i] * (1f - t) + m[3 * j] * t
+        val sat = m[3 * i + 1] * (1f - t) + m[3 * j + 1] * t
+        val lum = m[3 * i + 2] * (1f - t) + m[3 * j + 2] * t
+        var rr = r; var gg = g; var bb = b
+        if (turn != 0f) {
+            // Rotation about the grey axis: red turns towards yellow for a positive angle.
+            val co = cos(turn); val si = sin(turn) * INV_SQRT3
+            val a = co + (1f - co) / 3f
+            val p = (1f - co) / 3f - si
+            val q = (1f - co) / 3f + si
+            rr = a * r + p * g + q * b
+            gg = q * r + a * g + p * b
+            bb = p * r + q * g + a * b
+        }
+        if (sat != 0f) {
+            val y = LUM_R * rr + LUM_G * gg + LUM_B * bb
+            val k = 1f + sat
+            rr = y + (rr - y) * k; gg = y + (gg - y) * k; bb = y + (bb - y) * k
+        }
+        if (lum != 0f) {
+            val k = exp2(lum * min(1f, 2f * c / mx))
+            rr *= k; gg *= k; bb *= k
+        }
+        out[0] = clamp01(rr); out[1] = clamp01(gg); out[2] = clamp01(bb)
+    }
+
+    private val INV_SQRT3 = (1.0 / kotlin.math.sqrt(3.0)).toFloat()
+
+    private fun exp2(v: Float) = exp(v * LN2)
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun clamp01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v

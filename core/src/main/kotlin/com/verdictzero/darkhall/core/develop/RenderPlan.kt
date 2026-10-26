@@ -64,6 +64,19 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
     val vibrance: Float = p[Adjustment.VIBRANCE] / 100f
     val saturation: Float = p[Adjustment.SATURATION] / 100f
     val saturationOn: Boolean = abs(vibrance) > 1e-4f || abs(saturation) > 1e-4f
+    /**
+     * Colour mixer, per band (MixBand order): hue turn in radians, saturation factor minus
+     * one, luminance in stops; three floats a band.
+     */
+    val mix = FloatArray(24).also { m ->
+        for (band in MixBand.entries) {
+            val (hue, sat, lum) = Adjustment.mixer(band)
+            m[3 * band.ordinal] = p[hue] / 100f * MIX_MAX_TURN
+            m[3 * band.ordinal + 1] = p[sat] / 100f
+            m[3 * band.ordinal + 2] = p[lum] / 100f * MIX_MAX_STOPS
+        }
+    }
+    val mixerOn: Boolean = mix.any { abs(it) > 1e-4f }
     /** Display-space curve (blacks → whites → contrast) on 4097 points. */
     val curve = FloatArray(CURVE_SIZE)
 
@@ -162,6 +175,12 @@ class RenderPlan(ctx: RenderContext, p: DevelopParams, frame: Frame) {
         const val DESAT_END = 3.0f
         const val DESAT_MAX = 0.85f
         const val FINEST_BOOST = 1.25f
+        /** The colour mixer's hue sliders turn a band by up to 30°... */
+        const val MIX_MAX_TURN = 0.5235988f
+        /** ...and its luminance sliders brighten or darken it by up to a stop (on saturated colours). */
+        const val MIX_MAX_STOPS = 1f
+        /** Band centres in degrees, MixBand order, with red again at 360. */
+        val MIX_CENTRES = floatArrayOf(0f, 30f, 60f, 120f, 180f, 240f, 270f, 300f, 360f)
 
         /**
          * Noise standard deviation in each "à trous" detail level for unit white noise

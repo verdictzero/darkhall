@@ -10,10 +10,17 @@ import kotlin.math.roundToInt
  * [region] is set for the sections that act on one part of the picture through its mask.
  */
 enum class AdjustmentGroup(val title: String, val sliders: Boolean = true, val region: MaskRegion? = null) {
-    LOOK("Look"), LIGHT("Light"), COLOR("Color"),
+    LOOK("Look"), LIGHT("Light"), COLOR("Color"), MIXER("Color mixer", sliders = false),
     SKY("Sky", region = MaskRegion.SKY), WATER("Water", region = MaskRegion.WATER),
     SUBJECT("Subject", region = MaskRegion.SUBJECT), FOLIAGE("Foliage", region = MaskRegion.FOLIAGE),
     DETAIL("Detail"), LENS("Lens"), CROP("Crop", sliders = false)
+}
+
+/** The colour mixer's eight hue bands, by the hue each is centred on (degrees, HSV). */
+enum class MixBand(val label: String, val hue: Float, val swatch: Long) {
+    RED("Red", 0f, 0xFFE5484D), ORANGE("Orange", 30f, 0xFFF0883E), YELLOW("Yellow", 60f, 0xFFE9D24A),
+    GREEN("Green", 120f, 0xFF46A758), AQUA("Aqua", 180f, 0xFF3DC2C9), BLUE("Blue", 240f, 0xFF3E7BFA),
+    PURPLE("Purple", 270f, 0xFF8E5BE8), MAGENTA("Magenta", 300f, 0xFFD658C4),
 }
 
 /** What a masked slider does within its region (see the region passes in Developer). */
@@ -49,6 +56,32 @@ enum class Adjustment(
     WATER("Underwater", AdjustmentGroup.COLOR, 0f, 100f, 0f),
     VIBRANCE("Vibrance", AdjustmentGroup.COLOR, -100f, 100f, 0f),
     SATURATION("Saturation", AdjustmentGroup.COLOR, -100f, 100f, 0f),
+
+    // Colour mixer: hue, saturation and luminance of each MixBand (see ToneStage).
+    MIX_RED_HUE("Red hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_RED_SAT("Red saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_RED_LUM("Red luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_ORANGE_HUE("Orange hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_ORANGE_SAT("Orange saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_ORANGE_LUM("Orange luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_YELLOW_HUE("Yellow hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_YELLOW_SAT("Yellow saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_YELLOW_LUM("Yellow luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_GREEN_HUE("Green hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_GREEN_SAT("Green saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_GREEN_LUM("Green luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_AQUA_HUE("Aqua hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_AQUA_SAT("Aqua saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_AQUA_LUM("Aqua luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_BLUE_HUE("Blue hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_BLUE_SAT("Blue saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_BLUE_LUM("Blue luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_PURPLE_HUE("Purple hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_PURPLE_SAT("Purple saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_PURPLE_LUM("Purple luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_MAGENTA_HUE("Magenta hue", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_MAGENTA_SAT("Magenta saturation", AdjustmentGroup.MIXER, -100f, 100f, 0f),
+    MIX_MAGENTA_LUM("Magenta luminance", AdjustmentGroup.MIXER, -100f, 100f, 0f),
 
     CLARITY("Clarity", AdjustmentGroup.DETAIL, -100f, 100f, 0f),
     DEHAZE("Dehaze", AdjustmentGroup.DETAIL, -100f, 100f, 0f),
@@ -93,6 +126,10 @@ enum class Adjustment(
         /** The slider of [region]'s section that does [kind]. */
         fun masked(region: MaskRegion, kind: MaskKind): Adjustment =
             entries.first { it.group.region == region && it.maskKind == kind }
+
+        /** The colour mixer's sliders for [band]: hue, saturation, luminance. */
+        fun mixer(band: MixBand): List<Adjustment> =
+            listOf("HUE", "SAT", "LUM").map { valueOf("MIX_${band.name}_$it") }
     }
 
     fun format(v: Float): String {

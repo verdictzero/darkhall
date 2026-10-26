@@ -275,6 +275,30 @@ class ScreenshotTest {
         }
     }
 
+    /** The colour mixer: pick a band, move its sliders, the band shows as changed, Reset clears it. */
+    @Test
+    fun colorMixer() {
+        assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
+        val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(File(samplePath))).setClass(app, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("mix-BLUE"))
+            compose.onNodeWithTag("mix-BLUE").performClick()
+            compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasTestTag("slider-MIX_BLUE_LUM"))
+            compose.onNodeWithTag("slider-MIX_BLUE_SAT").performSemanticsAction(SemanticsActions.SetProgress) { it(60f) }
+            compose.onNodeWithTag("slider-MIX_BLUE_LUM").performSemanticsAction(SemanticsActions.SetProgress) { it(-50f) }
+            waitFor { compose.onAllNodesWithText("-50").fetchSemanticsNodes().isNotEmpty() }
+            repeat(30) { shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50)); Thread.sleep(40) }
+            if (outDir.isNotEmpty()) shot("mixer")
+            compose.onNodeWithTag("mix-RED").performClick()
+            waitFor { compose.onAllNodesWithText("Red hue").fetchSemanticsNodes().isNotEmpty() }
+            compose.onAllNodes(hasText("Reset") and isEnabled())[0].performClick()
+            waitFor { compose.onAllNodesWithText("Red hue").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("mix-BLUE").performClick()
+            waitFor { compose.onAllNodesWithText("-50").fetchSemanticsNodes().isEmpty() }
+        }
+    }
+
     /** The crop tool: a 4:5 crop over the whole picture, then the cropped result. */
     @Test
     fun cropTool() {

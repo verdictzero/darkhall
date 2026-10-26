@@ -321,6 +321,8 @@ class GpuDeveloper(
             gl.uniform1f(loc("uVib"), plan.vibrance)
             gl.uniform1f(loc("uSat"), plan.saturation)
             gl.uniform1i(loc("uDoSat"), if (plan.saturationOn) 1 else 0)
+            gl.uniform1i(loc("uMixOn"), if (plan.mixerOn) 1 else 0)
+            for (k in 0 until 8) gl.uniform3f(loc("uMix[$k]"), plan.mix[3 * k], plan.mix[3 * k + 1], plan.mix[3 * k + 2])
         }
         swap()
 

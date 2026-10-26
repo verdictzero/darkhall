@@ -210,7 +210,7 @@ void main() {
 }
 """
 
-    /** Shadows/highlights, shoulder, sRGB encode, tone curve, vibrance/saturation. */
+    /** Shadows/highlights, shoulder, sRGB encode, tone curve, vibrance/saturation, colour mixer, look. */
     const val TONE = HEADER + """
 uniform sampler2D uIn;
 uniform sampler2D uLut;
@@ -224,6 +224,8 @@ uniform sampler2D uLook;
 uniform int uLookOn;
 uniform int uLookN;
 uniform float uLookAmount;
+uniform int uMixOn;
+uniform vec3 uMix[8];
 const float SHOULDER = 0.85;
 const float DESAT_END = 3.0;
 const float DESAT_MAX = 0.85;
@@ -241,6 +243,39 @@ vec3 applyLook(vec3 c) {
     vec3 c0 = c00 * (1.0 - f.y) + c01 * f.y;
     vec3 c1 = c10 * (1.0 - f.y) + c11 * f.y;
     return c0 * (1.0 - f.z) + c1 * f.z;
+}
+// Colour mixer: as ToneStage.mix.
+const float CENTRES[9] = float[9](0.0, 30.0, 60.0, 120.0, 180.0, 240.0, 270.0, 300.0, 360.0);
+vec3 mixer(vec3 d) {
+    float mx = max(d.r, max(d.g, d.b));
+    float c = mx - min(d.r, min(d.g, d.b));
+    if (c < 1e-5) return d;
+    float h;
+    if (mx == d.r) h = (d.g - d.b) / c;
+    else if (mx == d.g) h = (d.b - d.r) / c + 2.0;
+    else h = (d.r - d.g) / c + 4.0;
+    h *= 60.0;
+    if (h < 0.0) h += 360.0;
+    int i = 0;
+    while (i < 7 && h >= CENTRES[i + 1]) i++;
+    float t = (h - CENTRES[i]) / (CENTRES[i + 1] - CENTRES[i]);
+    t = t * t * (3.0 - 2.0 * t);
+    vec3 m = uMix[i] * (1.0 - t) + uMix[(i + 1) % 8] * t;
+    vec3 o = d;
+    if (m.x != 0.0) {
+        float co = cos(m.x);
+        float si = sin(m.x) * 0.57735026;
+        float a = co + (1.0 - co) / 3.0;
+        float p = (1.0 - co) / 3.0 - si;
+        float q = (1.0 - co) / 3.0 + si;
+        o = vec3(a * d.r + p * d.g + q * d.b, q * d.r + a * d.g + p * d.b, p * d.r + q * d.g + a * d.b);
+    }
+    if (m.y != 0.0) {
+        float y = dot(LUM, o);
+        o = y + (o - y) * (1.0 + m.y);
+    }
+    if (m.z != 0.0) o *= exp2(m.z * min(1.0, 2.0 * c / mx));
+    return clamp(o, 0.0, 1.0);
 }
 float enc(float v) {
     float x = clamp(v, 0.0, 1.0);
@@ -273,6 +308,7 @@ void main() {
         float k = (1.0 + uVib * (1.0 - s)) * (1.0 + uSat);
         d = clamp(yv + (d - yv) * k, 0.0, 1.0);
     }
+    if (uMixOn == 1) d = mixer(d);
     if (uLookOn == 1) {
         d += (applyLook(d) - d) * uLookAmount;
     }

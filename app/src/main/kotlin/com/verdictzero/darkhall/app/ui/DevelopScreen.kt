@@ -697,6 +697,9 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         if (region != null && (state.scene != SceneStatus.DONE || state.has(region))) {
                             StrokedTextButton("Show mask", onClick = { vm.toggleMask(region) }, selected = state.showMask == region, modifier = Modifier.testTag("mask-${region.name}"))
                         }
+                        if (group == AdjustmentGroup.MIXER) {
+                            StrokedTextButton("Reset", onClick = { vm.resetMixer() }, enabled = state.mixerUsed())
+                        }
                         if (group == AdjustmentGroup.CROP) {
                             StrokedTextButton("Reset", onClick = { vm.resetCrop() }, enabled = !Crop.of(state.params).isFull)
                             StrokedTextButton(if (state.cropping) "Done" else "Crop", onClick = { vm.setCropping(!state.cropping) }, selected = state.cropping)
@@ -727,6 +730,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
                         )
                     }
                     if (group == AdjustmentGroup.CROP) CropControls(state, vm)
+                    if (group == AdjustmentGroup.MIXER) MixerControls(state, vm)
                     if (group == AdjustmentGroup.LOOK) {
                         val info = remember(state.params.look) { state.params.look?.let { LookLibrary.info(context, it) } }
                         Row(
@@ -780,7 +784,7 @@ private fun SliderPane(state: DevelopState, vm: DevelopViewModel, guides: Straig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SliderRow(
+internal fun SliderRow(
     adj: Adjustment,
     params: DevelopParams,
     defaults: DevelopParams,
