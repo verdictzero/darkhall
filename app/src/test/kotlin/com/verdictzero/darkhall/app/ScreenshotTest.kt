@@ -35,6 +35,7 @@ import androidx.compose.ui.test.longClick
 import org.junit.Assert.assertTrue
 import kotlin.math.PI
 import kotlin.math.tan
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -71,6 +72,9 @@ class ScreenshotTest {
 
     @Before
     fun setUp() {
+        // AndroidViewModelFactory keeps the first test's Application in a static; view models
+        // created through it would read that application's settings, not this test's.
+        ViewModelProvider.AndroidViewModelFactory::class.java.getDeclaredField("_instance").apply { isAccessible = true }.set(null, null)
         WorkManagerTestInitHelper.initializeTestWorkManager(app, Configuration.Builder().setExecutor(SynchronousExecutor()).build())
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
     }

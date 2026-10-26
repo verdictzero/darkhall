@@ -31,6 +31,7 @@ class AndroidGl : Gl {
     override fun uniform1f(location: Int, v: Float) = GLES30.glUniform1f(location, v)
     override fun uniform2f(location: Int, x: Float, y: Float) = GLES30.glUniform2f(location, x, y)
     override fun uniform3f(location: Int, x: Float, y: Float, z: Float) = GLES30.glUniform3f(location, x, y, z)
+    override fun uniform4f(location: Int, x: Float, y: Float, z: Float, w: Float) = GLES30.glUniform4f(location, x, y, z, w)
     override fun genTexture(): Int { GLES30.glGenTextures(1, one, 0); return one[0] }
     override fun deleteTexture(texture: Int) { one[0] = texture; GLES30.glDeleteTextures(1, one, 0) }
     override fun activeTexture(unit: Int) = GLES30.glActiveTexture(unit)

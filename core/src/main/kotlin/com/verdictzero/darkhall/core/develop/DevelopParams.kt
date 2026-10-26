@@ -142,7 +142,7 @@ enum class Adjustment(
         fun masked(region: MaskRegion, kind: MaskKind): Adjustment =
             entries.first { it.group.region == region && it.maskKind == kind }
 
-        /** Sliders only the CPU renderer implements (the masked ones aside, see [DevelopParams.usesMasks]). */
+        /** Sliders only the CPU renderer implements. */
         val CPU_ONLY: Set<Adjustment> get() = setOf(BACKSCATTER)
 
         /** The colour mixer's sliders for [band]: hue, saturation, luminance. */
@@ -176,7 +176,7 @@ class DevelopParams private constructor(private val values: FloatArray, val look
     fun usesMasks(): Boolean = Adjustment.entries.any { it.maskKind != null && kotlin.math.abs(values[it.ordinal]) > 1e-4f }
 
     /** True when a slider the GPU renderer doesn't implement is in use, so the preview renders on the CPU. */
-    fun needsCpu(): Boolean = usesMasks() || Adjustment.CPU_ONLY.any { kotlin.math.abs(values[it.ordinal]) > 1e-4f }
+    fun needsCpu(): Boolean = Adjustment.CPU_ONLY.any { kotlin.math.abs(values[it.ordinal]) > 1e-4f }
 
     /** True when a slider of [region]'s section is in use. */
     fun uses(region: MaskRegion): Boolean =

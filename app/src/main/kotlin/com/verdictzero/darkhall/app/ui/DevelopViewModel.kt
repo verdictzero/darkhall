@@ -321,7 +321,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         val uncropped = Crop.copy(p, DevelopParams.NEUTRAL)
         val full = lastFull?.takeIf { it.first == uncropped }?.second ?: run {
             engine = "CPU"
-            // The GPU shaders have no mask or backscatter stage: photos using those render on the CPU.
+            // The GPU shaders have no backscatter stage: photos using it render on the CPU.
             val px = if (useGpu && !p.needsCpu()) {
                 try {
                     GpuRenderer.render(c, p, f).also { engine = "GPU" }
@@ -386,7 +386,7 @@ class DevelopViewModel(app: Application) : AndroidViewModel(app) {
         }
         try {
             val input = renderLock.withLock { developer.withReconstructedHighlights(pv, c, f) }
-            GpuRenderer.setImage(input)
+            GpuRenderer.setImage(input, pv)
             if (prefs.gpuVerified != name) {
                 val checks = listOf(
                     defaults,

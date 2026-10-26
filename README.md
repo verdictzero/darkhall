@@ -166,8 +166,9 @@ How the regions are found, on the phone, with nothing sent anywhere (the sky as 
 
 The sliders are then blended through the mask: exposure, warmth and saturation in linear
 light before the tone curve, clarity as local contrast in the detail stage, so the change
-fades out smoothly at the region's edge. While a masked slider is in use the preview renders
-on the CPU (the GPU shaders have no mask stage yet).
+fades out smoothly at the region's edge. The GPU preview does the same: the masks are
+refined on the CPU once per view (so dragging a slider doesn't redo them) and the shaders
+blend through them, matching the CPU render like every other slider.
 
 Limits: a still lake mirroring the sky can be partly marked, dense canopies give a patchy
 mask, a dim, plain room can pass for a night sky, and weathered wood can pass for water;

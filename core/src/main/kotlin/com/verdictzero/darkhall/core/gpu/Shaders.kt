@@ -33,7 +33,7 @@ ivec2 P() { return ivec2(gl_FragCoord.xy); }
 vec4 F(sampler2D s, ivec2 p) { return texelFetch(s, clamp(p, ivec2(0), textureSize(s, 0) - 1), 0); }
 """
 
-    /** WB, underwater, temperature/tint, camera matrix, exposure, vignette. */
+    /** WB, underwater, temperature/tint, camera matrix, exposure, vignette, then the masked regions. */
     const val COLOR = HEADER + """
 uniform sampler2D uIn;
 uniform vec3 uMulA;
@@ -47,6 +47,25 @@ uniform vec2 uCenter;
 uniform float uInvR2;
 uniform float uInvScale;
 uniform vec2 uFrame0;
+// The masked regions (sky, water, subject, foliage: the mask's r, g, b, a), each
+// (exposure in stops, warmth / 4, saturation, 1 when in use).
+uniform sampler2D uMask;
+uniform int uRegOn;
+uniform vec4 uReg0;
+uniform vec4 uReg1;
+uniform vec4 uReg2;
+uniform vec4 uReg3;
+vec3 region(vec3 c, float mk, vec4 q) {
+    if (q.w < 0.5 || mk < 1e-3) return c;
+    float k = exp(q.x * mk * 0.6931472);
+    vec3 v = vec3(c.r * k * (1.0 + q.y * mk), c.g * k, c.b * k * (1.0 - q.y * mk));
+    if (q.z != 0.0) {
+        float y = dot(LUM, v);
+        float f = max(0.0, 1.0 + q.z * mk);
+        v = y + (v - y) * f;
+    }
+    return max(vec3(0.0), v);
+}
 void main() {
     ivec2 p = P();
     vec3 v = texelFetch(uIn, p, 0).rgb;
@@ -58,7 +77,15 @@ void main() {
         float fy = uFrame0.y + float(p.y) * uInvScale - uCenter.y;
         k *= 1.0 + uVig * (fx * fx + fy * fy) * uInvR2;
     }
-    o = vec4(s * k, 1.0);
+    s *= k;
+    if (uRegOn == 1) {
+        vec4 m = texelFetch(uMask, p, 0);
+        s = region(s, m.r, uReg0);
+        s = region(s, m.g, uReg1);
+        s = region(s, m.b, uReg2);
+        s = region(s, m.a, uReg3);
+    }
+    o = vec4(s, 1.0);
 }
 """
 
@@ -358,7 +385,7 @@ void main() {
 }
 """
 
-    /** Clarity and sharpening from blurred display luminance. */
+    /** Clarity (overall and per region) and sharpening from blurred display luminance. */
     const val DETAIL_APPLY = HEADER + """
 uniform sampler2D uIn;
 uniform sampler2D uY;
@@ -368,6 +395,10 @@ uniform int uSharpOn;
 uniform int uClarOn;
 uniform float uSharpA;
 uniform float uClarA;
+// Clarity through the region masks: per region (mask channel) its amount, 0 when unused.
+uniform sampler2D uMask;
+uniform int uRegClarOn;
+uniform vec4 uRegClar;
 void main() {
     ivec2 p = P();
     vec3 v = texelFetch(uIn, p, 0).rgb;
@@ -381,6 +412,10 @@ void main() {
     if (uClarOn == 1) {
         float d = y - texelFetch(uClarBlur, p, 0).r;
         t += uClarA * d / (1.0 + 3.0 * abs(d));
+    }
+    if (uRegClarOn == 1) {
+        float d = y - texelFetch(uClarBlur, p, 0).r;
+        t += dot(uRegClar, texelFetch(uMask, p, 0)) * d / (1.0 + 3.0 * abs(d));
     }
     float ny = clamp(y + t, 0.0, 1.0);
     if (y > 1e-4) {

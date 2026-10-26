@@ -8,9 +8,13 @@ import com.verdictzero.darkhall.core.develop.Frame
 import com.verdictzero.darkhall.core.develop.Geometry
 import com.verdictzero.darkhall.core.develop.LookSource
 import com.verdictzero.darkhall.core.develop.Lut
+import com.verdictzero.darkhall.core.develop.MaskKind
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.raw.OlympusDecoder
 import com.verdictzero.darkhall.core.raw.OrfParser
+import com.verdictzero.darkhall.core.sky.MaskRegion
+import com.verdictzero.darkhall.core.sky.RegionMask
+import com.verdictzero.darkhall.core.sky.SceneMasks
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.awt.image.BufferedImage
@@ -35,6 +39,23 @@ class GpuParityTest {
     @Test
     fun halfFloatPathReport() = run(halfFloat = true)
 
+    /**
+     * Stand-in network output with soft edges: sky across the top, water along the bottom, a
+     * subject in the middle and foliage on the left.
+     */
+    private fun scene(orientation: Int): SceneMasks {
+        val gw = 65; val gh = 49
+        fun grid(f: (Float, Float) -> Float) = FloatArray(gw * gh) { i -> f((i % gw) / (gw - 1f), (i / gw) / (gh - 1f)).coerceIn(0f, 1f) }
+        fun ramp(x: Float, at: Float) = (0.5f + (x - at) * 8f)
+        val probs = mapOf(
+            MaskRegion.SKY to grid { _, v -> ramp(0.35f, v) },
+            MaskRegion.WATER to grid { _, v -> ramp(v, 0.7f) },
+            MaskRegion.SUBJECT to grid { u, v -> ramp(0.15f, kotlin.math.hypot(u - 0.5f, v - 0.55f)) },
+            MaskRegion.FOLIAGE to grid { u, v -> minOf(ramp(0.25f, u), ramp(v, 0.35f), ramp(0.7f, v)) },
+        )
+        return SceneMasks(probs.mapValues { (_, p) -> RegionMask(gw, gh, p, 4 * (gw - 1), 4 * (gh - 1), orientation) })
+    }
+
     private fun run(halfFloat: Boolean) {
         assumeTrue(samplePath.isNotEmpty() && File(samplePath).exists())
         val egl = EglContext.create()
@@ -49,11 +70,13 @@ class GpuParityTest {
                 File(looksDir, "$id.dlut").takeIf { it.exists() }?.let { Lut.decode(it.readBytes()) }
             })
             val frame = Frame(0, 0, pv.width.toFloat() / meta.crop.width)
+            // Masks found, so the region sliders below do something.
+            ctx.scene = scene(meta.orientation)
             val cpu = Developer()
             val gpu = GpuDeveloper(LwjglGl(), forceHalfFloat = halfFloat)
             gpu.init()
             println("GPU: ${gpu.description}")
-            gpu.setImage(cpu.withReconstructedHighlights(pv, ctx, frame))
+            gpu.setImage(cpu.withReconstructedHighlights(pv, ctx, frame), guide = pv)
             val base = DevelopParams.defaultsFor(meta, ctx.noise)
             val sets = buildList {
                 add("defaults" to base)
@@ -72,8 +95,22 @@ class GpuParityTest {
                     .with(Adjustment.GRADE_HIGHLIGHT, 80f).with(Adjustment.GRADE_HIGHLIGHT_HUE, 40f).with(Adjustment.GRADE_BALANCE, 35f)
                     .with(Adjustment.MIX_BLUE_HUE, -60f).with(Adjustment.MIX_GREEN_SAT, -70f).with(Adjustment.MIX_ORANGE_LUM, 50f)
                     .with(Adjustment.GRAIN, 80f).with(Adjustment.GRAIN_SIZE, 60f))
+                add("every region at once" to MaskRegion.entries.fold(base) { p, r ->
+                    p.with(Adjustment.masked(r, MaskKind.EXPOSURE), if (r.ordinal % 2 == 0) -1f else 0.8f)
+                        .with(Adjustment.masked(r, MaskKind.SATURATION), 40f - 25f * r.ordinal)
+                        .with(Adjustment.masked(r, MaskKind.WARMTH), 30f * (r.ordinal - 1.5f))
+                        .with(Adjustment.masked(r, MaskKind.CLARITY), 20f + 20f * r.ordinal)
+                }.with(Adjustment.CLARITY, 25f))
                 add("combo" to base.with(Adjustment.DEHAZE, 40f).with(Adjustment.CLARITY, 30f).with(Adjustment.WATER, 50f)
                     .with(Adjustment.EXPOSURE, 1.2f).with(Adjustment.STRAIGHTEN, 3f).with(Adjustment.LUMA_NR, 60f))
+            }
+            // The synthetic masks must really change the picture, or the region sets prove nothing.
+            run {
+                val plain = cpu.render(pv, ctx, base, frame)
+                val masked = cpu.render(pv, ctx, sets.first { it.first == "every region at once" }.second, frame)
+                val changed = ImageCompare.of(plain, masked).meanAbs
+                println("region sliders change the CPU render by $changed levels on average")
+                assertTrue(changed > 3.0, "region masks had no effect ($changed)")
             }
             var worst = 0.0
             val failures = ArrayList<String>()

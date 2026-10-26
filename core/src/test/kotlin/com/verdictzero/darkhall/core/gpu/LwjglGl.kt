@@ -24,6 +24,7 @@ class LwjglGl : Gl {
     override fun uniform1f(location: Int, v: Float) = GLES30.glUniform1f(location, v)
     override fun uniform2f(location: Int, x: Float, y: Float) = GLES30.glUniform2f(location, x, y)
     override fun uniform3f(location: Int, x: Float, y: Float, z: Float) = GLES30.glUniform3f(location, x, y, z)
+    override fun uniform4f(location: Int, x: Float, y: Float, z: Float, w: Float) = GLES30.glUniform4f(location, x, y, z, w)
     override fun genTexture() = GLES30.glGenTextures()
     override fun deleteTexture(texture: Int) = GLES30.glDeleteTextures(texture)
     override fun activeTexture(unit: Int) = GLES30.glActiveTexture(unit)

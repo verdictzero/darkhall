@@ -8,6 +8,7 @@ import com.verdictzero.darkhall.core.develop.Lut
 import com.verdictzero.darkhall.core.develop.RenderContext
 import com.verdictzero.darkhall.core.develop.RenderPlan
 import com.verdictzero.darkhall.core.gpu.GlConst as C
+import com.verdictzero.darkhall.core.sky.MaskRegion
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -50,6 +51,13 @@ class GpuDeveloper(
     private var height = 0
     private val textures = HashMap<String, Tex>()
     private var readBuffer: ByteBuffer? = null
+
+    /** The picture the region masks are refined against (the CPU renderer's input). */
+    private var guide: LinearImage? = null
+    /** Each region's mask for the last frame, worked out on the CPU (as the CPU renderer does). */
+    private val maskCache = HashMap<MaskRegion, Pair<List<Any>, FloatArray>>()
+    /** Which masks the mask texture holds. */
+    private var uploadedMasks: List<Int?>? = null
 
     /** Checks capabilities and compiles every shader. Throws [GpuException] if the device can't do it. */
     fun init() {
@@ -135,16 +143,21 @@ class GpuDeveloper(
         textures.clear()
         readBuffer = null
         uploadedLook = null
+        uploadedMasks = null
     }
 
-    /** Uploads the render input (after highlight reconstruction) and sizes the work textures. */
-    fun setImage(img: LinearImage) {
+    /**
+     * Uploads the render input (after highlight reconstruction) and sizes the work textures.
+     * [guide] is the picture before reconstruction, which region masks are refined against.
+     */
+    fun setImage(img: LinearImage, guide: LinearImage = img) {
+        require(guide.width == img.width && guide.height == img.height) { "guide size differs" }
         if (img.width > maxTexture || img.height > maxTexture) throw GpuException("image ${img.width}x${img.height} exceeds GL_MAX_TEXTURE_SIZE $maxTexture")
         if (img.width != width || img.height != height || textures.isEmpty()) {
             freeTextures()
             width = img.width; height = img.height
             val w = width; val h = height
-            for (n in listOf("in", "a", "b")) textures[n] = newTex(w, h, fmt4, C.RGBA, fmtType)
+            for (n in listOf("in", "a", "b", "mask")) textures[n] = newTex(w, h, fmt4, C.RGBA, fmtType)
             for (n in listOf("c", "d")) textures[n] = newTex(w, h, fmt2, C.RG, fmtType)
             for (n in listOf("y", "s1", "s2", "s3", "s4", "s5")) textures[n] = newTex(w, h, fmt1, C.RED, fmtType)
             textures["lut"] = newTex(64, 65, fmt1, C.RED, fmtType)
@@ -161,6 +174,9 @@ class GpuDeveloper(
         gl.texSubImage2D(C.TEXTURE_2D, 0, 0, 0, width, height, C.RGBA, C.FLOAT, buf)
         gl.bindTexture(C.TEXTURE_2D, 0)
         checkError("setImage")
+        this.guide = guide
+        maskCache.clear()
+        uploadedMasks = null
     }
 
     private fun tex(name: String) = textures[name] ?: throw GpuException("no image loaded")
@@ -168,6 +184,8 @@ class GpuDeveloper(
     /** Frees the image-sized textures but keeps the compiled programs for the next image. */
     fun setImageReleased() {
         freeTextures()
+        guide = null
+        maskCache.clear()
         width = 0; height = 0
     }
 
@@ -235,9 +253,12 @@ class GpuDeveloper(
         fun swap() { val t = cur; cur = other; other = t }
         val y = tex("y"); val s1 = tex("s1"); val s2 = tex("s2"); val s3 = tex("s3"); val s4 = tex("s4"); val s5 = tex("s5")
         val m = plan.matrix
+        val regions = plan.regions
+        if (regions.isNotEmpty()) uploadMasks(ctx, plan, frame)
+        fun reg(r: MaskRegion) = regions.firstOrNull { it.region == r && it.colourOn }
 
-        // 1. colour
-        pass("color", cur, listOf("uIn" to tex("in"))) {
+        // 1. colour, then the masked regions
+        pass("color", cur, listOf("uIn" to tex("in"), "uMask" to tex("mask"))) {
             gl.uniform3f(loc("uMulA"), plan.mulA[0], plan.mulA[1], plan.mulA[2])
             gl.uniform3f(loc("uSubB"), plan.subB[0], plan.subB[1], plan.subB[2])
             gl.uniform3f(loc("uM0"), m[0], m[1], m[2])
@@ -249,6 +270,11 @@ class GpuDeveloper(
             gl.uniform1f(loc("uInvR2"), plan.invR2)
             gl.uniform1f(loc("uInvScale"), plan.invScale)
             gl.uniform2f(loc("uFrame0"), plan.frameX0.toFloat(), plan.frameY0.toFloat())
+            gl.uniform1i(loc("uRegOn"), if (regions.any { it.colourOn }) 1 else 0)
+            for (r in MaskRegion.entries) {
+                val q = reg(r)
+                gl.uniform4f(loc("uReg${r.ordinal}"), q?.ev ?: 0f, (q?.warmth ?: 0f) * 0.25f, q?.saturation ?: 0f, if (q != null) 1f else 0f)
+            }
         }
 
         // 2. dehaze
@@ -335,12 +361,16 @@ class GpuDeveloper(
         if (plan.detailOn) {
             pass("luma", y, listOf("uIn" to cur))
             if (plan.sharpenOn) blur(y, s2, s1, plan.sharpenRadius, 2)
-            if (plan.clarityOn) blur(y, s2, s3, plan.clarityRadius, 3)
-            pass("detail", other, listOf("uIn" to cur, "uY" to y, "uSharpBlur" to s1, "uClarBlur" to s3)) {
+            val regionClarity = regions.any { it.clarityOn }
+            if (plan.clarityOn || regionClarity) blur(y, s2, s3, plan.clarityRadius, 3)
+            pass("detail", other, listOf("uIn" to cur, "uY" to y, "uSharpBlur" to s1, "uClarBlur" to s3, "uMask" to tex("mask"))) {
                 gl.uniform1i(loc("uSharpOn"), if (plan.sharpenOn) 1 else 0)
                 gl.uniform1i(loc("uClarOn"), if (plan.clarityOn) 1 else 0)
                 gl.uniform1f(loc("uSharpA"), plan.sharpenAmount)
                 gl.uniform1f(loc("uClarA"), plan.clarityAmount)
+                gl.uniform1i(loc("uRegClarOn"), if (regionClarity) 1 else 0)
+                fun clar(r: MaskRegion) = regions.firstOrNull { it.region == r && it.clarityOn }?.clarity ?: 0f
+                gl.uniform4f(loc("uRegClar"), clar(MaskRegion.SKY), clar(MaskRegion.WATER), clar(MaskRegion.SUBJECT), clar(MaskRegion.FOLIAGE))
             }
             swap()
         }
@@ -387,6 +417,40 @@ class GpuDeveloper(
             px[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
         return px
+    }
+
+    /**
+     * Puts the masks of the regions [plan] uses into the mask texture, one per channel in
+     * [MaskRegion] order. They are refined on the CPU, like the CPU renderer's, and only
+     * recomputed when the frame changes, so slider drags reuse them.
+     */
+    private fun uploadMasks(ctx: RenderContext, plan: RenderPlan, frame: Frame) {
+        val scene = ctx.scene ?: return
+        val img = guide ?: throw GpuException("no image loaded")
+        check(MaskRegion.entries.size == 4) { "the mask texture holds four regions" }
+        val arrays = MaskRegion.entries.map { region ->
+            val mask = if (plan.regions.any { it.region == region }) scene[region] else null
+            if (mask == null) null else {
+                val key = listOf(System.identityHashCode(img), mask, frame.x0, frame.y0, frame.scale)
+                maskCache[region]?.takeIf { it.first == key }?.second
+                    ?: mask.forFrame(img, frame, ctx.fullWidth, ctx.fullHeight).also { maskCache[region] = key to it }
+            }
+        }
+        val key = arrays.map { a -> a?.let { System.identityHashCode(it) } }
+        if (key == uploadedMasks) return
+        val n = width * height
+        val buf = ByteBuffer.allocateDirect(n * 16).order(ByteOrder.nativeOrder())
+        val fb = buf.asFloatBuffer()
+        val (a0, a1, a2, a3) = arrays
+        for (i in 0 until n) {
+            fb.put(a0?.get(i) ?: 0f); fb.put(a1?.get(i) ?: 0f); fb.put(a2?.get(i) ?: 0f); fb.put(a3?.get(i) ?: 0f)
+        }
+        gl.pixelStorei(C.UNPACK_ALIGNMENT, 1)
+        gl.bindTexture(C.TEXTURE_2D, tex("mask").id)
+        gl.texSubImage2D(C.TEXTURE_2D, 0, 0, 0, width, height, C.RGBA, C.FLOAT, buf)
+        gl.bindTexture(C.TEXTURE_2D, 0)
+        checkError("masks")
+        uploadedMasks = key
     }
 
     private var uploadedLook: Lut? = null

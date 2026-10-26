@@ -86,10 +86,13 @@ object GpuRenderer {
         display = d; surface = surf; context = ctx
     }
 
-    /** Uploads the (highlight-reconstructed) preview for the current file. */
-    suspend fun setImage(img: LinearImage) = withContext(dispatcher) {
+    /**
+     * Uploads the (highlight-reconstructed) preview for the current file; [guide] is the preview
+     * before reconstruction, which the region masks are refined against.
+     */
+    suspend fun setImage(img: LinearImage, guide: LinearImage) = withContext(dispatcher) {
         val dev = developer ?: throw IllegalStateException("GPU not ready")
-        guard { dev.setImage(img) }
+        guard { dev.setImage(img, guide) }
     }
 
     /** Full preview render including geometry; packed ARGB. */

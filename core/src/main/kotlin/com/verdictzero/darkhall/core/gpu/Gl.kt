@@ -27,6 +27,7 @@ interface Gl {
     fun uniform1f(location: Int, v: Float)
     fun uniform2f(location: Int, x: Float, y: Float)
     fun uniform3f(location: Int, x: Float, y: Float, z: Float)
+    fun uniform4f(location: Int, x: Float, y: Float, z: Float, w: Float)
 
     fun genTexture(): Int
     fun deleteTexture(texture: Int)
