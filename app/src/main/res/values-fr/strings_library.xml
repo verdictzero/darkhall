@@ -33,8 +33,8 @@
     </plurals>
 
     <!-- Above the grid -->
-    <string name="library_hint_selecting">Touchez pour ajouter ou retirer des photos</string>
-    <string name="library_hint_browsing">Appui long pour sélectionner des photos (coller, tons auto ou export par lot)</string>
+    <string name="library_hint_selecting">Touchez pour ajouter ou retirer</string>
+    <string name="library_hint_browsing">Appui long pour sélectionner</string>
     <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
     <plurals name="library_folder_summary">
         <item quantity="one">"%1$s  ·  %2$d fichier RAW  ·  %3$s"</item>
@@ -46,8 +46,8 @@
     <string name="library_folder_unnamed">Dossier</string>
 
     <!-- Empty library -->
-    <string name="library_empty_title">Aucun fichier RAW pour l\'instant</string>
-    <string name="library_empty_body">Choisissez un dossier de fichiers RAW (le DCIM/100OLYMP de votre TG-7, la carte d\'un autre appareil ou les DNG de votre téléphone), ou ouvrez des fichiers un par un. Formats lus : ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF et RAF.</string>
+    <string name="library_empty_title">Aucun fichier RAW</string>
+    <string name="library_empty_body">Choisissez un dossier ou ouvrez des fichiers.</string>
     <string name="library_choose_folder">Choisir un dossier</string>
     <string name="library_open_files">Ouvrir des fichiers</string>
 
@@ -114,13 +114,14 @@
         <item quantity="other">Tons auto appliqués à %1$d photos</item>
     </plurals>
     <string name="library_auto_partial">Tons auto appliqués à %1$d sur %2$d ; certains fichiers n\'ont pas pu être lus</string>
-    <string name="library_folder_lost">Le dossier n\'est plus accessible ; sélectionnez-le à nouveau.</string>
+    <string name="library_folder_lost">Dossier inaccessible. Choisissez-le à nouveau.</string>
 
     <!-- Presets dialog -->
     <string name="presets_title">Préréglages</string>
-    <string name="presets_empty">Aucun préréglage pour l\'instant. Enregistrez les réglages de cette photo pour les réutiliser sur d\'autres ; le redressement et le recadrage restent propres à chaque photo.</string>
+    <string name="presets_empty">Aucun préréglage. Enregistrez les réglages actuels pour en créer un.</string>
     <string name="presets_delete">Supprimer le préréglage %1$s</string>
     <string name="presets_name_hint">Nom du préréglage</string>
     <string name="presets_save">Enregistrer</string>
     <string name="presets_close">Fermer</string>
+    <string name="library_formats">Formats pris en charge : %1$s</string>
 </resources>

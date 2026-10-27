@@ -6,11 +6,11 @@
         <item quantity="other">%1$d枚の写真を書き出し</item>
     </plurals>
     <string name="export_format">形式</string>
-    <string name="export_purpose_jpeg">共有やプリントサービス向けの小さいファイル。8ビット。</string>
-    <string name="export_purpose_png">可逆圧縮。16ビットなら全階調を保持し、他のアプリでの編集に使えます。</string>
-    <string name="export_purpose_tiff">可逆圧縮。印刷や他の編集ソフト向け。撮影データとGPS情報を保持します。</string>
-    <string name="export_purpose_webp">可逆圧縮で、PNGより小さいファイル。8ビット。</string>
-    <string name="export_purpose_tga">8ビット。ゲームエンジンや古いツール向け。撮影データは含まれません。</string>
+    <string name="export_purpose_jpeg">小さいファイル。8ビット。</string>
+    <string name="export_purpose_png">ロスレス。最大16ビット。</string>
+    <string name="export_purpose_tiff">ロスレス。最大16ビット。EXIFとGPSを保持。</string>
+    <string name="export_purpose_webp">ロスレス、PNGより小さい。8ビット。</string>
+    <string name="export_purpose_tga">8ビット。EXIFなし。</string>
     <string name="export_quality">画質</string>
     <string name="export_bit_depth">ビット深度</string>
     <string name="export_8_bit">8ビット</string>
@@ -57,7 +57,7 @@
 
     <!-- Editor messages -->
     <string name="develop_render_failed">レンダリングに失敗しました: %1$s</string>
-    <string name="develop_out_of_memory">メモリが不足しているため、このファイルを開けません。他のアプリを閉じてからもう一度お試しください。</string>
+    <string name="develop_out_of_memory">このファイルを開くにはメモリが不足しています。</string>
     <!-- Appended to the photo's description; the two leading spaces are kept -->
     <string name="develop_info_noise">"%1$s  ノイズ ≈ ISO %2$d"</string>
     <string name="develop_gpu_stopped">GPUレンダリングを停止しました。CPUを使用します</string>
@@ -66,15 +66,15 @@
     <string name="develop_gpu_rejected">オフ: このドライバーではCPUと結果が一致しません</string>
     <!-- %1$s is a technical measure of the difference -->
     <string name="develop_gpu_mismatch">オフ: CPUと結果が一致しません（%1$s）</string>
-    <string name="develop_gpu_mismatch_message">このGPUの出力が一致しないため、CPUを使用します</string>
+    <string name="develop_gpu_mismatch_message">GPUの結果がCPUと異なるため、CPUを使用します</string>
     <string name="develop_gpu_error">GPUエラー</string>
     <!-- %1$s lists the changed sliders, or says nothing changed -->
     <string name="develop_auto">自動: %1$s</string>
     <string name="develop_auto_balanced">すでにバランスが取れています</string>
     <!-- A slider and its new value, e.g. Exposure +0.50 -->
     <string name="develop_auto_change">%1$s %2$s</string>
-    <string name="develop_masks_failed">空、水、人物を検出できませんでした: %1$s</string>
-    <string name="develop_no_lines">水平の基準になるはっきりした水平線や垂直線がありません</string>
+    <string name="develop_masks_failed">領域の検出に失敗しました: %1$s</string>
+    <string name="develop_no_lines">水平線や垂直線が見つかりません</string>
     <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
     <string name="develop_source_auto">自動</string>
     <string name="develop_source_level">線で水平</string>
@@ -87,9 +87,9 @@
     <string name="develop_by_horizon">水平線を基準に補正</string>
     <string name="develop_to_level">水平に補正</string>
     <string name="develop_to_upright">垂直に補正</string>
-    <string name="develop_settings_copied">設定をコピーしました。ライブラリから他の写真にペーストできます。</string>
+    <string name="develop_settings_copied">設定をコピーしました</string>
     <string name="develop_settings_pasted">設定をペーストしました</string>
     <string name="develop_preset_saved">プリセット「%1$s」を保存しました</string>
     <string name="develop_preset_applied">「%1$s」を適用しました</string>
-    <string name="develop_export_started">書き出しを開始しました。アプリを閉じても処理は続きます。</string>
+    <string name="develop_export_started">書き出しを開始しました</string>
 </resources>

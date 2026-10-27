@@ -33,8 +33,8 @@
     </plurals>
 
     <!-- Above the grid -->
-    <string name="library_hint_selecting">Toque para adicionar ou remover fotos</string>
-    <string name="library_hint_browsing">Toque e segure para selecionar fotos e colar ajustes, aplicar tom automático ou exportar em lote</string>
+    <string name="library_hint_selecting">Toque para adicionar ou remover</string>
+    <string name="library_hint_browsing">Toque e segure para selecionar</string>
     <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
     <plurals name="library_folder_summary">
         <item quantity="one">"%1$s  ·  %2$d arquivo RAW  ·  %3$s"</item>
@@ -46,8 +46,8 @@
     <string name="library_folder_unnamed">Pasta</string>
 
     <!-- Empty library -->
-    <string name="library_empty_title">Nenhum arquivo RAW ainda</string>
-    <string name="library_empty_body">Escolha uma pasta de arquivos RAW (a DCIM/100OLYMP da sua TG-7, o cartão de outra câmera ou os DNGs do seu celular) ou abra arquivos avulsos. Lê ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF e RAF.</string>
+    <string name="library_empty_title">Nenhum arquivo RAW</string>
+    <string name="library_empty_body">Escolha uma pasta ou abra arquivos avulsos.</string>
     <string name="library_choose_folder">Escolher pasta</string>
     <string name="library_open_files">Abrir arquivos</string>
 
@@ -114,13 +114,14 @@
         <item quantity="other">Tom automático aplicado a %1$d fotos</item>
     </plurals>
     <string name="library_auto_partial">Tom automático aplicado a %1$d de %2$d; alguns arquivos não puderam ser lidos</string>
-    <string name="library_folder_lost">A pasta não está mais acessível; escolha-a de novo.</string>
+    <string name="library_folder_lost">Pasta inacessível. Escolha-a novamente.</string>
 
     <!-- Presets dialog -->
     <string name="presets_title">Predefinições</string>
-    <string name="presets_empty">Nenhuma predefinição ainda. Salve os ajustes desta foto para usá-los em outras; Endireitar e o corte ficam em cada foto.</string>
+    <string name="presets_empty">Nenhuma predefinição. Salve as configurações atuais para criar uma.</string>
     <string name="presets_delete">Excluir predefinição %1$s</string>
     <string name="presets_name_hint">Nome da predefinição</string>
     <string name="presets_save">Salvar</string>
     <string name="presets_close">Fechar</string>
+    <string name="library_formats">Formatos compatíveis: %1$s</string>
 </resources>

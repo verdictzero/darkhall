@@ -9,7 +9,7 @@
     <string name="looks_all">すべて</string>
     <string name="looks_favorites">お気に入り</string>
     <string name="looks_favorites_chip">♥ お気に入り</string>
-    <string name="looks_favorites_empty">お気に入りはまだありません。ルックのハートをタップすると、ここに追加されます。</string>
+    <string name="looks_favorites_empty">お気に入りはありません。ルックの♥をタップして追加します。</string>
     <!-- %1$s: the search text -->
     <string name="looks_favorites_no_match">「%1$s」に一致するお気に入りはありません。</string>
     <!-- %1$s: the search text -->
@@ -58,7 +58,7 @@
     <string name="licenses_use_libraw">RAWデコーダー、カメラのカラー、Canonの機種テーブル</string>
     <string name="licenses_use_dng_sdk">浮動小数点DNGのデコード</string>
     <string name="licenses_use_film_simulation">フィルムルック（33³テーブルにリサンプリング）</string>
-    <string name="licenses_use_lensfun">TG-5/6/7のレンズ歪曲と色収差の補正係数</string>
+    <string name="licenses_use_lensfun">歪曲収差と色収差の係数</string>
     <string name="licenses_use_deeplab">空の検出モデル</string>
     <string name="licenses_use_androidx">Core、SplashScreen、Activity、Lifecycle、Compose UI、Foundation、Material 3、Material Icons、DocumentFile、ExifInterface、WorkManager</string>
     <string name="licenses_use_kotlin">言語ランタイム</string>

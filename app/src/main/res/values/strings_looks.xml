@@ -9,7 +9,7 @@
     <string name="looks_all">All</string>
     <string name="looks_favorites">Favorites</string>
     <string name="looks_favorites_chip">♥ Favorites</string>
-    <string name="looks_favorites_empty">No favorites yet. Tap the heart on any look to keep it here.</string>
+    <string name="looks_favorites_empty">No favorites. Tap ♥ on a look to add it.</string>
     <!-- %1$s: the search text -->
     <string name="looks_favorites_no_match">No favorites match “%1$s”.</string>
     <!-- %1$s: the search text -->
@@ -58,7 +58,7 @@
     <string name="licenses_use_libraw">Raw decoders, camera colour and Canon model tables</string>
     <string name="licenses_use_dng_sdk">Floating-point DNG decoding</string>
     <string name="licenses_use_film_simulation">Film looks, resampled to 33³ tables</string>
-    <string name="licenses_use_lensfun">TG-5/6/7 lens distortion and chromatic aberration coefficients</string>
+    <string name="licenses_use_lensfun">Lens distortion and chromatic aberration coefficients</string>
     <string name="licenses_use_deeplab">Sky detection model</string>
     <string name="licenses_use_androidx">Core, SplashScreen, Activity, Lifecycle, Compose UI, Foundation, Material 3, Material Icons, DocumentFile, ExifInterface, WorkManager</string>
     <string name="licenses_use_kotlin">Language runtime</string>

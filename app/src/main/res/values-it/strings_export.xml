@@ -8,11 +8,11 @@
         <item quantity="other">Esporta %1$d foto</item>
     </plurals>
     <string name="export_format">Formato</string>
-    <string name="export_purpose_jpeg">File leggeri per la condivisione e i servizi di stampa. 8 bit.</string>
-    <string name="export_purpose_png">Senza perdita. A 16 bit conserva ogni tono per modificare in altre app.</string>
-    <string name="export_purpose_tiff">Senza perdita, per la stampa e altri editor. Conserva i dati di scatto e il GPS.</string>
-    <string name="export_purpose_webp">Senza perdita e più leggero del PNG. 8 bit.</string>
-    <string name="export_purpose_tga">8 bit, per motori di gioco e strumenti datati. Nessun dato di scatto.</string>
+    <string name="export_purpose_jpeg">File piccoli. 8 bit.</string>
+    <string name="export_purpose_png">Senza perdita. Fino a 16 bit.</string>
+    <string name="export_purpose_tiff">Senza perdita. Fino a 16 bit. Mantiene EXIF e GPS.</string>
+    <string name="export_purpose_webp">Senza perdita, più piccolo di PNG. 8 bit.</string>
+    <string name="export_purpose_tga">8 bit. Senza EXIF.</string>
     <string name="export_quality">Qualità</string>
     <string name="export_bit_depth">Profondità bit</string>
     <string name="export_8_bit">8 bit</string>
@@ -63,7 +63,7 @@
 
     <!-- Editor messages -->
     <string name="develop_render_failed">Rendering non riuscito: %1$s</string>
-    <string name="develop_out_of_memory">Memoria insufficiente per aprire questo file. Chiudi altre app e riprova.</string>
+    <string name="develop_out_of_memory">Memoria insufficiente per aprire questo file.</string>
     <!-- Appended to the photo's description; the two leading spaces are kept -->
     <string name="develop_info_noise">"%1$s  disturbo ≈ ISO %2$d"</string>
     <string name="develop_gpu_stopped">Rendering GPU interrotto: si usa la CPU</string>
@@ -72,15 +72,15 @@
     <string name="develop_gpu_rejected">Disattivato: non coincide con la CPU su questo driver</string>
     <!-- %1$s is a technical measure of the difference -->
     <string name="develop_gpu_mismatch">Disattivato: non coincide con la CPU (%1$s)</string>
-    <string name="develop_gpu_mismatch_message">L\'output di questa GPU non coincideva: si usa la CPU</string>
+    <string name="develop_gpu_mismatch_message">La GPU non coincide con la CPU; uso della CPU</string>
     <string name="develop_gpu_error">Errore GPU</string>
     <!-- %1$s lists the changed sliders, or says nothing changed -->
     <string name="develop_auto">Auto: %1$s</string>
     <string name="develop_auto_balanced">già bilanciata</string>
     <!-- A slider and its new value, e.g. Exposure +0.50 -->
     <string name="develop_auto_change">%1$s %2$s</string>
-    <string name="develop_masks_failed">Impossibile cercare cielo, acqua e persone: %1$s</string>
-    <string name="develop_no_lines">Nessun orizzonte o linea verticale chiara su cui livellare</string>
+    <string name="develop_masks_failed">Rilevamento delle zone non riuscito: %1$s</string>
+    <string name="develop_no_lines">Nessun orizzonte o linea verticale trovata</string>
     <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
     <string name="develop_source_auto">Auto</string>
     <string name="develop_source_level">Livella</string>
@@ -93,9 +93,9 @@
     <string name="develop_by_horizon">dall\'orizzonte</string>
     <string name="develop_to_level">in orizzontale</string>
     <string name="develop_to_upright">in verticale</string>
-    <string name="develop_settings_copied">Impostazioni copiate. Incollale su altre foto dalla libreria.</string>
+    <string name="develop_settings_copied">Impostazioni copiate</string>
     <string name="develop_settings_pasted">Impostazioni incollate</string>
     <string name="develop_preset_saved">Preset \"%1$s\" salvato</string>
     <string name="develop_preset_applied">\"%1$s\" applicato</string>
-    <string name="develop_export_started">Esportazione avviata. Continua anche se esci dall\'app.</string>
+    <string name="develop_export_started">Esportazione avviata</string>
 </resources>

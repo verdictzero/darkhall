@@ -9,7 +9,7 @@
     <string name="looks_all">Tous</string>
     <string name="looks_favorites">Favoris</string>
     <string name="looks_favorites_chip">♥ Favoris</string>
-    <string name="looks_favorites_empty">Aucun favori pour l\'instant. Touchez le cœur d\'un look pour le retrouver ici.</string>
+    <string name="looks_favorites_empty">Aucun favori. Touchez ♥ sur un look pour l\'ajouter.</string>
     <!-- %1$s: the search text -->
     <string name="looks_favorites_no_match">Aucun favori ne correspond à « %1$s ».</string>
     <!-- %1$s: the search text -->
@@ -58,7 +58,7 @@
     <string name="licenses_use_libraw">Décodeurs RAW, couleurs des appareils et tables des modèles Canon</string>
     <string name="licenses_use_dng_sdk">Décodage DNG en virgule flottante</string>
     <string name="licenses_use_film_simulation">Looks de films, rééchantillonnés en tables 33³</string>
-    <string name="licenses_use_lensfun">Coefficients de distorsion et d\'aberration chromatique des objectifs TG-5/6/7</string>
+    <string name="licenses_use_lensfun">Coefficients de distorsion et d\'aberration chromatique</string>
     <string name="licenses_use_deeplab">Modèle de détection du ciel</string>
     <string name="licenses_use_androidx">Core, SplashScreen, Activity, Lifecycle, Compose UI, Foundation, Material 3, Material Icons, DocumentFile, ExifInterface, WorkManager</string>
     <string name="licenses_use_kotlin">Environnement d\'exécution du langage</string>

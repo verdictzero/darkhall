@@ -8,11 +8,11 @@
         <item quantity="other">Exporter %1$d photos</item>
     </plurals>
     <string name="export_format">Format</string>
-    <string name="export_purpose_jpeg">Fichiers légers pour le partage et les services d\'impression. 8 bits.</string>
-    <string name="export_purpose_png">Sans perte. En 16 bits, conserve toutes les nuances pour retoucher dans d\'autres apps.</string>
-    <string name="export_purpose_tiff">Sans perte, pour l\'impression et d\'autres logiciels. Conserve les données de prise de vue et le GPS.</string>
-    <string name="export_purpose_webp">Sans perte et plus léger que le PNG. 8 bits.</string>
-    <string name="export_purpose_tga">8 bits, pour les moteurs de jeu et les outils anciens. Sans données de prise de vue.</string>
+    <string name="export_purpose_jpeg">Fichiers légers. 8 bits.</string>
+    <string name="export_purpose_png">Sans perte. Jusqu\'à 16 bits.</string>
+    <string name="export_purpose_tiff">Sans perte. Jusqu\'à 16 bits. Conserve EXIF et GPS.</string>
+    <string name="export_purpose_webp">Sans perte, plus léger que PNG. 8 bits.</string>
+    <string name="export_purpose_tga">8 bits. Sans EXIF.</string>
     <string name="export_quality">Qualité</string>
     <string name="export_bit_depth">Profondeur</string>
     <string name="export_8_bit">8 bits</string>
@@ -63,7 +63,7 @@
 
     <!-- Editor messages -->
     <string name="develop_render_failed">Échec du rendu : %1$s</string>
-    <string name="develop_out_of_memory">Mémoire insuffisante pour ouvrir ce fichier. Fermez d\'autres apps et réessayez.</string>
+    <string name="develop_out_of_memory">Mémoire insuffisante pour ouvrir ce fichier.</string>
     <!-- Appended to the photo's description; the two leading spaces are kept -->
     <string name="develop_info_noise">"%1$s  bruit ≈ ISO %2$d"</string>
     <string name="develop_gpu_stopped">Rendu GPU interrompu ; utilisation du CPU</string>
@@ -72,15 +72,15 @@
     <string name="develop_gpu_rejected">Désactivé : résultat différent du CPU avec ce pilote</string>
     <!-- %1$s is a technical measure of the difference -->
     <string name="develop_gpu_mismatch">Désactivé : résultat différent du CPU (%1$s)</string>
-    <string name="develop_gpu_mismatch_message">Le rendu de ce GPU ne correspondait pas ; utilisation du CPU</string>
+    <string name="develop_gpu_mismatch_message">Le rendu GPU diffère du CPU ; utilisation du CPU</string>
     <string name="develop_gpu_error">Erreur GPU</string>
     <!-- %1$s lists the changed sliders, or says nothing changed -->
     <string name="develop_auto">Auto : %1$s</string>
     <string name="develop_auto_balanced">déjà équilibrée</string>
     <!-- A slider and its new value, e.g. Exposure +0.50 -->
     <string name="develop_auto_change">%1$s %2$s</string>
-    <string name="develop_masks_failed">Impossible de rechercher le ciel, l\'eau et les personnes : %1$s</string>
-    <string name="develop_no_lines">Aucun horizon ni ligne verticale assez net pour redresser</string>
+    <string name="develop_masks_failed">Échec de la détection des zones : %1$s</string>
+    <string name="develop_no_lines">Aucun horizon ni ligne verticale trouvé</string>
     <!-- Straighten messages: %1$s is develop_source_auto or develop_source_level -->
     <string name="develop_source_auto">Auto</string>
     <string name="develop_source_level">Niveau</string>
@@ -93,9 +93,9 @@
     <string name="develop_by_horizon">d\'après l\'horizon</string>
     <string name="develop_to_level">pour mettre à l\'horizontale</string>
     <string name="develop_to_upright">pour mettre à la verticale</string>
-    <string name="develop_settings_copied">Réglages copiés. Collez-les sur d\'autres photos depuis la bibliothèque.</string>
+    <string name="develop_settings_copied">Réglages copiés</string>
     <string name="develop_settings_pasted">Réglages collés</string>
     <string name="develop_preset_saved">Préréglage « %1$s » enregistré</string>
     <string name="develop_preset_applied">« %1$s » appliqué</string>
-    <string name="develop_export_started">Export lancé. Il se poursuit même si vous quittez l\'app.</string>
+    <string name="develop_export_started">Export lancé</string>
 </resources>

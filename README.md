@@ -1,58 +1,34 @@
 # Darkhall
 
-A sliders-only RAW developer for Android, built around the files an
-**Olympus Tough TG-7** writes, and opening the raws of most other cameras and phones too
-(DNG, Sony ARW, Nikon NEF, Canon CR2 and CR3, Panasonic RW2, Pentax PEF, Fujifilm RAF, every
-Olympus/OM ORF; see
-[Other cameras and phones](#other-cameras-and-phones)).
+A sliders-only raw developer for Android. Open a raw, drag sliders, export.
 
-No curves, no layers, no brushes: open a raw, drag sliders, export a JPEG.
+Reads ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF and RAF; see [Formats](#formats).
 
-## What "tailored to the TG-7" means
+## Features
 
-* **Native ORF decoding.** The TG-7 writes 4040 × 3016 twelve-bit sensor data with
-  Olympus' lossless adaptive-predictive compression. Darkhall decodes it directly
-  (a Kotlin port of the public-domain dcraw algorithm) with no native libraries. On both a
-  TG-6 and a TG-7 sample the output is bit-identical to LibRaw across all 12 million samples.
-* **OM System files.** The TG-7 is sold by OM Digital Solutions and its MakerNote starts
-  with `OM SYSTEM` instead of `OLYMPUS`; both layouts are read.
-* **Camera metadata drives the defaults.** As-shot white balance, per-channel black
-  level, the 4000 × 3000 crop the camera intends, the GRBG pattern and the
-  12-bit white point are read from the MakerNote. Colour uses the matrix the
-  camera itself embeds in every file, so the starting point matches the TG-7's JPEGs;
-  the Adobe matrix for the TG-5/6/7 sensor is the fallback.
-* **Underwater correction from the depth gauge.** The TG-7 records water depth (and air
-  pressure, from which depth can be derived) in every file. The *Underwater* slider removes
-  the blue-green veil and restores the red that water absorbs; for shots taken below 0.5 m it
-  starts switched on, stronger the deeper the shot.
-* **Built-in lens profile.** Distortion and colour fringing of the 4.5–18 mm lens are
-  corrected automatically (the *Lens profile* slider sets the strength).
-* **Auto tone.** One tap sets Exposure, Contrast, Highlights, Shadows, Whites and Blacks,
-  judged through the real tone pipeline; see [Auto tone](#auto-tone).
-* **Profiled noise reduction.** The 1/2.33" sensor gets noisy early. Darkhall measures the
-  noise in each file's raw data (shot and read noise per colour channel, fitted from the
-  flattest patches of the picture), follows it through white balance, the colour matrix and
-  exposure, and sets the luminance denoiser's thresholds from it: a multi-scale wavelet
-  shrinkage that removes noise-sized detail and leaves real edges. Pushing exposure or
-  shooting at high ISO automatically gets proportionally more denoising at the same slider
-  value. Colour noise reduction and sharpening start from the measured noise level (shown as
-  an equivalent ISO in the editor).
-* **Highlight recovery.** Blown channels are rebuilt from the colour of their surroundings
-  instead of turning magenta, and a soft shoulder keeps bright skies and surf from clipping
-  hard; pull *Highlights* down to bring the recovered detail into range.
-* **Field data shown and kept.** Underwater shots carry their depth and water temperature on
-  their library thumbnails ("8.2 m · 24 °C"), and tapping the file name in the editor shows
-  the full shooting info: camera, time, exposure, size, depth, temperature, pressure,
-  altitude and position (with a map link). Exported files carry the GPS position and
-  altitude, and the depth, temperature and pressure readings go into the image description.
-  The library reads these from the start of each file only (its EXIF), and caches them.
-* **370 looks (3D LUTs).** The full RawTherapee Film Simulation Collection — slide, colour
-  negative, instant and black & white film emulations, under descriptive names — plus 77
-  Darkhall originals, including underwater looks for TG-7 dive shots. See [Looks](#looks).
-* **GPU preview rendering, tuned for Adreno.** Slider changes render on the phone's GPU
-  (OpenGL ES 3.0 fragment shaders); see [GPU rendering](#gpu-rendering).
-* **Thumbnails from the embedded preview.** The library reads only the start of each file
-  and the camera's own preview JPEG, so a card full of raws browses quickly.
+* **Raw decoding in Kotlin**, no native libraries. Output is bit-identical to LibRaw on every
+  sample tested.
+* **Starts from the camera's metadata**: as-shot white balance, black and white levels, crop,
+  orientation and colour matrix.
+* **Auto tone**: one tap sets Exposure, Contrast, Highlights, Shadows, Whites and Blacks. See
+  [Auto tone](#auto-tone).
+* **Measured noise**: each file's noise is measured from its raw data and sets the
+  denoiser and sharpening. The editor shows it as an equivalent ISO.
+* **Highlight recovery**: clipped channels are rebuilt from their surroundings; a soft
+  shoulder keeps bright areas from clipping hard.
+* **Underwater tools**: *Underwater* removes the blue-green cast and restores red; it starts
+  on for files that record a water depth. *Backscatter removal* takes out lit particles.
+* **Region sliders**: sky, water, people and foliage, found on the phone. See
+  [Sky, water, subject and foliage](#sky-water-subject-and-foliage).
+* **Lens correction**: DNG lens corrections, and a built-in profile for the Olympus Tough
+  lens.
+* **Field data**: depth, water temperature, pressure, altitude and GPS are shown and kept in
+  exports.
+* **370 looks** (3D LUTs). See [Looks](#looks).
+* **GPU preview** (OpenGL ES 3.0). See [GPU rendering](#gpu-rendering).
+* **Library**: thumbnails from embedded previews, ratings, filters, grouping by date.
+* **Export**: JPEG, PNG, TIFF, WebP, TGA; 8 or 16-bit; resizing; batch; focus stacking.
+* **Languages**: English, German, French, Spanish, Italian, Portuguese, Japanese.
 
 ## Sliders
 
@@ -175,11 +151,10 @@ mask, a dim, plain room can pass for a night sky, and weathered wood can pass fo
 Show mask makes all of these plain. The network learned from photos taken above water, so
 underwater it finds little: divers can come out as subjects, fish rarely do.
 
-## Other cameras and phones
+## Formats
 
-The TG-7 is still what the defaults are tuned for, but the same sliders work on raws from
-other cameras. Each decoder is a Kotlin port of the dcraw/LibRaw algorithm and is checked
-**bit for bit against LibRaw** on real files (see [Tests](#tests)):
+Each decoder is a Kotlin port of the dcraw/LibRaw algorithm, checked **bit for bit against
+LibRaw** on real files (see [Tests](#tests)):
 
 | Format | Cameras | Variants decoded | Checked on |
 |---|---|---|---|
@@ -199,14 +174,14 @@ so they get their own demosaic: the half-size preview weighs each 2×2 cell's co
 red and blue as differences from that green. Noise is measured on the 36 same-colour sites of
 the 6×6 pattern.
 
-What the file provides is used as on the TG-7: as-shot white balance, per-channel black
+From the file: as-shot white balance, per-channel black
 level, the camera's crop, orientation and EXIF. Colour comes from the DNG's own matrix or,
 for the other formats, Adobe's matrix for that body (the table LibRaw ships, 811 camera entries).
 Highlights clip at the level where the camera says its sensor stops being linear (Sony, Canon
 and Panasonic record it), not at the converter's full scale, which keeps bright overcast skies
 from turning magenta. DNG lens corrections are applied: phones' lens-shading gain maps, radial
-vignetting, and the distortion/colour-fringe warp, which drives the *Lens profile* slider just
-like the TG lens profile; DNG BaselineExposure is honoured.
+vignetting, and the distortion/colour-fringe warp, which drives the *Lens profile* slider;
+DNG BaselineExposure is honoured.
 
 Not supported, with a clear message when opened: Fujifilm's older SuperCCD/EXR bodies (S, F
 and HS series), Canon sRAW/mRAW, Sony
@@ -216,35 +191,23 @@ generous memory allowance.
 
 ## Using it
 
-1. Copy the `.ORF` files from the TG-7's card (`DCIM/100OLYMP`) to the phone, or plug
-   the card in with an OTG reader. Other cameras' raws and phone DNGs work the same way.
-2. **Folder** picks a directory to browse; **Files** opens individual raws. Opening a
-   raw from a file manager also works.
-3. Tap a thumbnail, adjust, then **Export** and pick a format (see below). Files (full
-   resolution, with the shooting data) land in `Pictures/Darkhall`.
-4. The chips above the grid sort and filter the library: **By date** groups photos by the
-   day they were taken (newest first), the star chip shows only photos rated 1+, 3+ or 5,
-   **Edited** cycles through edited, unedited and both, **Underwater** keeps dives only, and
-   with several cameras in a folder a camera chip narrows it to one. Rate a photo from the
-   editor's ⋮ menu (tap a star; tap it again to clear) or a whole selection with ⋮ →
-   **Rate…**; the stars show on its thumbnail.
-5. To treat a whole dive alike: ⋮ → **Copy settings** on one photo, then in the library
-   long-press to select others and tap **Paste** (each photo keeps its own Straighten and crop).
-   For a treatment you'll use again, ⋮ → **Presets…** saves the current settings under a
-   name; tap a preset there to apply it, or select photos in the library and use ⋮ →
-   **Apply preset…**. Presets, like pasting, leave each photo's Straighten and crop alone.
-   **Export** on a selection renders the batch.
+1. Copy raws to the phone, or connect the card with an OTG reader.
+2. **Folder** opens a directory; **Files** opens individual raws. Opening a raw from a file
+   manager also works.
+3. Tap a thumbnail, adjust, **Export**. Files go to `Pictures/Darkhall`.
+4. Library chips: **By date**, rating (1+, 3+, 5), **Edited**, **Underwater**, camera.
+5. Rate: editor ⋮ → stars, or select photos → ⋮ → **Rate…**.
+6. Same settings on several photos: ⋮ → **Copy settings**, then select photos → **Paste**.
+   Straighten and crop stay per photo.
+7. Presets: ⋮ → **Presets…** saves or applies; on a selection, ⋮ → **Apply preset…**.
+8. Batch export: select photos → **Export**.
 
-Turned sideways (or on a tablet held in landscape) the editor puts the sliders beside the
-photo, in a wider panel on bigger screens. With TalkBack every slider reads out its name and
-value, can be stepped with volume keys or swipes, and offers a *Reset* action (the double-tap
-on its name); thumbnails read their name, rating, edit and depth in one go, and everything
-tappable has a label and a full-size touch area (checked by `AccessibilityTest`).
+Landscape: sliders beside the photo, wider on tablets. TalkBack: sliders read their name and
+value and have a *Reset* action; thumbnails read as one item; every control has a label and a
+48 dp touch area (checked by `AccessibilityTest`).
 
-The app is in English, German, French, Spanish, Italian, Portuguese and Japanese, following the
-phone's language (or, on Android 13 and later, the app's own language setting); dates in the
-library are written the way the language writes them. Look names, camera data and licence
-texts stay as they are.
+Language follows the phone, or the app's own setting on Android 13 and later. Look names,
+camera data and licence texts are not translated.
 
 ### Export formats
 
@@ -264,8 +227,8 @@ and WebP use Android's. The dialog remembers the last choice, and a library sele
 exports with the same dialog. Formats the gallery doesn't take as pictures on a given device
 go to `Download/Darkhall` instead.
 
-**Focus stacking.** The TG-7's focus bracketing (microscope mode) shoots a series at
-stepped focus distances. Select the series in the library, then ⋮ → **Focus stack…** and
+**Focus stacking.** For a focus-bracketed series (shot at stepped focus distances): select
+it in the library, then ⋮ → **Focus stack…** and
 pick a format: the frames are merged into one picture, sharp from front to back, named after
 the first (`P0001_stack.tif`) and developed with the first photo's edits. Each frame is
 lined up with the one before on its preview, by a Lucas-Kanade fit of scale, rotation and

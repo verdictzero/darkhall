@@ -30,8 +30,8 @@
     </plurals>
 
     <!-- Above the grid -->
-    <string name="library_hint_selecting">Tippe, um Fotos hinzuzufügen oder zu entfernen</string>
-    <string name="library_hint_browsing">Lange drücken, um Fotos zum Einfügen, für Auto-Tonwerte oder den Stapelexport auszuwählen</string>
+    <string name="library_hint_selecting">Tippen zum Hinzufügen oder Entfernen</string>
+    <string name="library_hint_browsing">Lange drücken zum Auswählen</string>
     <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
     <plurals name="library_folder_summary">
         <item quantity="one">"%1$s  ·  %2$d RAW-Datei  ·  %3$s"</item>
@@ -42,8 +42,8 @@
     <string name="library_folder_unnamed">Ordner</string>
 
     <!-- Empty library -->
-    <string name="library_empty_title">Noch keine RAW-Dateien</string>
-    <string name="library_empty_body">Wähle einen Ordner mit RAW-Dateien (DCIM/100OLYMP deiner TG-7, die Karte einer anderen Kamera oder die DNGs deines Smartphones) oder öffne einzelne Dateien. Liest ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF und RAF.</string>
+    <string name="library_empty_title">Keine RAW-Dateien</string>
+    <string name="library_empty_body">Ordner wählen oder einzelne Dateien öffnen.</string>
     <string name="library_choose_folder">Ordner wählen</string>
     <string name="library_open_files">Dateien öffnen</string>
 
@@ -104,13 +104,14 @@
         <item quantity="other">Auto-Tonwerte auf %1$d Fotos angewendet</item>
     </plurals>
     <string name="library_auto_partial">Auto-Tonwerte auf %1$d von %2$d angewendet; einige Dateien konnten nicht gelesen werden</string>
-    <string name="library_folder_lost">Ordner ist nicht mehr zugänglich; bitte erneut auswählen.</string>
+    <string name="library_folder_lost">Ordner nicht mehr zugänglich. Erneut wählen.</string>
 
     <!-- Presets dialog -->
     <string name="presets_title">Presets</string>
-    <string name="presets_empty">Noch keine Presets. Speichere die Einstellungen dieses Fotos, um sie auf andere anzuwenden; Begradigen und Zuschnitt bleiben beim jeweiligen Foto.</string>
+    <string name="presets_empty">Keine Presets. Aktuelle Einstellungen speichern, um eines anzulegen.</string>
     <string name="presets_delete">Preset %1$s löschen</string>
     <string name="presets_name_hint">Name des Presets</string>
     <string name="presets_save">Speichern</string>
     <string name="presets_close">Schließen</string>
+    <string name="library_formats">Unterstützte Formate: %1$s</string>
 </resources>

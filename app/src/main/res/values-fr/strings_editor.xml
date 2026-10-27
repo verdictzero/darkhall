@@ -39,7 +39,7 @@
 
     <!-- Straighten guides -->
     <string name="editor_draw_line_to_level">Tracez une ligne pour mettre à niveau</string>
-    <string name="editor_level_hint">Faites glisser le long de l\'horizon ou d\'une arête verticale</string>
+    <string name="editor_level_hint">Glissez le long d\'un horizon ou d\'un bord vertical</string>
     <!-- %1$s: the straighten angle, e.g. 1.5° -->
     <string name="editor_straighten_value">Redressement %1$s</string>
     <!-- %1$s: degrees, e.g. 2.3 -->
@@ -61,9 +61,9 @@
     <string name="editor_reset_slider">Réinitialiser %1$s</string>
 
     <!-- Masked regions -->
-    <string name="editor_finding_regions">Recherche du ciel, de l\'eau, des personnes et de la végétation… (une ou deux secondes, une fois par photo)</string>
+    <string name="editor_finding_regions">Recherche du ciel, de l\'eau, des personnes et de la végétation…</string>
     <!-- %1$s: region name (Sky); %2$d: percent of the picture; %3$s: region noun (sky) -->
-    <string name="editor_region_coverage">%1$s : %2$d %% de l\'image. Ces curseurs ne modifient que la zone « %3$s ».</string>
+    <string name="editor_region_coverage">%1$s : %2$d %% de l\'image. Agit seulement sur la zone « %3$s ».</string>
     <!-- %1$s: region noun, e.g. sky -->
     <string name="editor_region_absent">Aucune zone « %1$s » trouvée sur cette photo.</string>
 

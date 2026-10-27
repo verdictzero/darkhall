@@ -27,8 +27,8 @@
     </plurals>
 
     <!-- Above the grid -->
-    <string name="library_hint_selecting">タップして写真を選択／解除</string>
-    <string name="library_hint_browsing">長押しで写真を選択（ペースト、自動補正、一括書き出し）</string>
+    <string name="library_hint_selecting">タップで選択／解除</string>
+    <string name="library_hint_browsing">長押しで選択</string>
     <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
     <plurals name="library_folder_summary">
         <item quantity="other">"%1$s  ·  RAWファイル%2$d件  ·  %3$s"</item>
@@ -38,8 +38,8 @@
     <string name="library_folder_unnamed">フォルダ</string>
 
     <!-- Empty library -->
-    <string name="library_empty_title">RAWファイルがまだありません</string>
-    <string name="library_empty_body">RAWファイルのあるフォルダ（TG-7のDCIM/100OLYMP、他のカメラのカード、スマートフォンのDNGなど）を選ぶか、ファイルを個別に開いてください。ORF、DNG、ARW、NEF、CR2、CR3、RW2、PEF、RAFに対応しています。</string>
+    <string name="library_empty_title">RAWファイルがありません</string>
+    <string name="library_empty_body">フォルダを選ぶか、ファイルを開きます。</string>
     <string name="library_choose_folder">フォルダを選択</string>
     <string name="library_open_files">ファイルを開く</string>
 
@@ -94,13 +94,14 @@
         <item quantity="other">%1$d枚の写真に自動補正を適用しました</item>
     </plurals>
     <string name="library_auto_partial">%2$d枚中%1$d枚に自動補正を適用しました。読み込めなかったファイルがあります</string>
-    <string name="library_folder_lost">フォルダにアクセスできなくなりました。もう一度選択してください。</string>
+    <string name="library_folder_lost">フォルダにアクセスできません。選び直してください。</string>
 
     <!-- Presets dialog -->
     <string name="presets_title">プリセット</string>
-    <string name="presets_empty">プリセットはまだありません。この写真の設定を保存すると、他の写真にも使えます。角度補正と切り抜きはプリセットに含まれず、各写真に残ります。</string>
+    <string name="presets_empty">プリセットはありません。現在の設定を保存して作成します。</string>
     <string name="presets_delete">プリセット「%1$s」を削除</string>
     <string name="presets_name_hint">プリセット名</string>
     <string name="presets_save">保存</string>
     <string name="presets_close">閉じる</string>
+    <string name="library_formats">対応形式: %1$s</string>
 </resources>

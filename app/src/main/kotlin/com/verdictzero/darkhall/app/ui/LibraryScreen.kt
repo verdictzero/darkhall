@@ -277,7 +277,9 @@ private fun EmptyLibrary(onPickFolder: () -> Unit, onPickFiles: () -> Unit) {
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
+        FormatWheel()
+        Spacer(Modifier.height(20.dp))
         val strokes = LocalStrokes.current
         Button(onClick = onPickFolder, border = BorderStroke(strokes.width, strokes.selected)) { Text(stringResource(R.string.library_choose_folder)) }
         Spacer(Modifier.height(8.dp))

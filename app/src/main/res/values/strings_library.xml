@@ -30,8 +30,8 @@
     </plurals>
 
     <!-- Above the grid -->
-    <string name="library_hint_selecting">Tap to add or remove photos</string>
-    <string name="library_hint_browsing">Long-press to select photos for paste, auto tone or batch export</string>
+    <string name="library_hint_selecting">Tap to add or remove</string>
+    <string name="library_hint_browsing">Long-press to select</string>
     <!-- %1$s folder name, %2$d number of raw files, %3$s the hint above. -->
     <plurals name="library_folder_summary">
         <item quantity="one">"%1$s  ·  %2$d raw file  ·  %3$s"</item>
@@ -42,8 +42,8 @@
     <string name="library_folder_unnamed">Folder</string>
 
     <!-- Empty library -->
-    <string name="library_empty_title">No raw files yet</string>
-    <string name="library_empty_body">Pick a folder of raw files (your TG-7\'s DCIM/100OLYMP, another camera\'s card, or your phone\'s DNGs), or open individual files. Reads ORF, DNG, ARW, NEF, CR2, CR3, RW2, PEF and RAF.</string>
+    <string name="library_empty_title">No raw files</string>
+    <string name="library_empty_body">Choose a folder or open individual files.</string>
     <string name="library_choose_folder">Choose folder</string>
     <string name="library_open_files">Open files</string>
 
@@ -104,13 +104,14 @@
         <item quantity="other">Auto tone applied to %1$d photos</item>
     </plurals>
     <string name="library_auto_partial">Auto tone applied to %1$d of %2$d; some files couldn\'t be read</string>
-    <string name="library_folder_lost">Folder is no longer accessible; pick it again.</string>
+    <string name="library_folder_lost">Folder no longer accessible. Choose it again.</string>
 
     <!-- Presets dialog -->
     <string name="presets_title">Presets</string>
-    <string name="presets_empty">No presets yet. Save this photo\'s settings to use them on others; Straighten and the crop stay with each photo.</string>
+    <string name="presets_empty">No presets. Save the current settings to create one.</string>
     <string name="presets_delete">Delete preset %1$s</string>
     <string name="presets_name_hint">Preset name</string>
     <string name="presets_save">Save</string>
     <string name="presets_close">Close</string>
+    <string name="library_formats">Supported formats: %1$s</string>
 </resources>

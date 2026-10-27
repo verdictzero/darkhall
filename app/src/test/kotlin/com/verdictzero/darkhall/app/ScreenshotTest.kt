@@ -151,7 +151,7 @@ class ScreenshotTest {
             waitFor { compose.onAllNodesWithText(" ms · ", substring = true).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag(SLIDERS_TAG).performScrollToNode(hasText("Draw level"))
             compose.onNodeWithText("Draw level").performClick()
-            waitFor { compose.onAllNodesWithText("Drag along the horizon", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            waitFor { compose.onAllNodesWithText("Drag along", substring = true).fetchSemanticsNodes().isNotEmpty() }
             if (outDir.isNotEmpty()) shot("straighten_grid")
 
             // A line rising 2 degrees to the right: Straighten must turn the picture back by 2.
@@ -171,7 +171,7 @@ class ScreenshotTest {
             waitFor {
                 compose.onAllNodesWithText("Auto: Straighten", substring = true).fetchSemanticsNodes().isNotEmpty() ||
                     compose.onAllNodesWithText("Auto: already level").fetchSemanticsNodes().isNotEmpty() ||
-                    compose.onAllNodesWithText("No clear horizon", substring = true).fetchSemanticsNodes().isNotEmpty()
+                    compose.onAllNodesWithText("No horizon", substring = true).fetchSemanticsNodes().isNotEmpty()
             }
             if (outDir.isNotEmpty()) shot("straighten_auto")
         }
@@ -397,7 +397,7 @@ class ScreenshotTest {
             compose.onNodeWithContentDescription("More").performClick()
             compose.onNodeWithText("Presets…").performClick()
             compose.onNodeWithContentDescription("Delete preset Punchy").performClick()
-            waitFor { compose.onAllNodesWithText("No presets yet", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            waitFor { compose.onAllNodesWithText("No presets", substring = true).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("More").performClick()
             compose.onNodeWithText("Reset all sliders").performClick()
@@ -430,6 +430,17 @@ class ScreenshotTest {
             compose.onNodeWithText("★★★★★").performClick()
         }
         com.verdictzero.darkhall.app.data.Prefs(app).libraryByDate = false
+    }
+
+    /** The empty library: what to do, and the formats it opens on a turning wheel. */
+    @Test
+    fun emptyLibrary() {
+        assumeTrue(outDir.isNotEmpty())
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitFor { compose.onAllNodesWithText("No raw files").fetchSemanticsNodes().isNotEmpty() }
+            assertTrue(compose.onAllNodesWithContentDescription("Supported formats:", substring = true).fetchSemanticsNodes().isNotEmpty())
+            shot("library_empty")
+        }
     }
 
     /** A landscape tablet: the photo beside a wider slider panel. */

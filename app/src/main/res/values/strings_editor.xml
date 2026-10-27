@@ -39,7 +39,7 @@
 
     <!-- Straighten guides -->
     <string name="editor_draw_line_to_level">Draw a line to level</string>
-    <string name="editor_level_hint">Drag along the horizon or an upright edge</string>
+    <string name="editor_level_hint">Drag along a horizon or vertical edge</string>
     <!-- %1$s: the straighten angle, e.g. 1.5° -->
     <string name="editor_straighten_value">Straighten %1$s</string>
     <!-- %1$s: degrees, e.g. 2.3 -->
@@ -61,9 +61,9 @@
     <string name="editor_reset_slider">Reset %1$s</string>
 
     <!-- Masked regions -->
-    <string name="editor_finding_regions">Finding the sky, water, people and foliage… (a second or two, once per photo)</string>
+    <string name="editor_finding_regions">Finding sky, water, people and foliage…</string>
     <!-- %1$s: region name (Sky); %2$d: percent of the picture; %3$s: region noun (sky) -->
-    <string name="editor_region_coverage">%1$s: %2$d%% of the picture. These sliders change only the %3$s.</string>
+    <string name="editor_region_coverage">%1$s: %2$d%% of the picture. Affects only the %3$s.</string>
     <!-- %1$s: region noun, e.g. sky -->
     <string name="editor_region_absent">No %1$s found in this photo.</string>
 
